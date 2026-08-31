@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "odyssey",
+    "slug": "odyssey",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "odyssey",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": { "supportsTablet": false, "bundleIdentifier": "com.odyssey.app" },
+    "android": { "package": "com.odyssey.app" },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": { "typedRoutes": true }
+  }
+}

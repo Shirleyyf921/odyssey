@@ -216,10 +216,70 @@ International distribution means several overlapping regimes:
   for companion and adult-adjacent services
 - **Age gate and minor protection** at signup, plus the moderation layer in §6
 
-## 12. Proposed MVP Scope
+## 12. Safety
+
+This section is not optional and not deferrable to v2.
+
+Companion products surface self-harm and suicidal ideation at materially higher rates than general
+chat products, because the entire value proposition is that users bring their unguarded emotional
+state to it. The category is also under active legal and regulatory scrutiny internationally,
+following litigation involving minors and AI companion platforms. A single incident is an
+existential event for a product like this, not a support ticket.
+
+### Crisis detection is a separate pipeline from moderation
+
+These have different failure costs and must not share a code path or a threshold:
+
+| | Moderation (§6) | Crisis detection |
+|---|---|---|
+| Guards against | Content policy violation, store delisting | Harm to the user |
+| False negative costs | A policy breach | Potentially a life |
+| Tuning bias | Balanced | **Heavily toward false positives** |
+| Runs on | Both directions | User input, before generation |
+
+Crisis detection runs on user input on the critical path, so it must be low latency — a small
+classifier, not a full model call.
+
+### Response protocol
+
+On trigger, the character **breaks the fiction**. This is the one place where persona consistency
+is explicitly subordinate to user welfare:
+
+- Never stay in character through a crisis, and never roleplay encouragement, romanticization,
+  or method discussion of self-harm
+- Switch to a scripted safe-response mode, not a generated one — generation is not reliable enough
+  at the moment it matters most
+- Surface crisis resources localized to the user's region (988 in the US, Samaritans 116 123 in the
+  UK, and so on). This requires a maintained locale → resource mapping, and directly constrains
+  which markets we can responsibly launch in
+- Log the incident for human review under a defined retention and access policy
+
+### Adversarial robustness
+
+Users will attempt to steer the model past its boundaries, and roleplay framing is an unusually
+effective jailbreak vector because the product legitimately asks the model to play a character.
+Persona prompts in `packages/prompts` need adversarial test coverage in CI, treated as regression
+tests rather than one-off manual QA.
+
+### Age assurance
+
+A checkbox is not an age gate. Requirements grow from §11 obligations, and the enforcement point
+must be server-side, not in the client.
+
+### Designing against dependency
+
+The uncomfortable structural fact: our primary engagement metric and user wellbeing are in tension.
+A product optimized purely for time-in-app on a lonely user is optimizing for something we should
+not want to build. Concretely, this means the proactive messaging system (§8) needs ceilings that
+are set by welfare rather than retention, and we should be willing to measure and report healthy-use
+indicators alongside engagement.
+
+## 13. Proposed MVP Scope
 
 **v1 ships**: primary boyfriend (customizable appearance, personality, name) + text chat +
 the four-layer memory system + subscription + 3–5 curated exploration characters.
+
+**Not deferrable**: the safety systems in §12 ship in v1.
 
 **Deferred to v2**: voice (TTS latency optimization is its own engineering effort), proactive
 messaging, anniversary system, expanded character roster.
@@ -234,4 +294,4 @@ wasted effort.
 - [ ] TTS vendor — English-first, latency is the primary criterion (candidates: Cartesia, ElevenLabs, PlayHT)
 - [ ] Subscription pricing and tier design — flat vs. metered, see §7
 - [ ] How granular should primary-boyfriend persona customization be
-- [ ] Launch geographies — determines which compliance regimes apply on day one
+- [ ] Launch geographies — determines both compliance regimes (§11) and the crisis-resource mapping we must maintain (§12)

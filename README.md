@@ -37,6 +37,26 @@ odyssey/
 └── docs/
 ```
 
+## Getting Started
+
+```bash
+pnpm install
+pnpm dev          # all apps
+pnpm typecheck    # all packages
+```
+
+The API serves `/health` and `ws://localhost:3000/ws/chat` on port 3000.
+
+### A note on pnpm configuration
+
+pnpm 10+ reads workspace settings from `pnpm-workspace.yaml`, **not** `.npmrc`. Two settings there
+are load-bearing:
+
+- `nodeLinker: hoisted` — required for Expo. Metro cannot resolve pnpm's default symlinked virtual
+  store, and React Native breaks on duplicate React copies.
+- `allowBuilds: esbuild` — pnpm blocks postinstall scripts by default, and tsx needs esbuild's
+  native binary. Without it `pnpm install` exits non-zero and blocks every turbo task.
+
 ## Contributing
 
 - `main` is protected; work on feature branches and open a PR
