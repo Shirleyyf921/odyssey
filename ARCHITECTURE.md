@@ -13,12 +13,24 @@ Market: **English-speaking, international** (no China distribution).
 
 ### Competitive Landscape
 
-| | Replika | Character.AI | SpicyChat | odyssey |
+| Product | Shape | Content | Distribution | Monetization |
 |---|---|---|---|---|
-| Shape | Dedicated companion | Character platform at scale | UGC character board | Primary companion + curated exploration |
-| Moat | Memory depth, persona consistency | Content volume, discovery | Content supply | Memory depth, with exploration for retention |
-| Rating | Largely SFW | SFW | NSFW | SFW |
-| Distribution | App stores | App stores + web | Web only | App stores |
+| Replika | Dedicated companion | Largely SFW | App stores | Subscription |
+| Character.AI | Character platform at scale | SFW | App stores + web | Subscription |
+| SpicyChat | UGC character board | NSFW | Web only | Subscription |
+| Tipsy Chat | UGC characters + creator economy | Mature, 17+ rated | **App stores + web** | **Consumable gems + subscription** |
+| **odyssey** | Primary companion + curated exploration | SFW | App stores | TBD — see §7 |
+
+Two things worth extracting from this set:
+
+**Store distribution of mature content is a grey zone, not a hard wall.** Tipsy Chat ships on both
+App Store and Google Play at a 17+ / Mature rating while reportedly applying little text filtering.
+SpicyChat's web-only posture is a choice, not a technical necessity. We remain SFW by decision, but
+the constraint should be understood accurately: the risk is discretionary enforcement and delisting,
+not outright impossibility.
+
+**Tipsy Chat sells consumables, not just access.** See §7 — this is the most transferable finding
+in the set, and it directly addresses our unit-economics exposure.
 
 ### Core design decision: exploration must not dilute exclusivity
 
@@ -110,7 +122,51 @@ A deep primary conversation carries roughly 3–8k tokens of context per message
 per day, that is ~150k input tokens per daily active user per day. This number determines whether
 subscription pricing can cover cost, and **must be measured during the MVP**, not estimated.
 
-## 7. Proactive Messaging
+## 7. Monetization
+
+Our working assumption was a flat subscription. Tipsy Chat's model is worth taking seriously as an
+alternative, because a flat subscription leaves us structurally exposed on cost.
+
+### What Tipsy Chat does
+
+| Element | Detail |
+|---|---|
+| Message pricing | ~16.4 gems consumed per message |
+| Gem packs | One-time purchases from $1.49 to $199.00 |
+| Subscriptions | Three tiers at $4.99 / $14.99 / $44.99 per month, with annual discounts |
+| Free tier | 50 gems per day on sign-in, accumulable |
+| Currency split | Subscription "blue gems" and purchased "red gems" carry different rules |
+| Tier differentiators | Message quota, **memory capacity**, reply length, response quality |
+
+### Why this matters for us
+
+**A flat subscription has unbounded cost exposure.** Per §6, a deep conversation runs 3–8k tokens of
+context per message. A heavy user at 200 messages/day costs roughly 7x a median user at 30, while
+paying identically. In a companion product the heaviest users are precisely the most engaged and
+least likely to churn — so the flat model loses the most money on the users it most wants.
+
+A consumable layer passes variable cost through to variable usage. The tradeoff is friction:
+Tipsy Chat's most common user complaint is that gems are expensive and daily grants insufficient,
+which is exactly the failure mode of metering an emotional product. Every message becomes a purchase
+decision, which is corrosive to the illusion the product sells.
+
+**Note that Tipsy Chat prices memory capacity as a tier differentiator.** That validates memory as
+the monetizable core rather than a background feature, and gives us a pricing axis that is native to
+our architecture — `Relationship.depth` and retrieval budget are already first-class concepts in §4.
+
+### Candidate model for odyssey
+
+Subscription-primary, with metering hidden behind generous caps rather than surfaced per message:
+
+- Tiers differentiate on **memory depth**, voice access, proactive messaging, and exploration slots
+- Soft fair-use ceiling well above normal usage, so typical users never perceive a meter
+- Heavy users past the ceiling degrade to a cheaper model tier rather than hitting a paywall —
+  cost is controlled without breaking the relationship fiction
+- Revisit consumables only if measured usage shows the ceiling cannot be set profitably
+
+This is a hypothesis, not a decision. It depends entirely on the cost measurement in §6.
+
+## 8. Proactive Messaging
 
 The strongest retention lever, and also the biggest source of complaints.
 
@@ -119,7 +175,7 @@ The strongest retention lever, and also the biggest source of complaints.
 - **Rate limiting is mandatory**: daily cap, quiet hours, user can disable
 - Content must carry context (reference something recently discussed) or it reads as spam, not care
 
-## 8. Repository Layout
+## 9. Repository Layout
 
 pnpm workspaces + Turborepo monorepo:
 
@@ -140,14 +196,14 @@ and A/B testing. They should not live inside business logic.
 
 Railway deploying from a monorepo subdirectory: set Root Directory to `apps/api`.
 
-## 9. Collaboration
+## 10. Collaboration
 
 - `main` is protected; feature branches with PRs
 - CI gates: typecheck, lint, test
 - Railway: `main` → production, PRs → preview environments
 - Client builds via GitHub Actions triggering EAS Build
 
-## 10. Compliance
+## 11. Compliance
 
 International distribution means several overlapping regimes:
 
@@ -160,7 +216,7 @@ International distribution means several overlapping regimes:
   for companion and adult-adjacent services
 - **Age gate and minor protection** at signup, plus the moderation layer in §6
 
-## 11. Proposed MVP Scope
+## 12. Proposed MVP Scope
 
 **v1 ships**: primary boyfriend (customizable appearance, personality, name) + text chat +
 the four-layer memory system + subscription + 3–5 curated exploration characters.
@@ -176,6 +232,6 @@ wasted effort.
 
 - [ ] Inference vendor and tiering strategy (blocked on cost measurement)
 - [ ] TTS vendor — English-first, latency is the primary criterion (candidates: Cartesia, ElevenLabs, PlayHT)
-- [ ] Subscription pricing and tier design
+- [ ] Subscription pricing and tier design — flat vs. metered, see §7
 - [ ] How granular should primary-boyfriend persona customization be
 - [ ] Launch geographies — determines which compliance regimes apply on day one

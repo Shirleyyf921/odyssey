@@ -22,7 +22,7 @@ An AI boyfriend companion app. One dedicated primary relationship, plus curated 
 - **Market** — English-speaking, international
 - **Content rating** — SFW, targeting App Store and Google Play
 - **Moat** — memory depth and persona consistency
-- **Reference points** — [Replika](https://replika.com), [Character.AI](https://character.ai), [SpicyChat](https://spicychat.ai)
+- **Reference points** — [Replika](https://replika.com), [Character.AI](https://character.ai), [SpicyChat](https://spicychat.ai), [Tipsy Chat](https://tipsy.chat)
 
 ## Repository Layout
 
