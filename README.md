@@ -1,46 +1,47 @@
 # odyssey
 
-AI 男友陪伴应用。以一个专属男友为主线关系，同时开放其他角色供探索。
+An AI boyfriend companion app. One dedicated primary relationship, plus curated characters to explore.
 
-## 现状
+## Status
 
-🚧 架构设计阶段。技术方案见 [ARCHITECTURE.md](./ARCHITECTURE.md)。
+🚧 Architecture design phase. See [ARCHITECTURE.md](./ARCHITECTURE.md) for the technical plan.
 
-## 技术栈
+## Stack
 
-| 层 | 选型 |
+| Layer | Choice |
 |---|---|
-| 客户端 | React Native (Expo SDK 54+) + EAS Build |
-| 服务端 | TypeScript + Fastify |
-| 部署 | Railway |
-| 数据库 | Postgres + pgvector · Redis |
-| 推理 | 外部 LLM API（经自建 Gateway 抽象） |
-| 付费 | RevenueCat（IAP） |
+| Client | React Native (Expo SDK 54+) + EAS Build |
+| Server | TypeScript + Fastify |
+| Hosting | Railway |
+| Database | Postgres + pgvector · Redis |
+| Inference | External LLM APIs behind an internal gateway |
+| Billing | RevenueCat (in-app purchase) |
 
-## 定位
+## Positioning
 
-- **内容尺度**：SFW，目标上架 App Store / Google Play
-- **核心壁垒**：记忆深度与人设一致性
-- **竞品参照**：[Replika](https://replika.com)（专属伴侣）、[SpicyChat](https://spicychat.ai)（角色广场）
+- **Market** — English-speaking, international
+- **Content rating** — SFW, targeting App Store and Google Play
+- **Moat** — memory depth and persona consistency
+- **Reference points** — [Replika](https://replika.com), [Character.AI](https://character.ai), [SpicyChat](https://spicychat.ai)
 
-## 仓库结构
+## Repository Layout
 
-规划中的 monorepo 结构（pnpm workspaces + Turborepo）：
+Planned monorepo structure (pnpm workspaces + Turborepo):
 
 ```
 odyssey/
-├── apps/mobile/        Expo RN 客户端
-├── apps/api/           Fastify 服务端 → Railway
-├── packages/shared/    zod schema、类型
-├── packages/prompts/   人设与 prompt 模板（版本化）
+├── apps/mobile/        Expo RN client
+├── apps/api/           Fastify server → Railway
+├── packages/shared/    zod schemas, types
+├── packages/prompts/   Persona and prompt templates (versioned)
 └── docs/
 ```
 
-## 协作
+## Contributing
 
-- `main` 分支保护，feature 分支 + PR
-- CI 必过：typecheck / lint / test
-- Railway：`main` → production，PR → preview environment
+- `main` is protected; work on feature branches and open a PR
+- CI gates: typecheck, lint, test
+- Railway: `main` → production, PRs → preview environments
 
 ## License
 
