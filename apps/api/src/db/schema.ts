@@ -40,14 +40,23 @@ export const momentUnlockSource = pgEnum('moment_unlock_source', [
 
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' })
 
-export const users = pgTable('users', {
+/** Must match the embedding model in use. bge-m3 style models are 1024; change both together. */
+export const EMBEDDING_DIMENSIONS = 1024
+
+export const users = pgTable(
+  'users',
+  {
   id: uuid('id').primaryKey().defaultRandom(),
+  /** Anonymous device identity until real sign-in exists. */
+  deviceId: text('device_id'),
   displayName: text('display_name'),
   locale: text('locale').notNull().default('en-US'),
   /** Server-side age gate. Null means not yet verified — see ARCHITECTURE.md section 12. */
   ageVerifiedAt: timestamptz('age_verified_at'),
   createdAt: timestamptz('created_at').notNull().defaultNow(),
-})
+  },
+  (t) => [uniqueIndex('users_device_id_uq').on(t.deviceId)]
+)
 
 export const characters = pgTable('characters', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -100,6 +109,9 @@ export const conversations = pgTable(
     relationshipId: uuid('relationship_id')
       .notNull()
       .references(() => relationships.id, { onDelete: 'cascade' }),
+    /** Mid-term memory: rolling summary of everything up to summaryThroughMessageId. */
+    summary: text('summary').notNull().default(''),
+    summaryThroughMessageId: uuid('summary_through_message_id'),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
   },
   (t) => [index('conversations_relationship_idx').on(t.relationshipId)]
@@ -136,8 +148,7 @@ export const memories = pgTable(
       .notNull()
       .references(() => relationships.id, { onDelete: 'cascade' }),
     fact: text('fact').notNull(),
-    /** Dimension follows the embedding model; change both together. */
-    embedding: vector('embedding', { dimensions: 1536 }),
+    embedding: vector('embedding', { dimensions: EMBEDDING_DIMENSIONS }),
     confidence: real('confidence').notNull().default(1),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
   },

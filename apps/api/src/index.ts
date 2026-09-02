@@ -2,16 +2,21 @@ import Fastify from 'fastify'
 import websocket from '@fastify/websocket'
 import { env } from './env.js'
 import { healthRoutes } from './routes/health.js'
+import { characterRoutes } from './routes/characters.js'
 import { chatWebsocket } from './ws/chat.js'
+import { requireDevice } from './auth/device.js'
 import { createDb } from './db/client.js'
+import { EMBEDDING_DIMENSIONS } from './db/schema.js'
 import { DrizzleRepository } from './repo/drizzle.js'
 import { MemoryRepository } from './repo/memory.js'
-import type { ChatRepository } from './repo/types.js'
+import type { AppRepository } from './repo/types.js'
 import { LlmGateway } from './llm/gateway.js'
 import { OpenAiCompatibleProvider } from './llm/openai-compatible.js'
 import { AnthropicProvider } from './llm/anthropic.js'
 import { ScriptedProvider } from './llm/scripted.js'
 import type { LlmProvider } from './llm/types.js'
+import { HashEmbeddings, OpenAiCompatibleEmbeddings, type EmbeddingProvider } from './memory/embeddings.js'
+import { MemoryService } from './memory/service.js'
 import { NoopCrisisDetector } from './safety/crisis.js'
 
 const app = Fastify({
@@ -19,7 +24,7 @@ const app = Fastify({
 })
 
 // ---------------------------------------------------------------- persistence
-let repo: ChatRepository
+let repo: AppRepository
 let closeDb: (() => Promise<void>) | undefined
 if (env.DATABASE_URL) {
   const { db, close } = createDb(env.DATABASE_URL)
@@ -30,10 +35,8 @@ if (env.DATABASE_URL) {
     app.log.error('DATABASE_URL is required in production')
     process.exit(1)
   }
-  const memory = new MemoryRepository()
-  const demo = memory.seedDemo()
-  repo = memory
-  app.log.warn({ conversationId: demo.conversationId }, 'no DATABASE_URL: in-memory store with a demo conversation')
+  repo = new MemoryRepository()
+  app.log.warn('no DATABASE_URL: in-memory store seeded with the launch roster')
 }
 
 // ---------------------------------------------------------------- inference
@@ -57,10 +60,27 @@ app.log.info({ EVERYDAY: everyday.name, PIVOTAL: pivotal.name }, 'llm routes')
 
 const gateway = new LlmGateway({ EVERYDAY: everyday, PIVOTAL: pivotal }, app.log)
 
+const embeddings: EmbeddingProvider = env.NOVITA_API_KEY
+  ? new OpenAiCompatibleEmbeddings({
+      name: 'novita',
+      baseUrl: env.NOVITA_BASE_URL,
+      apiKey: env.NOVITA_API_KEY,
+      model: env.NOVITA_EMBEDDING_MODEL,
+      dimensions: EMBEDDING_DIMENSIONS,
+    })
+  : new HashEmbeddings(EMBEDDING_DIMENSIONS)
+if (embeddings.name === 'hash') app.log.warn('no embedding key: long-term memory uses hash embeddings')
+
+const memory = new MemoryService(repo, gateway, embeddings, app.log, { tier: env.MEMORY_TIER })
+
 // ---------------------------------------------------------------- http + ws
 await app.register(websocket)
 await app.register(healthRoutes)
-await app.register(chatWebsocket, { repo, gateway, crisis: new NoopCrisisDetector() })
+await app.register(async (scoped) => {
+  requireDevice(scoped, repo)
+  await scoped.register(characterRoutes, { repo })
+  await scoped.register(chatWebsocket, { repo, gateway, memory, crisis: new NoopCrisisDetector() })
+})
 
 try {
   await app.listen({ port: env.PORT, host: env.HOST })
@@ -74,6 +94,7 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   process.on(signal, async () => {
     app.log.info(`${signal} received, shutting down`)
     await app.close()
+    await memory.drain()
     await closeDb?.()
     process.exit(0)
   })

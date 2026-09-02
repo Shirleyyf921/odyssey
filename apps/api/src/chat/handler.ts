@@ -1,15 +1,19 @@
 import { randomUUID } from 'node:crypto'
 import type { ClientEvent, ServerEvent } from '@odyssey/shared'
 import type { LlmGateway } from '../llm/gateway.js'
-import type { ChatRepository } from '../repo/types.js'
+import type { MemoryService } from '../memory/service.js'
+import type { ChatRepository, UserRecord } from '../repo/types.js'
 import { INTERVENTION_BODY, resourcesFor, type CrisisDetector } from '../safety/crisis.js'
-import { buildCompletionRequest, SHORT_TERM_TURNS } from './prompt.js'
+import { buildCompletionRequest } from './prompt.js'
 import { chooseTier } from './tier.js'
 
 export interface ChatDeps {
   repo: ChatRepository
   gateway: LlmGateway
+  memory: MemoryService
   crisis: CrisisDetector
+  /** The authenticated user behind this socket. */
+  user: UserRecord
   log: { info(obj: Record<string, unknown>, msg: string): void; error(obj: Record<string, unknown>, msg: string): void }
 }
 
@@ -25,16 +29,27 @@ export async function handleClientEvent(deps: ChatDeps, event: ClientEvent, send
   }
 }
 
+async function authorize(deps: ChatDeps, conversationId: string, send: Send) {
+  const ctx = await deps.repo.getConversationContext(conversationId)
+  if (!ctx) {
+    send({ type: 'error', code: 'INVALID_PAYLOAD', message: 'Unknown conversation' })
+    return null
+  }
+  if (ctx.relationship.userId !== deps.user.id) {
+    send({ type: 'error', code: 'UNAUTHORIZED', message: 'Not your conversation' })
+    return null
+  }
+  return ctx
+}
+
 async function handleSendMessage(
   deps: ChatDeps,
   event: Extract<ClientEvent, { type: 'send_message' }>,
   send: Send
 ): Promise<void> {
-  const { repo, gateway, crisis, log } = deps
-  const ctx = await repo.getConversationContext(event.conversationId)
-  if (!ctx) {
-    return send({ type: 'error', code: 'INVALID_PAYLOAD', message: 'Unknown conversation' })
-  }
+  const { repo, gateway, memory, crisis, log } = deps
+  const ctx = await authorize(deps, event.conversationId, send)
+  if (!ctx) return
 
   // Idempotency: a retried send gets the original reply, never a second generation.
   const existing = await repo.findByClientMsgId(event.conversationId, event.clientMsgId)
@@ -75,8 +90,8 @@ async function handleSendMessage(
     })
   }
 
-  const history = await repo.listRecentMessages(event.conversationId, SHORT_TERM_TURNS)
-  const request = buildCompletionRequest(ctx, history)
+  const assembled = await memory.assemble(ctx, event.content)
+  const request = buildCompletionRequest(ctx, assembled)
   const tier = chooseTier(ctx, event.content)
 
   const messageId = randomUUID()
@@ -119,10 +134,13 @@ async function handleSendMessage(
     outputTokens: usage?.outputTokens ?? null,
   })
   log.info(
-    { conversationId: event.conversationId, tier, model, ...usage },
+    { conversationId: event.conversationId, tier, model, memories: assembled.memories.length, ...usage },
     'turn complete'
   )
   send({ type: 'message_end', messageId, message: reply })
+
+  // Memory writes never block the reply path.
+  memory.afterTurn(ctx, userMessage, reply)
 }
 
 async function handleResume(
@@ -130,10 +148,8 @@ async function handleResume(
   event: Extract<ClientEvent, { type: 'resume' }>,
   send: Send
 ): Promise<void> {
-  const ctx = await deps.repo.getConversationContext(event.conversationId)
-  if (!ctx) {
-    return send({ type: 'error', code: 'INVALID_PAYLOAD', message: 'Unknown conversation' })
-  }
+  const ctx = await authorize(deps, event.conversationId, send)
+  if (!ctx) return
   const messages = await deps.repo.listMessagesAfter(event.conversationId, event.lastMessageId, 200)
   send({ type: 'history', conversationId: event.conversationId, messages })
 }

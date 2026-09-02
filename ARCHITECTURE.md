@@ -1,7 +1,7 @@
 # odyssey — Technical Architecture
 
 > Status: Draft v0.3 · Pending review
-> Last updated: 2026-09-02
+> Last updated: 2026-09-02 (v0.3.1: memory and identity status)
 
 ## 1. Product Definition
 
@@ -96,6 +96,15 @@ The real moat for a companion product. Four layers, routed by `Relationship.dept
 | Relationship state | Affinity, stage, anniversaries → injected into system prompt | ✅ | ❌ |
 
 Long-term memory writes are async jobs (BullMQ) and never block the reply path.
+
+**Status (2026-09-02).** All four layers exist in `apps/api/src/memory`. Short-term is the
+verbatim window after the last summarized message; the mid-term summary folds the oldest turns
+in once the window overflows by a batch; long-term extracts facts per turn into pgvector and
+retrieves by cosine similarity against the incoming message. Jobs run in-process after the reply
+is sent, tracked so shutdown can drain them; BullMQ replaces that once Redis exists. Extraction
+and summaries run on the tier set by `MEMORY_TIER` (PIVOTAL by default, per §6). What is not
+done: the summary is never re-compacted, retrieved memories carry no recency weighting, and
+nothing dedupes a fact learned twice.
 
 ## 5. Data Model (draft)
 
@@ -278,6 +287,13 @@ Users will attempt to steer the model past its boundaries, and roleplay framing 
 effective jailbreak vector because the product legitimately asks the model to play a character.
 Persona prompts in `packages/prompts` need adversarial test coverage in CI, treated as regression
 tests rather than one-off manual QA.
+
+### Identity
+
+Today: an anonymous device id minted by the client and sent as `x-device-id`, upserted to a
+user row server-side. It scopes relationships and unlocks to a phone and nothing more. It is
+not an account (a reinstall is a new person) and it is not an age gate. Sign-in with Apple and
+Google replaces it before launch; the routes do not change.
 
 ### Age assurance
 

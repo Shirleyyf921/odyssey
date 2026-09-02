@@ -4,8 +4,10 @@ An AI boyfriend companion app. One dedicated primary relationship, plus curated 
 
 ## Status
 
-🚧 Framework stage. The chat loop runs end to end (WebSocket → LLM gateway → Postgres), with
-memory, safety detection, and the client still to come. See [ARCHITECTURE.md](./ARCHITECTURE.md).
+🚧 Framework stage. Roster, character page, chat, and moments run end to end from the Expo
+client through the API to Postgres, with mid-term and long-term memory behind the reply. Character
+art is placeholder until the assets arrive; crisis detection is a contract without a classifier.
+See [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Stack
 
@@ -55,9 +57,33 @@ to configure Postgres, Novita, and Anthropic.
 ```bash
 pnpm --filter @odyssey/api db:generate   # after editing src/db/schema.ts
 pnpm --filter @odyssey/api db:migrate    # apply migrations to DATABASE_URL
+pnpm --filter @odyssey/api db:seed       # upsert the launch roster (idempotent)
 ```
 
 The Postgres instance needs the `vector` extension (Railway's pgvector image has it).
+
+### Running the client
+
+```bash
+pnpm --filter @odyssey/api dev                                   # terminal 1
+EXPO_PUBLIC_API_URL=http://<your-lan-ip>:3000 pnpm --filter @odyssey/mobile dev   # terminal 2
+```
+
+A phone cannot reach `localhost` on your laptop, so point `EXPO_PUBLIC_API_URL` at the LAN
+address. The client mints a device id on first launch and sends it as `x-device-id`; that is
+the whole identity story until real sign-in lands.
+
+### HTTP API
+
+All routes except `/health` require `x-device-id: <uuid>`.
+
+| Route | Purpose |
+|---|---|
+| `GET /characters` | Roster with the caller's relationship on each |
+| `GET /characters/:id` | Portraits, relationship, moment count |
+| `POST /characters/:id/start` | Idempotent; creates the relationship and its conversation |
+| `GET /characters/:id/moments` | Cards; locked ones carry no asset URL |
+| `ws://…/ws/chat?deviceId=<uuid>` | Chat, see `packages/shared/src/protocol.ts` |
 
 ### A note on pnpm configuration
 

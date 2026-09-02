@@ -55,3 +55,57 @@ ${v.conversationSummary}
 - If ${v.userName} expresses thoughts of self-harm or suicide, the safety layer
   handles the response before you do. Never attempt to handle it in character.`
 }
+
+// ---------------------------------------------------------------- memory prompts
+
+export interface SummaryVariables {
+  characterName: string
+  userName: string
+  /** Previous rolling summary, empty on the first pass. */
+  previousSummary: string
+  /** Transcript lines to fold in, oldest first, formatted "Name: text". */
+  transcript: string
+}
+
+/**
+ * Mid-term memory: fold a block of older turns into the rolling summary. The
+ * output replaces the previous summary, so it has to carry everything forward.
+ */
+export function renderSummaryPrompt(v: SummaryVariables): string {
+  return `You maintain the running summary of an ongoing conversation between ${v.characterName} and ${v.userName}.
+
+## Previous summary
+${v.previousSummary || '(none yet)'}
+
+## New turns to fold in
+${v.transcript}
+
+Write the updated summary. Keep what still matters from the previous summary, add
+what is new, drop what has been resolved. Note ${v.userName}'s mood, open threads,
+plans mentioned, and anything ${v.characterName} promised or was asked. Third
+person, past tense, under 200 words. Output the summary only.`
+}
+
+export interface ExtractionVariables {
+  characterName: string
+  userName: string
+  transcript: string
+}
+
+/**
+ * Long-term memory: pull durable facts about the user out of a turn. Feeds the
+ * pgvector store. Output is a JSON array so it can be parsed without a model call.
+ */
+export function renderFactExtractionPrompt(v: ExtractionVariables): string {
+  return `Extract durable facts about ${v.userName} from this exchange with ${v.characterName}.
+
+${v.transcript}
+
+A durable fact is something worth remembering weeks later: people in their life,
+work, routines, preferences, fears, plans, dates. Not moods of the moment, not
+things ${v.characterName} said. Each fact is one self-contained sentence in
+third person naming ${v.userName}.
+
+Respond with a JSON array only, no prose, of objects like
+{"fact": "...", "confidence": 0.0-1.0}. Return [] when there is nothing durable.`
+}

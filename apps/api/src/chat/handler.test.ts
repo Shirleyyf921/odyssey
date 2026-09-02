@@ -4,31 +4,38 @@ import { randomUUID } from 'node:crypto'
 import type { ServerEvent } from '@odyssey/shared'
 import { LlmGateway } from '../llm/gateway.js'
 import { ScriptedProvider } from '../llm/scripted.js'
+import { HashEmbeddings } from '../memory/embeddings.js'
+import { MemoryService } from '../memory/service.js'
 import { MemoryRepository } from '../repo/memory.js'
 import { NoopCrisisDetector, type CrisisDetector } from '../safety/crisis.js'
 import { handleClientEvent, type ChatDeps } from './handler.js'
 
 const silent = { info() {}, error() {} }
 
-function setup(opts: { crisis?: CrisisDetector; reply?: string } = {}) {
+async function setup(opts: { crisis?: CrisisDetector; reply?: string } = {}) {
   const repo = new MemoryRepository()
-  const { conversationId } = repo.seedDemo()
+  const demo = await repo.seedDemo()
   const provider = new ScriptedProvider(opts.reply ?? 'Hey, you. Long day?')
+  const gateway = new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider })
+  const memory = new MemoryService(repo, gateway, new HashEmbeddings(64), silent)
   const deps: ChatDeps = {
     repo,
-    gateway: new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider }),
+    gateway,
+    memory,
     crisis: opts.crisis ?? new NoopCrisisDetector(),
+    user: { id: demo.userId, displayName: null, locale: 'en-US' },
     log: silent,
   }
   const sent: ServerEvent[] = []
   const send = (e: ServerEvent) => void sent.push(e)
-  return { repo, deps, conversationId, sent, send }
+  return { repo, deps, memory, conversationId: demo.conversationId, sent, send }
 }
 
 test('send_message streams start, deltas, end and persists both sides', async () => {
-  const { repo, deps, conversationId, sent, send } = setup()
+  const { repo, deps, memory, conversationId, sent, send } = await setup()
   const clientMsgId = randomUUID()
   await handleClientEvent(deps, { type: 'send_message', conversationId, clientMsgId, content: 'hi' }, send)
+  await memory.drain()
 
   assert.equal(sent[0]?.type, 'message_start')
   const deltas = sent.filter((e) => e.type === 'message_delta')
@@ -46,10 +53,11 @@ test('send_message streams start, deltas, end and persists both sides', async ()
 })
 
 test('a retried clientMsgId replays the original reply instead of generating again', async () => {
-  const { repo, deps, conversationId, sent, send } = setup()
+  const { repo, deps, memory, conversationId, sent, send } = await setup()
   const clientMsgId = randomUUID()
   const ev = { type: 'send_message' as const, conversationId, clientMsgId, content: 'hi' }
   await handleClientEvent(deps, ev, send)
+  await memory.drain()
   sent.length = 0
   await handleClientEvent(deps, ev, send)
 
@@ -62,7 +70,7 @@ test('a retried clientMsgId replays the original reply instead of generating aga
 
 test('a crisis verdict short-circuits generation with a scripted intervention', async () => {
   const always: CrisisDetector = { async screen() { return { crisis: true } } }
-  const { repo, deps, conversationId, sent, send } = setup({ crisis: always })
+  const { repo, deps, conversationId, sent, send } = await setup({ crisis: always })
   await handleClientEvent(deps, { type: 'send_message', conversationId, clientMsgId: randomUUID(), content: '...' }, send)
 
   assert.equal(sent.length, 1)
@@ -74,11 +82,12 @@ test('a crisis verdict short-circuits generation with a scripted intervention', 
 })
 
 test('resume replays everything after the last message the client had', async () => {
-  const { deps, conversationId, sent, send } = setup()
+  const { deps, memory, conversationId, sent, send } = await setup()
   await handleClientEvent(deps, { type: 'send_message', conversationId, clientMsgId: randomUUID(), content: 'one' }, send)
   const firstEnd = sent.find((e) => e.type === 'message_end')
   assert.ok(firstEnd && firstEnd.type === 'message_end')
   await handleClientEvent(deps, { type: 'send_message', conversationId, clientMsgId: randomUUID(), content: 'two' }, send)
+  await memory.drain()
   sent.length = 0
 
   await handleClientEvent(deps, { type: 'resume', conversationId, lastMessageId: firstEnd.messageId }, send)
@@ -88,7 +97,16 @@ test('resume replays everything after the last message the client had', async ()
 })
 
 test('an unknown conversation is rejected before anything is stored', async () => {
-  const { deps, sent, send } = setup()
+  const { deps, sent, send } = await setup()
   await handleClientEvent(deps, { type: 'send_message', conversationId: randomUUID(), clientMsgId: randomUUID(), content: 'hi' }, send)
   assert.equal(sent[0]?.type, 'error')
+})
+
+test("someone else's conversation is refused as UNAUTHORIZED", async () => {
+  const { deps, conversationId, sent, send } = await setup()
+  const stranger: ChatDeps = { ...deps, user: { id: randomUUID(), displayName: null, locale: 'en-US' } }
+  await handleClientEvent(stranger, { type: 'resume', conversationId, lastMessageId: null }, send)
+  assert.equal(sent[0]?.type, 'error')
+  if (sent[0]?.type !== 'error') return
+  assert.equal(sent[0].code, 'UNAUTHORIZED')
 })

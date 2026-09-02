@@ -5,19 +5,21 @@ import { handleClientEvent, type ChatDeps } from '../chat/handler.js'
 /**
  * Chat WebSocket. Owns framing, validation, and per-socket ordering; the
  * conversation logic lives in chat/handler.ts so it can be tested without a socket.
+ * Expects to be registered inside the scope where requireDevice() ran, so
+ * req.user is populated before the upgrade.
  */
-export async function chatWebsocket(app: FastifyInstance, deps: Omit<ChatDeps, 'log'>) {
+export async function chatWebsocket(app: FastifyInstance, deps: Omit<ChatDeps, 'log' | 'user'>) {
   app.get('/ws/chat', { websocket: true }, (socket, req) => {
     const send = (event: ServerEvent) => {
       if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(event))
     }
-    const handlerDeps: ChatDeps = { ...deps, log: req.log }
+    const handlerDeps: ChatDeps = { ...deps, user: req.user, log: req.log }
 
     // Events on one socket are processed in order. A client that sends twice before
     // the first reply finishes still gets two replies, one after the other.
     let queue: Promise<void> = Promise.resolve()
 
-    req.log.info('ws connected')
+    req.log.info({ userId: req.user.id }, 'ws connected')
 
     socket.on('message', (raw: Buffer) => {
       let parsed: unknown

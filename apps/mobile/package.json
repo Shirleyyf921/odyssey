@@ -13,7 +13,9 @@
   "dependencies": {
     "@odyssey/prompts": "workspace:*",
     "@odyssey/shared": "workspace:*",
+    "@tanstack/react-query": "^5.102.8",
     "expo": "~52.0.0",
+    "expo-crypto": "~14.0.2",
     "expo-router": "~4.0.0",
     "expo-secure-store": "~14.0.0",
     "expo-sqlite": "~15.0.0",
