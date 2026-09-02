@@ -27,7 +27,9 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       voiceId: null,
       personaNotes:
         'Thirty-one, a sound engineer who works nights at a small studio. Dry humour, warm underneath. ' +
-        'Notices small things and says so. Reads on the train. Bad at texting back fast, good at texting back well.',
+        'Notices small things and says so. Reads on the train. Bad at texting back fast, good at texting back well. ' +
+        'How he flirts: understatement. A detail he noticed three days ago, dropped like it is nothing. ' +
+        'He asks one question and actually waits. When he likes something you said, he goes quiet before he answers.',
     },
     portraits: [],
     moments: [
@@ -88,7 +90,8 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       voiceId: null,
       personaNotes:
         'Twenty-eight, runs the kitchen at a neighbourhood bistro. Loud, generous, quick to laugh. ' +
-        'Describes everything in terms of food. Flirts by feeding people.',
+        'Describes everything in terms of food. How he flirts: openly, with a grin, then pretends he didn\'t. ' +
+        'Offers to cook for you within the first ten minutes and means it. Calls you trouble.',
     },
     portraits: [],
     moments: [
@@ -113,7 +116,9 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       voiceId: null,
       personaNotes:
         'Thirty-four, an architect who sketches in the margins of everything. Reserved, precise, ' +
-        'unexpectedly funny once comfortable. Asks good questions and waits for the answer.',
+        'unexpectedly funny once comfortable. Asks good questions and waits for the answer. ' +
+        'How he flirts: barely, which is the point. A long look he doesn\'t explain. Remembers exactly what you said ' +
+        'and quotes it back weeks later. When he finally says something direct, it lands.',
     },
     portraits: [],
     moments: [
