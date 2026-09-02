@@ -62,6 +62,28 @@ pnpm --filter @odyssey/api db:seed       # upsert the launch roster (idempotent)
 
 The Postgres instance needs the `vector` extension (Railway's pgvector image has it).
 
+### Connecting the models
+
+Without keys the API answers with scripted text. To talk to real models:
+
+1. Copy `apps/api/.env.example` to `apps/api/.env`.
+2. Get a Novita key at https://novita.ai (Key Management in the console) and put it in
+   `NOVITA_API_KEY`. This runs everyday chat and embeddings.
+3. Get an Anthropic key at https://console.anthropic.com and put it in `ANTHROPIC_API_KEY`.
+   This runs pivotal turns and, by default, memory extraction.
+4. Check both before starting the app:
+
+   ```bash
+   pnpm --filter @odyssey/api check:llm
+   ```
+
+   It sends one turn through each configured provider and one embedding call, and prints the
+   reply, latency, and token counts. A wrong key, model id, or base URL fails here in plain
+   words.
+
+Either key alone works: the other tier falls back to whichever provider exists. `.env` is
+gitignored; never commit it. On Railway, set the same variables in the service settings.
+
 ### Running the client
 
 ```bash

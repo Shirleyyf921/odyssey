@@ -10,16 +10,10 @@ import { appleVerifier, devVerifier, googleVerifier, type TokenVerifier } from '
 import { AuthService } from './auth/service.js'
 import { authRoutes, publicAuthRoutes } from './routes/auth.js'
 import { createDb } from './db/client.js'
-import { EMBEDDING_DIMENSIONS } from './db/schema.js'
 import { DrizzleRepository } from './repo/drizzle.js'
 import { MemoryRepository } from './repo/memory.js'
 import type { AppRepository } from './repo/types.js'
-import { LlmGateway } from './llm/gateway.js'
-import { OpenAiCompatibleProvider } from './llm/openai-compatible.js'
-import { AnthropicProvider } from './llm/anthropic.js'
-import { ScriptedProvider } from './llm/scripted.js'
-import type { LlmProvider } from './llm/types.js'
-import { HashEmbeddings, OpenAiCompatibleEmbeddings, type EmbeddingProvider } from './memory/embeddings.js'
+import { gatewayFromEnv } from './llm/from-env.js'
 import { MemoryService } from './memory/service.js'
 import { RelationshipService } from './relationship/service.js'
 import { NoopCrisisDetector } from './safety/crisis.js'
@@ -45,36 +39,11 @@ if (env.DATABASE_URL) {
 }
 
 // ---------------------------------------------------------------- inference
-const novita = env.NOVITA_API_KEY
-  ? new OpenAiCompatibleProvider({
-      name: 'novita',
-      baseUrl: env.NOVITA_BASE_URL,
-      apiKey: env.NOVITA_API_KEY,
-      model: env.NOVITA_MODEL,
-    })
-  : null
-const anthropic = env.ANTHROPIC_API_KEY
-  ? new AnthropicProvider({ apiKey: env.ANTHROPIC_API_KEY, model: env.ANTHROPIC_MODEL })
-  : null
-const scripted: LlmProvider = new ScriptedProvider()
-
-const everyday = novita ?? anthropic ?? scripted
-const pivotal = anthropic ?? novita ?? scripted
-if (everyday === scripted) app.log.warn('no LLM keys: replies are scripted')
-app.log.info({ EVERYDAY: everyday.name, PIVOTAL: pivotal.name }, 'llm routes')
-
-const gateway = new LlmGateway({ EVERYDAY: everyday, PIVOTAL: pivotal }, app.log)
-
-const embeddings: EmbeddingProvider = env.NOVITA_API_KEY
-  ? new OpenAiCompatibleEmbeddings({
-      name: 'novita',
-      baseUrl: env.NOVITA_BASE_URL,
-      apiKey: env.NOVITA_API_KEY,
-      model: env.NOVITA_EMBEDDING_MODEL,
-      dimensions: EMBEDDING_DIMENSIONS,
-    })
-  : new HashEmbeddings(EMBEDDING_DIMENSIONS)
+const inference = gatewayFromEnv(env, app.log)
+const { gateway, embeddings } = inference
+if (!inference.live) app.log.warn('no LLM keys: replies are scripted (see README, "Connecting the models")')
 if (embeddings.name === 'hash') app.log.warn('no embedding key: long-term memory uses hash embeddings')
+app.log.info({ EVERYDAY: inference.routes.EVERYDAY.name, PIVOTAL: inference.routes.PIVOTAL.name }, 'llm routes')
 
 const relationship = new RelationshipService(repo, app.log)
 const memory = new MemoryService(repo, gateway, embeddings, app.log, { tier: env.MEMORY_TIER }, (ctx, n) =>

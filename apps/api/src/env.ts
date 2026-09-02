@@ -1,4 +1,13 @@
+import { loadEnvFile } from 'node:process'
 import { z } from 'zod'
+
+// Local dev reads apps/api/.env (gitignored). Railway injects real env vars, so a
+// missing file is normal. Values already in the environment win over the file.
+try {
+  loadEnvFile('.env')
+} catch {
+  // no .env: fine
+}
 
 /** Fail fast at boot rather than at the first request that needs a missing var. */
 const Env = z.object({
