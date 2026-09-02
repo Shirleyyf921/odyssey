@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'expo-router'
+import { Link, Stack } from 'expo-router'
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { CharacterListItem } from '@odyssey/shared'
 import { Portrait } from '../src/components/Portrait'
@@ -25,6 +25,16 @@ export default function Home() {
   const explore = data.characters.filter((c) => c.kind === 'EXPLORE')
 
   return (
+    <>
+    <Stack.Screen
+      options={{
+        headerRight: () => (
+          <Link href="/account" asChild>
+            <Pressable hitSlop={8}><Text style={styles.headerLink}>Account</Text></Pressable>
+          </Link>
+        ),
+      }}
+    />
     <FlatList
       data={[...primary, ...explore]}
       keyExtractor={(c) => c.id}
@@ -37,6 +47,7 @@ export default function Home() {
         </>
       )}
     />
+    </>
   )
 }
 
@@ -63,6 +74,7 @@ function Centered({ children }: { children: React.ReactNode }) {
 
 const styles = StyleSheet.create({
   list: { padding: spacing.lg },
+  headerLink: { color: colors.accent, fontSize: 15, fontWeight: '600' },
   section: { color: colors.textMuted, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, marginBottom: spacing.md, marginTop: spacing.lg },
   row: { flexDirection: 'row', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md },
   thumb: { width: 72, aspectRatio: 3 / 4, borderRadius: radius.md },

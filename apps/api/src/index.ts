@@ -4,7 +4,10 @@ import { env } from './env.js'
 import { healthRoutes } from './routes/health.js'
 import { characterRoutes } from './routes/characters.js'
 import { chatWebsocket } from './ws/chat.js'
-import { requireDevice } from './auth/device.js'
+import { requireIdentity } from './auth/identity.js'
+import { appleVerifier, devVerifier, googleVerifier, type TokenVerifier } from './auth/providers.js'
+import { AuthService } from './auth/service.js'
+import { authRoutes, publicAuthRoutes } from './routes/auth.js'
 import { createDb } from './db/client.js'
 import { EMBEDDING_DIMENSIONS } from './db/schema.js'
 import { DrizzleRepository } from './repo/drizzle.js'
@@ -77,11 +80,20 @@ const memory = new MemoryService(repo, gateway, embeddings, app.log, { tier: env
   relationship.onFactsShared(ctx, n)
 )
 
+// ---------------------------------------------------------------- auth
+const verifiers: TokenVerifier[] = [appleVerifier(env.APPLE_BUNDLE_ID)]
+if (env.GOOGLE_CLIENT_IDS.length) verifiers.push(googleVerifier(env.GOOGLE_CLIENT_IDS))
+if (env.NODE_ENV !== 'production') verifiers.push(devVerifier())
+const auth = new AuthService(repo, verifiers, app.log, env.SESSION_TTL_DAYS * 24 * 60 * 60 * 1000)
+app.log.info({ providers: auth.providers }, 'sign-in providers')
+
 // ---------------------------------------------------------------- http + ws
 await app.register(websocket)
 await app.register(healthRoutes)
+await app.register(publicAuthRoutes, { repo, auth })
+await app.register(authRoutes, { repo, auth })
 await app.register(async (scoped) => {
-  requireDevice(scoped, repo)
+  requireIdentity(scoped, repo)
   await scoped.register(characterRoutes, { repo })
   await scoped.register(chatWebsocket, {
     repo,

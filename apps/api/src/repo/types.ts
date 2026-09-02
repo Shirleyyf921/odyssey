@@ -1,4 +1,5 @@
 import type {
+  AuthProvider,
   Character,
   CharacterKind,
   Message,
@@ -15,6 +16,19 @@ export interface UserRecord {
   id: string
   displayName: string | null
   locale: string
+}
+
+export interface IdentityRecord {
+  userId: string
+  provider: AuthProvider
+  subject: string
+  email: string | null
+}
+
+export interface SessionRecord {
+  userId: string
+  tokenHash: string
+  expiresAt: Date
 }
 
 export interface CharacterRecord extends Character {
@@ -112,6 +126,24 @@ export interface ChatRepository {
 
 export interface AppRepository extends ChatRepository {
   getOrCreateUserByDevice(deviceId: string): Promise<UserRecord>
+  getUser(id: string): Promise<UserRecord | null>
+  createUser(input: { displayName: string | null }): Promise<UserRecord>
+  updateUser(id: string, patch: { displayName?: string | null }): Promise<UserRecord>
+
+  // auth
+  findIdentity(provider: AuthProvider, subject: string): Promise<IdentityRecord | null>
+  createIdentity(input: IdentityRecord): Promise<IdentityRecord>
+  listIdentities(userId: string): Promise<IdentityRecord[]>
+  createSession(input: SessionRecord): Promise<void>
+  /** Null when unknown, expired, or revoked. */
+  findUserBySession(tokenHash: string, now: Date): Promise<UserRecord | null>
+  revokeSession(tokenHash: string): Promise<void>
+  /**
+   * Fold an anonymous user into an account: relationships move where the account
+   * has none for that character, the device mapping follows, and the anonymous
+   * row is deleted (cascading whatever collided). Returns how many moved.
+   */
+  mergeUsers(fromUserId: string, intoUserId: string): Promise<{ moved: number }>
 
   listCharacters(): Promise<CharacterRecord[]>
   getCharacter(id: string): Promise<CharacterRecord | null>

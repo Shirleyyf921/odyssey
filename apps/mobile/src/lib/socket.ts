@@ -2,6 +2,7 @@ import { ClientEvent, ServerEvent, type Message } from '@odyssey/shared'
 import { randomUUID } from 'expo-crypto'
 import { WS_URL } from './config'
 import { getDeviceId } from './device'
+import { getSessionToken } from './session'
 
 export type SocketStatus = 'connecting' | 'open' | 'closed'
 
@@ -29,9 +30,9 @@ export class ChatSocket {
 
   async connect() {
     this.closedByUser = false
-    const deviceId = await getDeviceId()
+    const [deviceId, token] = await Promise.all([getDeviceId(), getSessionToken()])
     this.listener.onStatus('connecting')
-    const ws = new WebSocket(`${WS_URL}?deviceId=${deviceId}`)
+    const ws = new WebSocket(token ? `${WS_URL}?token=${encodeURIComponent(token)}` : `${WS_URL}?deviceId=${deviceId}`)
     this.ws = ws
 
     ws.onopen = () => {

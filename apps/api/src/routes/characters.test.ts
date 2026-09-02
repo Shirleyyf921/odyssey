@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import Fastify from 'fastify'
 import { CharacterDetail, CharactersResponse, MomentsResponse, StartRelationshipResponse } from '@odyssey/shared'
-import { requireDevice } from '../auth/device.js'
+import { requireIdentity } from '../auth/identity.js'
 import { MemoryRepository } from '../repo/memory.js'
 import { characterRoutes } from './characters.js'
 
@@ -11,7 +11,7 @@ async function build() {
   const repo = new MemoryRepository()
   const app = Fastify()
   await app.register(async (scoped) => {
-    requireDevice(scoped, repo)
+    requireIdentity(scoped, repo)
     await scoped.register(characterRoutes, { repo })
   })
   await app.ready()

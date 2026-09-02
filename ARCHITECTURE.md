@@ -290,10 +290,24 @@ tests rather than one-off manual QA.
 
 ### Identity
 
-Today: an anonymous device id minted by the client and sent as `x-device-id`, upserted to a
-user row server-side. It scopes relationships and unlocks to a phone and nothing more. It is
-not an account (a reinstall is a new person) and it is not an age gate. Sign-in with Apple and
-Google replaces it before launch; the routes do not change.
+Two tiers. A **guest** is an anonymous device id minted by the client and sent as
+`x-device-id`; it lets someone browse and start talking before committing to an account. An
+**account** is Sign in with Apple or Google: the client sends the provider's identity token,
+the server verifies signature, issuer, audience, and expiry against the provider's published
+keys, and looks the person up by `(provider, subject)`.
+
+Sessions are opaque random tokens stored only as a hash, with expiry and revocation. A stateless
+JWT would be simpler, and wrong here: the data behind a session is intimate, and "sign out
+everywhere" and account erasure both need the server to be able to end a session it did not
+just issue.
+
+When a guest signs in, their progress follows them. A new account adopts the guest row outright.
+An existing account absorbs the guest's relationships where it has none for that character; a
+collision keeps the account's history, because the account is the thing the person came back
+for. This is also where a reinstall stops being a new person.
+
+Neither tier is an age gate. Apple's private relay email and Google's email are stored on the
+identity, not shown anywhere yet.
 
 ### Age assurance
 

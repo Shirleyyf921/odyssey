@@ -50,3 +50,43 @@ export type ApiError = z.infer<typeof ApiError>
 
 /** Header carrying the anonymous device identity. Replaced by real sign-in later. */
 export const DEVICE_ID_HEADER = 'x-device-id'
+
+// ---------------------------------------------------------------- auth
+
+/** `dev` exists only outside production: any string is accepted as the subject. */
+export const AuthProvider = z.enum(['apple', 'google', 'dev'])
+export type AuthProvider = z.infer<typeof AuthProvider>
+
+export const SignInRequest = z.object({
+  provider: AuthProvider,
+  /** Apple identityToken or Google id_token: a JWT verified server-side. */
+  identityToken: z.string().min(1).max(8192),
+  /**
+   * Apple sends the name only on the very first sign-in and never again, so
+   * the client must forward it the one time it sees it.
+   */
+  fullName: z.string().trim().min(1).max(80).optional(),
+})
+export type SignInRequest = z.infer<typeof SignInRequest>
+
+export const AuthUser = z.object({
+  id: z.string().uuid(),
+  displayName: z.string().nullable(),
+  locale: z.string(),
+  /** False for anonymous device users. */
+  signedIn: z.boolean(),
+  providers: z.array(AuthProvider),
+})
+export type AuthUser = z.infer<typeof AuthUser>
+
+export const SignInResponse = z.object({
+  token: z.string(),
+  expiresAt: z.string().datetime(),
+  user: AuthUser,
+  /** True when the device's anonymous progress was carried into the account. */
+  merged: z.boolean(),
+})
+export type SignInResponse = z.infer<typeof SignInResponse>
+
+export const MeResponse = z.object({ user: AuthUser })
+export type MeResponse = z.infer<typeof MeResponse>

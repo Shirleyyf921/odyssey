@@ -22,6 +22,13 @@
       "when": 1788348948126,
       "tag": "0002_progression",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788349952906,
+      "tag": "0003_auth",
+      "breakpoints": true
     }
   ]
 }

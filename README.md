@@ -70,20 +70,29 @@ EXPO_PUBLIC_API_URL=http://<your-lan-ip>:3000 pnpm --filter @odyssey/mobile dev 
 ```
 
 A phone cannot reach `localhost` on your laptop, so point `EXPO_PUBLIC_API_URL` at the LAN
-address. The client mints a device id on first launch and sends it as `x-device-id`; that is
-the whole identity story until real sign-in lands.
+address. The client mints a device id on first launch and sends it as `x-device-id`, which
+makes it a guest. Signing in (Apple on iOS, Google anywhere, or the `dev` provider outside
+production) returns a bearer token the client keeps in the secure store; a guest's progress
+follows them into the account.
+
+Google sign-in needs `EXPO_PUBLIC_GOOGLE_{IOS,ANDROID,WEB}_CLIENT_ID` on the client and the same
+ids in `GOOGLE_CLIENT_IDS` on the API. Apple needs nothing beyond the bundle id.
 
 ### HTTP API
 
-All routes except `/health` require `x-device-id: <uuid>`.
+All routes except `/health` and `/auth/sign-in` require either `Authorization: Bearer <token>`
+or `x-device-id: <uuid>`. The token wins; an expired token is a 401 rather than a guest.
 
 | Route | Purpose |
 |---|---|
+| `POST /auth/sign-in` | `{provider, identityToken, fullName?}` → session token; merges the device's guest |
+| `POST /auth/sign-out` | Revokes the bearer token |
+| `GET /me` | Who the caller is and how they signed in |
 | `GET /characters` | Roster with the caller's relationship on each |
 | `GET /characters/:id` | Portraits, relationship, moment count |
 | `POST /characters/:id/start` | Idempotent; creates the relationship and its conversation |
 | `GET /characters/:id/moments` | Cards; locked ones carry no asset URL |
-| `ws://…/ws/chat?deviceId=<uuid>` | Chat, see `packages/shared/src/protocol.ts` |
+| `ws://…/ws/chat?token=…` or `?deviceId=…` | Chat, see `packages/shared/src/protocol.ts` |
 
 ### A note on pnpm configuration
 

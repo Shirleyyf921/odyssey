@@ -23,6 +23,15 @@ const Env = z.object({
 
   /** Which tier runs memory extraction and summaries. */
   MEMORY_TIER: z.enum(['EVERYDAY', 'PIVOTAL']).default('PIVOTAL'),
+
+  // Sign-in. Apple audience is the bundle id; Google accepts every client id that may mint tokens.
+  APPLE_BUNDLE_ID: z.string().default('com.odyssey.app'),
+  /** Comma-separated. Empty disables Google sign-in. */
+  GOOGLE_CLIENT_IDS: z
+    .string()
+    .default('')
+    .transform((s) => s.split(',').map((x) => x.trim()).filter(Boolean)),
+  SESSION_TTL_DAYS: z.coerce.number().int().positive().default(30),
 })
 
 export const env = Env.parse(process.env)

@@ -23,6 +23,7 @@ export default function RootLayout() {
         <Stack.Screen name="character/[id]" options={{ title: '' }} />
         <Stack.Screen name="chat/[conversationId]" options={{ title: '' }} />
         <Stack.Screen name="moments/[characterId]" options={{ title: 'Moments' }} />
+        <Stack.Screen name="account" options={{ title: 'Account', presentation: 'modal' }} />
       </Stack>
     </QueryClientProvider>
   )

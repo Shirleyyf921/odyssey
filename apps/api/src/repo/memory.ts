@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type {
+  AuthProvider,
   Message,
   Moment,
   MomentUnlock,
@@ -13,12 +14,14 @@ import type {
   CharacterRecord,
   ConversationContext,
   ConversationSummary,
+  IdentityRecord,
   MemoryRecord,
   NewMemory,
   NewMessage,
   RelationshipEvent,
   RelationshipPatch,
   RelationshipRecord,
+  SessionRecord,
   UserRecord,
 } from './types.js'
 
@@ -42,6 +45,8 @@ export class MemoryRepository implements AppRepository {
   private unlocks = new Map<string, MomentUnlock[]>()
   private memories = new Map<string, StoredMemory[]>()
   readonly relationshipEvents: Array<RelationshipEvent & { createdAt: string }> = []
+  private identities: IdentityRecord[] = []
+  private sessions = new Map<string, SessionRecord & { revokedAt: Date | null }>()
 
   constructor(seed = SEED_CHARACTERS) {
     for (const s of seed) {
@@ -78,6 +83,79 @@ export class MemoryRepository implements AppRepository {
     this.users.set(user.id, user)
     this.usersByDevice.set(deviceId, user.id)
     return user
+  }
+
+  async getUser(id: string) {
+    return this.users.get(id) ?? null
+  }
+
+  async createUser(input: { displayName: string | null }): Promise<UserRecord> {
+    const user: UserRecord = { id: randomUUID(), displayName: input.displayName, locale: 'en-US' }
+    this.users.set(user.id, user)
+    return user
+  }
+
+  async updateUser(id: string, patch: { displayName?: string | null }) {
+    const user = this.users.get(id)
+    if (!user) throw new Error(`unknown user ${id}`)
+    const updated = { ...user, ...(patch.displayName !== undefined ? { displayName: patch.displayName } : {}) }
+    this.users.set(id, updated)
+    return updated
+  }
+
+  // ---------------------------------------------------------------- auth
+
+  async findIdentity(provider: AuthProvider, subject: string) {
+    return this.identities.find((i) => i.provider === provider && i.subject === subject) ?? null
+  }
+
+  async createIdentity(input: IdentityRecord) {
+    if (await this.findIdentity(input.provider, input.subject)) throw new Error('identity exists')
+    this.identities.push({ ...input })
+    return input
+  }
+
+  async listIdentities(userId: string) {
+    return this.identities.filter((i) => i.userId === userId)
+  }
+
+  async createSession(input: SessionRecord) {
+    this.sessions.set(input.tokenHash, { ...input, revokedAt: null })
+  }
+
+  async findUserBySession(tokenHash: string, now: Date) {
+    const s = this.sessions.get(tokenHash)
+    if (!s || s.revokedAt || s.expiresAt <= now) return null
+    return this.users.get(s.userId) ?? null
+  }
+
+  async revokeSession(tokenHash: string) {
+    const s = this.sessions.get(tokenHash)
+    if (s) s.revokedAt = new Date()
+  }
+
+  async mergeUsers(fromUserId: string, intoUserId: string) {
+    let moved = 0
+    for (const rel of [...this.relationships.values()]) {
+      if (rel.userId !== fromUserId) continue
+      const collides = await this.findRelationship(intoUserId, rel.characterId)
+      if (collides) {
+        this.relationships.delete(rel.id)
+        this.conversations.delete(rel.conversationId)
+        this.messages.delete(rel.conversationId)
+        this.unlocks.delete(rel.id)
+        this.memories.delete(rel.id)
+        continue
+      }
+      this.relationships.set(rel.id, { ...rel, userId: intoUserId })
+      moved++
+    }
+    for (const [device, userId] of this.usersByDevice) {
+      if (userId === fromUserId) this.usersByDevice.set(device, intoUserId)
+    }
+    for (const [hash, s] of this.sessions) if (s.userId === fromUserId) this.sessions.delete(hash)
+    this.users.delete(fromUserId)
+    return { moved }
   }
 
   // ---------------------------------------------------------------- characters

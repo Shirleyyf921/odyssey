@@ -38,6 +38,8 @@ export const momentUnlockSource = pgEnum('moment_unlock_source', [
   'GRANT',
 ])
 
+export const authProvider = pgEnum('auth_provider', ['apple', 'google', 'dev'])
+
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' })
 
 /** Must match the embedding model in use. bge-m3 style models are 1024; change both together. */
@@ -56,6 +58,41 @@ export const users = pgTable(
   createdAt: timestamptz('created_at').notNull().defaultNow(),
   },
   (t) => [uniqueIndex('users_device_id_uq').on(t.deviceId)]
+)
+
+/** One row per (provider, subject). A user may hold several; an anonymous user holds none. */
+export const authIdentities = pgTable(
+  'auth_identities',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    provider: authProvider('provider').notNull(),
+    subject: text('subject').notNull(),
+    email: text('email'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('auth_identities_provider_subject_uq').on(t.provider, t.subject),
+    index('auth_identities_user_idx').on(t.userId),
+  ]
+)
+
+/** Opaque bearer sessions. Only the hash is stored, so a database read cannot impersonate anyone. */
+export const sessions = pgTable(
+  'sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull(),
+    expiresAt: timestamptz('expires_at').notNull(),
+    revokedAt: timestamptz('revoked_at'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('sessions_token_hash_uq').on(t.tokenHash), index('sessions_user_idx').on(t.userId)]
 )
 
 export const characters = pgTable('characters', {

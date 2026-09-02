@@ -1,5 +1,6 @@
-import { and, asc, cosineDistance, desc, eq, gt, isNotNull, sql } from 'drizzle-orm'
+import { and, asc, cosineDistance, desc, eq, gt, inArray, isNotNull, isNull, notInArray, sql } from 'drizzle-orm'
 import type {
+  AuthProvider,
   Message,
   Moment,
   MomentUnlock,
@@ -9,6 +10,7 @@ import type {
 } from '@odyssey/shared'
 import type { Db } from '../db/client.js'
 import {
+  authIdentities,
   characters,
   conversations,
   memories,
@@ -18,6 +20,7 @@ import {
   portraits,
   relationshipEvents,
   relationships,
+  sessions,
   users,
 } from '../db/schema.js'
 import type {
@@ -25,14 +28,18 @@ import type {
   CharacterRecord,
   ConversationContext,
   ConversationSummary,
+  IdentityRecord,
   MemoryRecord,
   NewMemory,
   NewMessage,
   RelationshipEvent,
   RelationshipPatch,
   RelationshipRecord,
+  SessionRecord,
   UserRecord,
 } from './types.js'
+
+const userColumns = { id: users.id, displayName: users.displayName, locale: users.locale }
 
 type MessageRow = typeof messages.$inferSelect
 type RelationshipRow = typeof relationships.$inferSelect
@@ -90,6 +97,92 @@ export class DrizzleRepository implements AppRepository {
       .returning({ id: users.id, displayName: users.displayName, locale: users.locale })
     if (!row) throw new Error('user upsert returned no row')
     return row
+  }
+
+  async getUser(id: string) {
+    const [row] = await this.db.select(userColumns).from(users).where(eq(users.id, id)).limit(1)
+    return row ?? null
+  }
+
+  async createUser(input: { displayName: string | null }): Promise<UserRecord> {
+    const [row] = await this.db.insert(users).values({ displayName: input.displayName }).returning(userColumns)
+    if (!row) throw new Error('user insert returned no row')
+    return row
+  }
+
+  async updateUser(id: string, patch: { displayName?: string | null }) {
+    const [row] = await this.db.update(users).set(patch).where(eq(users.id, id)).returning(userColumns)
+    if (!row) throw new Error(`unknown user ${id}`)
+    return row
+  }
+
+  // ---------------------------------------------------------------- auth
+
+  async findIdentity(provider: AuthProvider, subject: string) {
+    const [row] = await this.db
+      .select()
+      .from(authIdentities)
+      .where(and(eq(authIdentities.provider, provider), eq(authIdentities.subject, subject)))
+      .limit(1)
+    return row ? { userId: row.userId, provider: row.provider, subject: row.subject, email: row.email } : null
+  }
+
+  async createIdentity(input: IdentityRecord) {
+    await this.db.insert(authIdentities).values(input)
+    return input
+  }
+
+  async listIdentities(userId: string): Promise<IdentityRecord[]> {
+    const rows = await this.db.select().from(authIdentities).where(eq(authIdentities.userId, userId))
+    return rows.map((r) => ({ userId: r.userId, provider: r.provider, subject: r.subject, email: r.email }))
+  }
+
+  async createSession(input: SessionRecord) {
+    await this.db.insert(sessions).values(input)
+  }
+
+  async findUserBySession(tokenHash: string, now: Date) {
+    const [row] = await this.db
+      .select(userColumns)
+      .from(sessions)
+      .innerJoin(users, eq(users.id, sessions.userId))
+      .where(and(eq(sessions.tokenHash, tokenHash), isNull(sessions.revokedAt), gt(sessions.expiresAt, now)))
+      .limit(1)
+    return row ?? null
+  }
+
+  async revokeSession(tokenHash: string) {
+    await this.db.update(sessions).set({ revokedAt: new Date() }).where(eq(sessions.tokenHash, tokenHash))
+  }
+
+  async mergeUsers(fromUserId: string, intoUserId: string) {
+    return this.db.transaction(async (tx) => {
+      const taken = await tx
+        .select({ characterId: relationships.characterId })
+        .from(relationships)
+        .where(eq(relationships.userId, intoUserId))
+      const takenIds = taken.map((t) => t.characterId)
+      const moved = await tx
+        .update(relationships)
+        .set({ userId: intoUserId })
+        .where(
+          takenIds.length
+            ? and(eq(relationships.userId, fromUserId), notInArray(relationships.characterId, takenIds))
+            : eq(relationships.userId, fromUserId)
+        )
+        .returning({ id: relationships.id })
+      // The device follows the account so the next anonymous request lands on it, unless
+      // the account already owns another device.
+      const [from] = await tx.select({ deviceId: users.deviceId }).from(users).where(eq(users.id, fromUserId)).limit(1)
+      const [into] = await tx.select({ deviceId: users.deviceId }).from(users).where(eq(users.id, intoUserId)).limit(1)
+      await tx.update(users).set({ deviceId: null }).where(eq(users.id, fromUserId))
+      if (from?.deviceId && into && !into.deviceId) {
+        await tx.update(users).set({ deviceId: from.deviceId }).where(eq(users.id, intoUserId))
+      }
+      // Cascades the colliding relationships, their messages, unlocks, memories, and sessions.
+      await tx.delete(users).where(eq(users.id, fromUserId))
+      return { moved: moved.length }
+    })
   }
 
   // ---------------------------------------------------------------- characters
