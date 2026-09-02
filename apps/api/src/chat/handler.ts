@@ -71,6 +71,7 @@ async function handleSendMessage(
     clientMsgId: event.clientMsgId,
     inReplyTo: null,
   })
+  send({ type: 'message_ack', clientMsgId: event.clientMsgId, message: userMessage })
 
   // Crisis screening runs before generation and short-circuits it. The persona never
   // gets a chance to answer; the client renders the intervention outside his voice.

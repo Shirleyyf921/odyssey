@@ -43,7 +43,9 @@ test('send_message streams start, deltas, end and persists both sides', async ()
   // Progression events precede the reply; everything after message_start is the reply itself.
   const startAt = sent.findIndex((e) => e.type === 'message_start')
   assert.ok(startAt >= 0)
-  assert.ok(sent.slice(0, startAt).every((e) => e.type === 'relationship_updated' || e.type === 'moment_unlocked'))
+  assert.equal(sent[0]?.type, 'message_ack', 'the user message is acknowledged first')
+  if (sent[0]?.type === 'message_ack') assert.equal(sent[0].message.clientMsgId, clientMsgId)
+  assert.ok(sent.slice(1, startAt).every((e) => e.type === 'relationship_updated' || e.type === 'moment_unlocked'))
   const update = sent.find((e) => e.type === 'relationship_updated')
   assert.ok(update && update.type === 'relationship_updated' && update.previousStage === null, 'affinity-only updates are announced too')
   assert.equal(update.relationship.affinity, 21, 'seeded 20 plus one message')
@@ -82,10 +84,10 @@ test('a crisis verdict short-circuits generation with a scripted intervention', 
   const { repo, deps, conversationId, sent, send } = await setup({ crisis: always })
   await handleClientEvent(deps, { type: 'send_message', conversationId, clientMsgId: randomUUID(), content: '...' }, send)
 
-  assert.equal(sent.length, 1)
-  assert.equal(sent[0]?.type, 'safety_intervention')
-  if (sent[0]?.type !== 'safety_intervention') return
-  assert.equal(sent[0].resources[0]?.region, 'US')
+  assert.deepEqual(sent.map((e) => e.type), ['message_ack', 'safety_intervention'])
+  const intervention = sent[1]
+  if (intervention?.type !== 'safety_intervention') return
+  assert.equal(intervention.resources[0]?.region, 'US')
   const stored = await repo.listRecentMessages(conversationId, 10)
   assert.deepEqual(stored.map((m) => m.role), ['USER', 'SYSTEM'])
 })
@@ -121,15 +123,16 @@ test('a message moves affinity and a qualifying one announces the stage before t
   await memory.drain()
 
   const types = sent.map((e) => e.type)
-  assert.equal(types[0], 'relationship_updated', 'the update precedes message_start')
+  assert.equal(types[0], 'message_ack')
+  assert.equal(types[1], 'relationship_updated', 'the update precedes message_start')
   const startAt = types.indexOf('message_start')
-  const unlocked = sent.slice(1, startAt)
+  const unlocked = sent.slice(2, startAt)
   assert.ok(unlocked.length > 0 && unlocked.every((e) => e.type === 'moment_unlocked'), 'earned moments arrive before the reply')
   assert.ok(
     unlocked.some((e) => e.type === 'moment_unlocked' && e.moment.unlock.kind === 'STAGE' && e.moment.unlock.stage === 'CLOSE'),
     'the CLOSE moment unlocks on the same turn'
   )
-  const update = sent[0]
+  const update = sent[1]
   if (update?.type !== 'relationship_updated') return
   assert.equal(update.previousStage, 'ACQUAINTED')
   assert.equal(update.relationship.stage, 'CLOSE')

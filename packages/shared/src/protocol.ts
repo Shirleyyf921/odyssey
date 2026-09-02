@@ -31,6 +31,16 @@ export type ClientEvent = z.infer<typeof ClientEvent>
 
 // ---------------------------------------------------------------- server → client
 
+/**
+ * The user's message was stored. Carries the server-side row so the client can
+ * replace its optimistic bubble with the real thing before the reply starts.
+ */
+export const MessageAck = z.object({
+  type: z.literal('message_ack'),
+  clientMsgId: z.string().uuid(),
+  message: Message,
+})
+
 export const MessageStart = z.object({
   type: z.literal('message_start'),
   messageId: z.string().uuid(),
@@ -120,6 +130,7 @@ export const ServerError = z.object({
 })
 
 export const ServerEvent = z.discriminatedUnion('type', [
+  MessageAck,
   MessageStart,
   MessageDelta,
   MessageEnd,

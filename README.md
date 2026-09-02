@@ -70,7 +70,9 @@ EXPO_PUBLIC_API_URL=http://<your-lan-ip>:3000 pnpm --filter @odyssey/mobile dev 
 ```
 
 A phone cannot reach `localhost` on your laptop, so point `EXPO_PUBLIC_API_URL` at the LAN
-address. The client mints a device id on first launch and sends it as `x-device-id`, which
+address. For a quick look without a phone, `pnpm --filter @odyssey/mobile web` opens the same
+screens in a browser at http://localhost:8081 (preview only: web storage is not secure and
+Apple sign-in is unavailable there). The client mints a device id on first launch and sends it as `x-device-id`, which
 makes it a guest. Signing in (Apple on iOS, Google anywhere, or the `dev` provider outside
 production) returns a bearer token the client keeps in the secure store; a guest's progress
 follows them into the account.

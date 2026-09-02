@@ -27,7 +27,6 @@ export default function AccountScreen() {
   }, [qc])
   const fail = useCallback((err: unknown) => setError(err instanceof Error ? err.message : String(err)), [])
 
-  const google = useGoogleSignIn(refresh, fail)
   const appleSignIn = useMutation({ mutationFn: signInWithApple, onSuccess: refresh, onError: fail })
   const devSignIn = useMutation({ mutationFn: () => signInDev(devName.trim()), onSuccess: refresh, onError: fail })
   const out = useMutation({ mutationFn: signOut, onSuccess: refresh, onError: fail })
@@ -60,11 +59,7 @@ export default function AccountScreen() {
               onPress={() => appleSignIn.mutate()}
             />
           )}
-          {googleConfigured && (
-            <Pressable style={styles.primary} onPress={google.prompt} disabled={!google.ready}>
-              <Text style={styles.primaryText}>Continue with Google</Text>
-            </Pressable>
-          )}
+          {googleConfigured && <GoogleButton onSignedIn={refresh} onError={fail} />}
           {__DEV__ && (
             <View style={styles.devBox}>
               <Text style={styles.devLabel}>Development sign-in</Text>
@@ -85,6 +80,16 @@ export default function AccountScreen() {
       )}
       {error && <Text style={styles.error}>{error}</Text>}
     </View>
+  )
+}
+
+/** Separate component so the Google hook only mounts when client ids exist; it throws otherwise. */
+function GoogleButton({ onSignedIn, onError }: { onSignedIn: () => void; onError: (err: unknown) => void }) {
+  const google = useGoogleSignIn(onSignedIn, onError)
+  return (
+    <Pressable style={styles.primary} onPress={google.prompt} disabled={!google.ready}>
+      <Text style={styles.primaryText}>Continue with Google</Text>
+    </Pressable>
   )
 }
 

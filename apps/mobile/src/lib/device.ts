@@ -1,5 +1,5 @@
-import * as SecureStore from 'expo-secure-store'
 import { randomUUID } from 'expo-crypto'
+import { storage } from './storage'
 
 const KEY = 'odyssey.deviceId'
 let cached: string | null = null
@@ -11,10 +11,10 @@ let cached: string | null = null
  */
 export async function getDeviceId(): Promise<string> {
   if (cached) return cached
-  let id = await SecureStore.getItemAsync(KEY)
+  let id = await storage.get(KEY)
   if (!id) {
     id = randomUUID()
-    await SecureStore.setItemAsync(KEY, id)
+    await storage.set(KEY, id)
   }
   cached = id
   return id

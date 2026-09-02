@@ -1,4 +1,5 @@
 import Fastify from 'fastify'
+import cors from '@fastify/cors'
 import websocket from '@fastify/websocket'
 import { env } from './env.js'
 import { healthRoutes } from './routes/health.js'
@@ -88,6 +89,8 @@ const auth = new AuthService(repo, verifiers, app.log, env.SESSION_TTL_DAYS * 24
 app.log.info({ providers: auth.providers }, 'sign-in providers')
 
 // ---------------------------------------------------------------- http + ws
+// The native client has no origin; CORS only matters for the web preview build.
+if (env.NODE_ENV !== 'production') await app.register(cors, { origin: true })
 await app.register(websocket)
 await app.register(healthRoutes)
 await app.register(publicAuthRoutes, { repo, auth })

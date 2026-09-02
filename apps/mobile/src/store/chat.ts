@@ -99,6 +99,13 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           }
           break
         }
+        case 'message_ack':
+          next = {
+            ...c,
+            messages: merge(c.messages, [event.message]),
+            pending: c.pending.filter((p) => p.clientMsgId !== event.clientMsgId),
+          }
+          break
         case 'message_start':
           next = { ...c, streaming: { messageId: event.messageId, text: '' } }
           break
@@ -107,14 +114,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
             next = { ...c, streaming: { ...c.streaming, text: c.streaming.text + event.delta } }
           }
           break
-        case 'message_end': {
-          // The user's own message reaches the store through history on the next resume;
-          // until then the pending bubble stands in for it. Drop the oldest pending here
-          // because the reply proves the server received it.
-          const [, ...rest] = c.pending
-          next = { ...c, streaming: null, messages: merge(c.messages, [event.message]), pending: rest }
+        case 'message_end':
+          next = { ...c, streaming: null, messages: merge(c.messages, [event.message]) }
           break
-        }
         case 'proactive_message':
           next = { ...c, messages: merge(c.messages, [event.message]) }
           break
