@@ -81,6 +81,14 @@ Without keys the API answers with scripted text. To talk to real models:
    reply, latency, and token counts. A wrong key, model id, or base URL fails here in plain
    words.
 
+To try another everyday model, list what the host serves and set `NOVITA_MODEL` in `.env`:
+
+```bash
+pnpm --filter @odyssey/api list:models          # everything
+pnpm --filter @odyssey/api list:models qwen     # substring filter
+NOVITA_MODEL=deepseek/deepseek-v4-flash pnpm --filter @odyssey/api check:llm   # try one without editing .env
+```
+
 Either key alone works: the other tier falls back to whichever provider exists. `.env` is
 gitignored; never commit it. On Railway, set the same variables in the service settings.
 
