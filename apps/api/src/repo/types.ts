@@ -21,10 +21,28 @@ export interface CharacterRecord extends Character {
   personaNotes: string
 }
 
-export interface RelationshipRecord extends Relationship {
+/** Progression counters. Server-only; the client sees stage and affinity through Relationship. */
+export interface RelationshipProgress {
+  activeDays: number
+  lastActiveDate: string | null
+  messageGainsToday: number
+  factGainsToday: number
+}
+
+export interface RelationshipRecord extends Relationship, RelationshipProgress {
   userId: string
   /** One conversation per relationship for now. */
   conversationId: string
+}
+
+export type RelationshipPatch = Partial<
+  Pick<RelationshipRecord, 'stage' | 'affinity'> & RelationshipProgress & { stageChangedAt: Date }
+>
+
+export interface RelationshipEvent {
+  relationshipId: string
+  delta: number
+  reason: string
 }
 
 export interface MemoryRecord {
@@ -51,7 +69,7 @@ export interface ConversationSummary {
 /** Everything the chat pipeline needs to know about a conversation, in one read. */
 export interface ConversationContext {
   conversation: { id: string; relationshipId: string }
-  relationship: Relationship & { userId: string }
+  relationship: RelationshipRecord
   character: { id: string; kind: CharacterKind; name: string; personaNotes: string }
   user: { id: string; displayName: string | null; locale: string }
 }
@@ -103,6 +121,8 @@ export interface AppRepository extends ChatRepository {
   findRelationship(userId: string, characterId: string): Promise<RelationshipRecord | null>
   /** Creates the relationship and its conversation. */
   createRelationship(userId: string, characterId: string, depth: RelationshipDepth): Promise<RelationshipRecord>
+  updateRelationship(id: string, patch: RelationshipPatch): Promise<RelationshipRecord>
+  insertRelationshipEvents(events: RelationshipEvent[]): Promise<void>
 
   listMoments(characterId: string): Promise<Moment[]>
   listUnlocks(relationshipId: string): Promise<MomentUnlock[]>

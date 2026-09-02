@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { Stack, useLocalSearchParams } from 'expo-router'
+import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router'
+import { useCallback } from 'react'
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native'
 import { MomentTile } from '../../src/components/MomentTile'
 import { api } from '../../src/lib/api'
@@ -8,11 +9,12 @@ import { colors, spacing } from '../../src/theme'
 /** Collectibles grid. Locked and unlocked share one layout so the user sees what is there to earn. */
 export default function MomentsScreen() {
   const { characterId, name } = useLocalSearchParams<{ characterId: string; name?: string }>()
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['moments', characterId],
     queryFn: () => api.moments(characterId),
     enabled: !!characterId,
   })
+  useFocusEffect(useCallback(() => void refetch(), [refetch]))
 
   if (isLoading) return <View style={styles.centered}><ActivityIndicator color={colors.accent} /></View>
   if (error || !data) return <View style={styles.centered}><Text style={styles.error}>{String(error ?? 'Not found')}</Text></View>

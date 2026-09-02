@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Message, MomentCard } from './domain.js'
+import { Message, MomentCard, Relationship, RelationshipStage } from './domain.js'
 
 /**
  * WebSocket wire protocol.
@@ -60,6 +60,17 @@ export const History = z.object({
   messages: z.array(Message),
 })
 
+/**
+ * The relationship moved. Sent before the reply on the turn it happens, so the
+ * client can mark the moment before he speaks. previousStage is null when only
+ * affinity changed. See ARCHITECTURE.md section 15.
+ */
+export const RelationshipUpdated = z.object({
+  type: z.literal('relationship_updated'),
+  relationship: Relationship,
+  previousStage: RelationshipStage.nullable(),
+})
+
 /** A collectible image became available — see ARCHITECTURE.md section 14. */
 export const MomentUnlocked = z.object({
   type: z.literal('moment_unlocked'),
@@ -113,6 +124,7 @@ export const ServerEvent = z.discriminatedUnion('type', [
   MessageDelta,
   MessageEnd,
   History,
+  RelationshipUpdated,
   MomentUnlocked,
   ProactiveMessage,
   SafetyIntervention,

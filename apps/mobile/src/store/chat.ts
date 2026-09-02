@@ -17,8 +17,16 @@ export interface Intervention {
   resources: Array<{ label: string; phone: string | null; url: string | null; region: string }>
 }
 
+/** Out-of-band moments rendered inline: a stage change, a new moment. */
+export interface Notice {
+  key: string
+  text: string
+  at: string
+}
+
 interface ConversationState {
   messages: Message[]
+  notices: Notice[]
   /** Sent, not yet acknowledged by a history/message_end carrying its clientMsgId. */
   pending: PendingMessage[]
   streaming: Streaming | null
@@ -36,8 +44,15 @@ interface ChatStore {
   lastMessageId(conversationId: string): string | null
 }
 
+const STAGE_TEXT: Record<string, string> = {
+  ACQUAINTED: 'Something shifted. You know each other now.',
+  CLOSE: "You've grown close.",
+  INTIMATE: 'This is something real.',
+}
+
 const empty = (): ConversationState => ({
   messages: [],
+  notices: [],
   pending: [],
   streaming: null,
   intervention: null,
@@ -109,7 +124,20 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         case 'error':
           next = { ...c, streaming: null, error: event.message }
           break
+        case 'relationship_updated':
+          if (event.previousStage) {
+            const text = STAGE_TEXT[event.relationship.stage] ?? `Now ${event.relationship.stage.toLowerCase()}.`
+            next = { ...c, notices: [...c.notices, { key: `stage-${event.relationship.stage}`, text, at: new Date().toISOString() }] }
+          }
+          break
         case 'moment_unlocked':
+          next = {
+            ...c,
+            notices: [
+              ...c.notices,
+              { key: `moment-${event.moment.id}`, text: `New moment unlocked: ${event.moment.title}`, at: new Date().toISOString() },
+            ],
+          }
           break
       }
       return { conversations: { ...s.conversations, [conversationId]: next } }

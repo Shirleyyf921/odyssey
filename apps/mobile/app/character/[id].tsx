@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Stack, router, useLocalSearchParams } from 'expo-router'
+import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router'
+import { useCallback } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Portrait } from '../../src/components/Portrait'
 import { api } from '../../src/lib/api'
@@ -9,7 +10,9 @@ import { colors, radius, spacing } from '../../src/theme'
 export default function CharacterScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const qc = useQueryClient()
-  const { data, isLoading, error } = useQuery({ queryKey: ['character', id], queryFn: () => api.character(id), enabled: !!id })
+  const { data, isLoading, error, refetch } = useQuery({ queryKey: ['character', id], queryFn: () => api.character(id), enabled: !!id })
+  // Stage and moments move while chatting; pick that up when the user comes back.
+  useFocusEffect(useCallback(() => void refetch(), [refetch]))
 
   const start = useMutation({
     mutationFn: () => api.start(id),

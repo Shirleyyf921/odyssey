@@ -371,6 +371,56 @@ Generated imagery of people draws extra review attention. Under an SFW positioni
 outputs both need a filter in front of them before v2, or "him, in bed" requests will move the
 rating and possibly the listing. Offline assets sidestep all of this in v1.
 
+## 15. Relationship Progression
+
+`Relationship.affinity` (0–100, never shown as a number) and `Relationship.stage` are the
+state the memory system, the moments gallery, and the persona prompt all key off. How they move
+is a product rule, not an engineering detail, so the rules live in one file
+(`apps/api/src/relationship/rules.ts`) and every change is logged to `relationship_events`
+with a reason, so tuning can be done on data.
+
+### Affinity
+
+| Source | Amount | Daily cap | Why |
+|---|---|---|---|
+| A user message | +1 | 10 | Showing up counts, grinding does not |
+| First message of a new day | +3 | once | Coming back is the behaviour worth rewarding |
+| A durable fact the memory layer extracts | +2 | 6 | Sharing yourself deepens a relationship; volume does not |
+
+There is **no decay and no streak loss**. A companion that punishes you for living your life is
+the dependency trap §12 says we will not build. If absence should be felt, it should be felt in
+what he says, not in a number going down.
+
+EXPLORE relationships are LIGHT and extract no facts, so they climb on messages alone. That is
+the capability tiering from §1 expressed as a rule rather than a gate.
+
+### Stages
+
+| Stage | Affinity | Active days |
+|---|---|---|
+| ACQUAINTED | ≥ 15 | ≥ 2 |
+| CLOSE | ≥ 45 | ≥ 7 |
+| INTIMATE | ≥ 80 | ≥ 21 |
+
+Both gates must hold, so a stage cannot be bought with one long night. Stages never regress in
+v1. Days are UTC calendar days until users carry a timezone.
+
+### The transition turn
+
+Progression runs on the user's message *before* generation. When a stage changes, that reply is
+routed to the PIVOTAL tier (the first concrete use of it), the prompt tells the character what
+just shifted without letting him announce it, and the client receives `relationship_updated`
+followed by any `moment_unlocked` it earned, all before `message_start`. Fact-driven affinity is
+credited from the memory job afterwards; a stage it qualifies is announced on the next message,
+in the conversation, rather than from a background job.
+
+### Open
+
+- Whether EXPLORE relationships should be capped below INTIMATE (§1 says exploration must not
+  dilute the primary; a hard cap is the bluntest tool for that)
+- Whether the primary should react to affinity spent elsewhere (§1, item 1)
+- Timezone-aware days
+
 ## Open Questions
 
 - [ ] Inference vendor and tiering strategy (blocked on cost measurement). Current default:

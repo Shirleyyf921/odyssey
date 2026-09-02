@@ -23,6 +23,9 @@ export const DEFAULT_MEMORY_OPTIONS: MemoryOptions = {
   tier: 'PIVOTAL',
 }
 
+/** Called after facts are stored, with how many. Lets progression credit sharing without a dependency on it. */
+export type FactsHook = (ctx: ConversationContext, count: number) => Promise<void>
+
 export interface AssembledMemory {
   /** Verbatim short-term window, oldest first. */
   history: Message[]
@@ -52,7 +55,8 @@ export class MemoryService {
     private readonly gateway: LlmGateway,
     private readonly embeddings: EmbeddingProvider | null,
     private readonly log: Log,
-    opts: Partial<MemoryOptions> = {}
+    opts: Partial<MemoryOptions> = {},
+    private readonly onFacts: FactsHook | null = null
   ) {
     this.opts = { ...DEFAULT_MEMORY_OPTIONS, ...opts }
   }
@@ -122,6 +126,7 @@ export class MemoryService {
       }))
     )
     this.log.info({ relationshipId: ctx.relationship.id, count: facts.length }, 'memories stored')
+    await this.onFacts?.(ctx, facts.length)
   }
 
   private async foldSummary(ctx: ConversationContext) {

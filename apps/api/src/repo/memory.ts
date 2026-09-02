@@ -16,6 +16,8 @@ import type {
   MemoryRecord,
   NewMemory,
   NewMessage,
+  RelationshipEvent,
+  RelationshipPatch,
   RelationshipRecord,
   UserRecord,
 } from './types.js'
@@ -39,6 +41,7 @@ export class MemoryRepository implements AppRepository {
   private messages = new Map<string, Message[]>()
   private unlocks = new Map<string, MomentUnlock[]>()
   private memories = new Map<string, StoredMemory[]>()
+  readonly relationshipEvents: Array<RelationshipEvent & { createdAt: string }> = []
 
   constructor(seed = SEED_CHARACTERS) {
     for (const s of seed) {
@@ -117,6 +120,10 @@ export class MemoryRepository implements AppRepository {
       affinity: 0,
       startedAt: new Date().toISOString(),
       conversationId: randomUUID(),
+      activeDays: 0,
+      lastActiveDate: null,
+      messageGainsToday: 0,
+      factGainsToday: 0,
     }
     this.relationships.set(relationship.id, relationship)
     this.conversations.set(relationship.conversationId, {
@@ -126,6 +133,20 @@ export class MemoryRepository implements AppRepository {
     })
     this.messages.set(relationship.conversationId, [])
     return relationship
+  }
+
+  async updateRelationship(id: string, patch: RelationshipPatch) {
+    const current = this.relationships.get(id)
+    if (!current) throw new Error(`unknown relationship ${id}`)
+    const { stageChangedAt: _ignored, ...fields } = patch
+    const updated: RelationshipRecord = { ...current, ...fields }
+    this.relationships.set(id, updated)
+    return updated
+  }
+
+  async insertRelationshipEvents(events: RelationshipEvent[]) {
+    const createdAt = new Date().toISOString()
+    for (const e of events) this.relationshipEvents.push({ ...e, createdAt })
   }
 
   // ---------------------------------------------------------------- moments

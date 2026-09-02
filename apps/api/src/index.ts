@@ -17,6 +17,7 @@ import { ScriptedProvider } from './llm/scripted.js'
 import type { LlmProvider } from './llm/types.js'
 import { HashEmbeddings, OpenAiCompatibleEmbeddings, type EmbeddingProvider } from './memory/embeddings.js'
 import { MemoryService } from './memory/service.js'
+import { RelationshipService } from './relationship/service.js'
 import { NoopCrisisDetector } from './safety/crisis.js'
 
 const app = Fastify({
@@ -71,7 +72,10 @@ const embeddings: EmbeddingProvider = env.NOVITA_API_KEY
   : new HashEmbeddings(EMBEDDING_DIMENSIONS)
 if (embeddings.name === 'hash') app.log.warn('no embedding key: long-term memory uses hash embeddings')
 
-const memory = new MemoryService(repo, gateway, embeddings, app.log, { tier: env.MEMORY_TIER })
+const relationship = new RelationshipService(repo, app.log)
+const memory = new MemoryService(repo, gateway, embeddings, app.log, { tier: env.MEMORY_TIER }, (ctx, n) =>
+  relationship.onFactsShared(ctx, n)
+)
 
 // ---------------------------------------------------------------- http + ws
 await app.register(websocket)
@@ -79,7 +83,13 @@ await app.register(healthRoutes)
 await app.register(async (scoped) => {
   requireDevice(scoped, repo)
   await scoped.register(characterRoutes, { repo })
-  await scoped.register(chatWebsocket, { repo, gateway, memory, crisis: new NoopCrisisDetector() })
+  await scoped.register(chatWebsocket, {
+    repo,
+    gateway,
+    memory,
+    relationship,
+    crisis: new NoopCrisisDetector(),
+  })
 })
 
 try {

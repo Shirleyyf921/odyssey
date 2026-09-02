@@ -7,8 +7,7 @@ import { ChatSocket } from '../../src/lib/socket'
 import { useChatStore } from '../../src/store/chat'
 import { colors, radius, spacing } from '../../src/theme'
 
-type Row =
-  | { key: string; role: 'USER' | 'CHARACTER' | 'SYSTEM'; text: string; pending?: boolean }
+type Row = { key: string; role: 'USER' | 'CHARACTER' | 'SYSTEM'; text: string; pending?: boolean; at: string }
 
 export default function ChatScreen() {
   const { conversationId, name } = useLocalSearchParams<{ conversationId: string; name?: string }>()
@@ -35,9 +34,12 @@ export default function ChatScreen() {
   // Inverted list: newest first in data, rendered bottom-up.
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = []
-    for (const m of conv?.messages ?? []) out.push({ key: m.id, role: m.role, text: m.content })
-    for (const p of conv?.pending ?? []) out.push({ key: p.clientMsgId, role: 'USER', text: p.content, pending: true })
-    if (conv?.streaming) out.push({ key: conv.streaming.messageId, role: 'CHARACTER', text: conv.streaming.text || '…' })
+    for (const m of conv?.messages ?? []) out.push({ key: m.id, role: m.role, text: m.content, at: m.createdAt })
+    for (const n of conv?.notices ?? []) out.push({ key: n.key, role: 'SYSTEM', text: n.text, at: n.at })
+    out.sort((a, b) => a.at.localeCompare(b.at))
+    const far = '9999'
+    for (const p of conv?.pending ?? []) out.push({ key: p.clientMsgId, role: 'USER', text: p.content, pending: true, at: far })
+    if (conv?.streaming) out.push({ key: conv.streaming.messageId, role: 'CHARACTER', text: conv.streaming.text || '…', at: far })
     return out.reverse()
   }, [conv])
 

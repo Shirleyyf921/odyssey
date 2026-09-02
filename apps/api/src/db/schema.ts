@@ -98,8 +98,31 @@ export const relationships = pgTable(
     stage: relationshipStage('stage').notNull().default('STRANGER'),
     affinity: integer('affinity').notNull().default(0),
     startedAt: timestamptz('started_at').notNull().defaultNow(),
+    // Progression state — see relationship/rules.ts and ARCHITECTURE.md section 15.
+    /** Distinct UTC days with at least one user message. Gates stage transitions. */
+    activeDays: integer('active_days').notNull().default(0),
+    /** YYYY-MM-DD (UTC) of the last user message; daily counters reset when it changes. */
+    lastActiveDate: text('last_active_date'),
+    messageGainsToday: integer('message_gains_today').notNull().default(0),
+    factGainsToday: integer('fact_gains_today').notNull().default(0),
+    stageChangedAt: timestamptz('stage_changed_at'),
   },
   (t) => [uniqueIndex('relationships_user_character_uq').on(t.userId, t.characterId)]
+)
+
+/** Every affinity change with its reason. Exists so the rules can be tuned on data, not vibes. */
+export const relationshipEvents = pgTable(
+  'relationship_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    relationshipId: uuid('relationship_id')
+      .notNull()
+      .references(() => relationships.id, { onDelete: 'cascade' }),
+    delta: integer('delta').notNull(),
+    reason: text('reason').notNull(),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('relationship_events_relationship_idx').on(t.relationshipId, t.createdAt)]
 )
 
 export const conversations = pgTable(

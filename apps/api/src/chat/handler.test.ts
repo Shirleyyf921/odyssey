@@ -6,6 +6,7 @@ import { LlmGateway } from '../llm/gateway.js'
 import { ScriptedProvider } from '../llm/scripted.js'
 import { HashEmbeddings } from '../memory/embeddings.js'
 import { MemoryService } from '../memory/service.js'
+import { RelationshipService } from '../relationship/service.js'
 import { MemoryRepository } from '../repo/memory.js'
 import { NoopCrisisDetector, type CrisisDetector } from '../safety/crisis.js'
 import { handleClientEvent, type ChatDeps } from './handler.js'
@@ -18,10 +19,12 @@ async function setup(opts: { crisis?: CrisisDetector; reply?: string } = {}) {
   const provider = new ScriptedProvider(opts.reply ?? 'Hey, you. Long day?')
   const gateway = new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider })
   const memory = new MemoryService(repo, gateway, new HashEmbeddings(64), silent)
+  const relationship = new RelationshipService(repo, silent)
   const deps: ChatDeps = {
     repo,
     gateway,
     memory,
+    relationship,
     crisis: opts.crisis ?? new NoopCrisisDetector(),
     user: { id: demo.userId, displayName: null, locale: 'en-US' },
     log: silent,
@@ -37,7 +40,13 @@ test('send_message streams start, deltas, end and persists both sides', async ()
   await handleClientEvent(deps, { type: 'send_message', conversationId, clientMsgId, content: 'hi' }, send)
   await memory.drain()
 
-  assert.equal(sent[0]?.type, 'message_start')
+  // Progression events precede the reply; everything after message_start is the reply itself.
+  const startAt = sent.findIndex((e) => e.type === 'message_start')
+  assert.ok(startAt >= 0)
+  assert.ok(sent.slice(0, startAt).every((e) => e.type === 'relationship_updated' || e.type === 'moment_unlocked'))
+  const update = sent.find((e) => e.type === 'relationship_updated')
+  assert.ok(update && update.type === 'relationship_updated' && update.previousStage === null, 'affinity-only updates are announced too')
+  assert.equal(update.relationship.affinity, 21, 'seeded 20 plus one message')
   const deltas = sent.filter((e) => e.type === 'message_delta')
   assert.ok(deltas.length > 1, 'reply arrives in more than one delta')
   const end = sent.at(-1)
@@ -100,6 +109,32 @@ test('an unknown conversation is rejected before anything is stored', async () =
   const { deps, sent, send } = await setup()
   await handleClientEvent(deps, { type: 'send_message', conversationId: randomUUID(), clientMsgId: randomUUID(), content: 'hi' }, send)
   assert.equal(sent[0]?.type, 'error')
+})
+
+test('a message moves affinity and a qualifying one announces the stage before the reply', async () => {
+  const { repo, deps, memory, conversationId, sent, send } = await setup()
+  const ctx = (await repo.getConversationContext(conversationId))!
+  // seedDemo warms the relationship to ACQUAINTED/20. Put it one message from CLOSE.
+  await repo.updateRelationship(ctx.relationship.id, { affinity: 44, activeDays: 7, lastActiveDate: '2000-01-01' })
+
+  await handleClientEvent(deps, { type: 'send_message', conversationId, clientMsgId: randomUUID(), content: 'hi' }, send)
+  await memory.drain()
+
+  const types = sent.map((e) => e.type)
+  assert.equal(types[0], 'relationship_updated', 'the update precedes message_start')
+  const startAt = types.indexOf('message_start')
+  const unlocked = sent.slice(1, startAt)
+  assert.ok(unlocked.length > 0 && unlocked.every((e) => e.type === 'moment_unlocked'), 'earned moments arrive before the reply')
+  assert.ok(
+    unlocked.some((e) => e.type === 'moment_unlocked' && e.moment.unlock.kind === 'STAGE' && e.moment.unlock.stage === 'CLOSE'),
+    'the CLOSE moment unlocks on the same turn'
+  )
+  const update = sent[0]
+  if (update?.type !== 'relationship_updated') return
+  assert.equal(update.previousStage, 'ACQUAINTED')
+  assert.equal(update.relationship.stage, 'CLOSE')
+  assert.ok(!('userId' in update.relationship), 'server-only fields do not reach the client')
+  assert.ok(repo.relationshipEvents.length >= 2, 'return bonus and message gain are both logged')
 })
 
 test("someone else's conversation is refused as UNAUTHORIZED", async () => {

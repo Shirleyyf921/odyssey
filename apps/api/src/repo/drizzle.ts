@@ -16,6 +16,7 @@ import {
   momentUnlocks,
   moments,
   portraits,
+  relationshipEvents,
   relationships,
   users,
 } from '../db/schema.js'
@@ -27,6 +28,8 @@ import type {
   MemoryRecord,
   NewMemory,
   NewMessage,
+  RelationshipEvent,
+  RelationshipPatch,
   RelationshipRecord,
   UserRecord,
 } from './types.js'
@@ -57,6 +60,10 @@ function toRelationship(row: RelationshipRow, conversationId: string): Relations
     affinity: row.affinity,
     startedAt: row.startedAt.toISOString(),
     conversationId,
+    activeDays: row.activeDays,
+    lastActiveDate: row.lastActiveDate,
+    messageGainsToday: row.messageGainsToday,
+    factGainsToday: row.factGainsToday,
   }
 }
 
@@ -141,6 +148,23 @@ export class DrizzleRepository implements AppRepository {
       if (!conv) throw new Error('conversation insert returned no row')
       return toRelationship(rel, conv.id)
     })
+  }
+
+  async updateRelationship(id: string, patch: RelationshipPatch) {
+    const [row] = await this.db.update(relationships).set(patch).where(eq(relationships.id, id)).returning()
+    if (!row) throw new Error(`unknown relationship ${id}`)
+    const [conv] = await this.db
+      .select({ id: conversations.id })
+      .from(conversations)
+      .where(eq(conversations.relationshipId, id))
+      .limit(1)
+    if (!conv) throw new Error(`relationship ${id} has no conversation`)
+    return toRelationship(row, conv.id)
+  }
+
+  async insertRelationshipEvents(events: RelationshipEvent[]) {
+    if (!events.length) return
+    await this.db.insert(relationshipEvents).values(events)
   }
 
   // ---------------------------------------------------------------- moments

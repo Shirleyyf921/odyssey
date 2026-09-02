@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { ClientEvent, ServerEvent } from '@odyssey/shared'
 import type { LlmGateway } from '../llm/gateway.js'
 import type { MemoryService } from '../memory/service.js'
+import type { RelationshipService } from '../relationship/service.js'
 import type { ChatRepository, UserRecord } from '../repo/types.js'
 import { INTERVENTION_BODY, resourcesFor, type CrisisDetector } from '../safety/crisis.js'
 import { buildCompletionRequest } from './prompt.js'
@@ -11,6 +12,7 @@ export interface ChatDeps {
   repo: ChatRepository
   gateway: LlmGateway
   memory: MemoryService
+  relationship: RelationshipService
   crisis: CrisisDetector
   /** The authenticated user behind this socket. */
   user: UserRecord
@@ -47,8 +49,8 @@ async function handleSendMessage(
   event: Extract<ClientEvent, { type: 'send_message' }>,
   send: Send
 ): Promise<void> {
-  const { repo, gateway, memory, crisis, log } = deps
-  const ctx = await authorize(deps, event.conversationId, send)
+  const { repo, gateway, memory, relationship, crisis, log } = deps
+  let ctx = await authorize(deps, event.conversationId, send)
   if (!ctx) return
 
   // Idempotency: a retried send gets the original reply, never a second generation.
@@ -90,9 +92,23 @@ async function handleSendMessage(
     })
   }
 
+  // Progression runs before generation so a stage change shapes the reply. The
+  // client hears about it before he speaks, and any moment it earned arrives with it.
+  const affinityBefore = ctx.relationship.affinity
+  const progress = await relationship.onUserMessage(ctx)
+  ctx = { ...ctx, relationship: progress.relationship }
+  if (progress.previousStage || progress.relationship.affinity !== affinityBefore) {
+    const { userId: _u, conversationId: _c, activeDays: _a, lastActiveDate: _l, messageGainsToday: _m, factGainsToday: _f, ...pub } =
+      progress.relationship
+    send({ type: 'relationship_updated', relationship: pub, previousStage: progress.previousStage })
+  }
+  for (const moment of progress.newlyUnlocked) {
+    send({ type: 'moment_unlocked', relationshipId: progress.relationship.id, moment })
+  }
+
   const assembled = await memory.assemble(ctx, event.content)
-  const request = buildCompletionRequest(ctx, assembled)
-  const tier = chooseTier(ctx, event.content)
+  const request = buildCompletionRequest(ctx, assembled, { previousStage: progress.previousStage })
+  const tier = chooseTier(ctx, event.content, { stageChanged: progress.previousStage !== null })
 
   const messageId = randomUUID()
   send({ type: 'message_start', messageId, conversationId: event.conversationId })

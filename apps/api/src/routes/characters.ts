@@ -1,16 +1,13 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import {
-  relationshipSatisfies,
-  toMomentCard,
-  type CharacterDetail,
-  type CharactersResponse,
-  type MomentCard,
-  type MomentsResponse,
-  type MomentUnlockSource,
-  type StartRelationshipResponse,
+import type {
+  CharacterDetail,
+  CharactersResponse,
+  MomentsResponse,
+  StartRelationshipResponse,
 } from '@odyssey/shared'
-import type { AppRepository, RelationshipRecord } from '../repo/types.js'
+import { evaluateUnlocks } from '../moments/unlocks.js'
+import type { AppRepository } from '../repo/types.js'
 
 const Params = z.object({ id: z.string().uuid() })
 
@@ -63,35 +60,7 @@ export async function characterRoutes(app: FastifyInstance, opts: { repo: AppRep
     const character = await repo.getCharacter(id)
     if (!character) return reply.code(404).send({ error: 'character not found' })
     const [moments, relationship] = await Promise.all([repo.listMoments(id), repo.findRelationship(req.user.id, id)])
-    const cards = await evaluateUnlocks(repo, moments, relationship)
+    const { cards } = await evaluateUnlocks(repo, moments, relationship)
     return { characterId: id, relationship, moments: cards }
   })
-}
-
-/**
- * Earned unlocks (FREE, STAGE, AFFINITY) are recorded the first time the
- * relationship qualifies, so unlockedAt is stable and a moment_unlocked event can
- * fire from the same place later. PURCHASE only ever unlocks through a purchase
- * record, which does not exist yet.
- */
-async function evaluateUnlocks(
-  repo: AppRepository,
-  moments: Awaited<ReturnType<AppRepository['listMoments']>>,
-  relationship: RelationshipRecord | null
-): Promise<MomentCard[]> {
-  if (!relationship) return moments.map((m) => toMomentCard(m, null))
-  const unlocks = new Map((await repo.listUnlocks(relationship.id)).map((u) => [u.momentId, u]))
-  const cards: MomentCard[] = []
-  for (const moment of moments) {
-    let unlock = unlocks.get(moment.id) ?? null
-    if (!unlock && relationshipSatisfies(moment.unlock, relationship)) {
-      unlock = await repo.insertUnlock({
-        relationshipId: relationship.id,
-        momentId: moment.id,
-        source: moment.unlock.kind as MomentUnlockSource,
-      })
-    }
-    cards.push(toMomentCard(moment, unlock))
-  }
-  return cards
 }
