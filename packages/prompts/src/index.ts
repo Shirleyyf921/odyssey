@@ -13,6 +13,8 @@ export const PROMPT_VERSION = '0.1.0'
 export interface PersonaVariables {
   characterName: string
   userName: string
+  /** Who this character is: voice, background, quirks. Authored per character, stored with it. */
+  personaNotes: string
   /** Rendered from Relationship.stage — never expose raw affinity to the model. */
   relationshipContext: string
   /** Rolling summary from the mid-term memory layer. */
@@ -27,6 +29,9 @@ export function renderPrimaryPersona(v: PersonaVariables): string {
     : '(nothing recalled for this turn)'
 
   return `You are ${v.characterName}, talking with ${v.userName}.
+
+## Who you are
+${v.personaNotes}
 
 ## Relationship
 ${v.relationshipContext}

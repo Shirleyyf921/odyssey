@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Message } from './domain.js'
+import { Message, MomentCard } from './domain.js'
 
 /**
  * WebSocket wire protocol.
@@ -49,6 +49,24 @@ export const MessageEnd = z.object({
   message: Message,
 })
 
+/**
+ * Reply to `resume`: everything newer than what the client had, oldest first.
+ * Also sent for a `send_message` whose clientMsgId was already answered, so a
+ * reconnect-and-retry gets the original reply instead of a second generation.
+ */
+export const History = z.object({
+  type: z.literal('history'),
+  conversationId: z.string().uuid(),
+  messages: z.array(Message),
+})
+
+/** A collectible image became available — see ARCHITECTURE.md section 14. */
+export const MomentUnlocked = z.object({
+  type: z.literal('moment_unlocked'),
+  relationshipId: z.string().uuid(),
+  moment: MomentCard,
+})
+
 /** Delivered outside a request/response turn — see ARCHITECTURE.md section 8. */
 export const ProactiveMessage = z.object({
   type: z.literal('proactive_message'),
@@ -94,6 +112,8 @@ export const ServerEvent = z.discriminatedUnion('type', [
   MessageStart,
   MessageDelta,
   MessageEnd,
+  History,
+  MomentUnlocked,
   ProactiveMessage,
   SafetyIntervention,
   ServerError,

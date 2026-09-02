@@ -4,17 +4,18 @@ An AI boyfriend companion app. One dedicated primary relationship, plus curated 
 
 ## Status
 
-🚧 Architecture design phase. See [ARCHITECTURE.md](./ARCHITECTURE.md) for the technical plan.
+🚧 Framework stage. The chat loop runs end to end (WebSocket → LLM gateway → Postgres), with
+memory, safety detection, and the client still to come. See [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Stack
 
 | Layer | Choice |
 |---|---|
-| Client | React Native (Expo SDK 54+) + EAS Build |
+| Client | React Native (Expo SDK 52) + EAS Build |
 | Server | TypeScript + Fastify |
 | Hosting | Railway |
 | Database | Postgres + pgvector · Redis |
-| Inference | External LLM APIs behind an internal gateway |
+| Inference | External LLM APIs behind an internal gateway (Novita for everyday chat, Anthropic for pivotal turns) |
 | Billing | RevenueCat (in-app purchase) |
 
 ## Positioning
@@ -46,6 +47,17 @@ pnpm typecheck    # all packages
 ```
 
 The API serves `/health` and `ws://localhost:3000/ws/chat` on port 3000.
+
+Without `DATABASE_URL` the API runs on an in-memory store and logs a demo `conversationId` at
+boot; without LLM keys replies are scripted. Copy `apps/api/.env.example` to `apps/api/.env`
+to configure Postgres, Novita, and Anthropic.
+
+```bash
+pnpm --filter @odyssey/api db:generate   # after editing src/db/schema.ts
+pnpm --filter @odyssey/api db:migrate    # apply migrations to DATABASE_URL
+```
+
+The Postgres instance needs the `vector` extension (Railway's pgvector image has it).
 
 ### A note on pnpm configuration
 

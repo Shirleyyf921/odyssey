@@ -1,7 +1,7 @@
 # odyssey — Technical Architecture
 
-> Status: Draft v0.2 · Pending review
-> Last updated: 2026-08-31
+> Status: Draft v0.3 · Pending review
+> Last updated: 2026-09-02
 
 ## 1. Product Definition
 
@@ -44,12 +44,17 @@ How we handle it:
    primary relationship only. Exploration characters are lightweight conversations.
 3. **Curated characters only, no UGC at launch.** UGC means moderation cost plus a cold-start
    supply problem — a separate business entirely.
+4. **The primary boyfriend is chosen from a curated set of preset faces**, not built from
+   sliders. Name and personality are customizable; the face is not. Decided 2026-09-02, because
+   identity images (§14) have to show the same person every time, and that is only achievable
+   today for faces we produced ourselves. Choosing a face is also a conversion step in its own
+   right, not a cost.
 
 ## 2. Stack
 
 | Layer | Choice | Rationale |
 |---|---|---|
-| Client | Expo (SDK 54+) + EAS Build | Config plugins now cover native modules; skips the entire native build setup. OTA updates let us ship prompt and copy changes without review |
+| Client | Expo (SDK 52, pinned in `apps/mobile`) + EAS Build | Config plugins now cover native modules; skips the entire native build setup. OTA updates let us ship prompt and copy changes without review |
 | Routing | expo-router | File-based, same mental model as Next.js |
 | State | Zustand + TanStack Query | Separates local UI state from server state |
 | Local storage | expo-sqlite + expo-secure-store | Message cache enables offline history; tokens go in secure store |
@@ -166,6 +171,19 @@ Subscription-primary, with metering hidden behind generous caps rather than surf
 
 This is a hypothesis, not a decision. It depends entirely on the cost measurement in §6.
 
+### Update 2026-09-02: conversation is subscription, images are consumables
+
+The friction argument above is about metering *conversation*: making every sentence a purchase
+decision breaks the fiction. It does not apply to images. "He sent you a photo" is a discrete
+act with its own ritual, and users pay for it in every adjacent category (otome games, Replika
+outfits and selfies) without feeling billed. So the split is:
+
+- **Conversation** — subscription, with the soft fair-use ceiling above
+- **Images** — earned through the relationship (stage, affinity) or purchased as a consumable
+
+This passes variable cost through where it is tolerable and leaves the conversation unmetered.
+Details in §14.
+
 ## 8. Proactive Messaging
 
 The strongest retention lever, and also the biggest source of complaints.
@@ -276,22 +294,76 @@ indicators alongside engagement.
 
 ## 13. Proposed MVP Scope
 
-**v1 ships**: primary boyfriend (customizable appearance, personality, name) + text chat +
-the four-layer memory system + subscription + 3–5 curated exploration characters.
+**v1 ships**: primary boyfriend (preset face, customizable name and personality) + text chat +
+the four-layer memory system + subscription + 3–5 curated exploration characters + **identity
+images for every character and roughly ten collectible moments (§14), all produced offline**.
 
 **Not deferrable**: the safety systems in §12 ship in v1.
 
 **Deferred to v2**: voice (TTS latency optimization is its own engineering effort), proactive
-messaging, anniversary system, expanded character roster.
+messaging, anniversary system, expanded character roster, **runtime image generation** (§14).
 
 Rationale: whether the memory system actually works is the **single validation point** for whether
 this product exists. Everything else is an amplifier. Validating amplifiers before the core is
 wasted effort.
 
+## 14. Visual Assets
+
+Visuals are not decoration in this category. Across the products women actually pay for in it
+(otome games, Replika's outfits and selfies, companion apps' photo features), the image is the
+first thing that converts. The working model is: **memory drives retention, images drive
+conversion.** Both are true; earlier drafts only wrote down the first.
+
+"Images" is three different things with three different cost and risk profiles:
+
+| Kind | What | Produced | Cost lands on | Hard part |
+|---|---|---|---|---|
+| Identity images | Portraits shown on the character page | Offline, curated | Art budget up front | None — taste and money |
+| Moments | Collectible scenes, unlocked over time | Offline, batch-generated then hand-picked | Art budget up front | Ops cadence |
+| Runtime generation | "Send me a selfie", generated now | Per request via API | Per image, $0.01–$0.36 | **Identity consistency** |
+
+### v1: identity images and moments only
+
+Both are produced offline and shipped as static assets. The runtime does nothing but serve URLs
+and decide who may see which. This has no inference cost, no consistency problem, and no
+moderation surface beyond our own review.
+
+- **Identity images** (`Portrait`): a small set per character, visible as soon as the user opens
+  the character. This is what a preset face means in §1.
+- **Moments** (`Moment`): roughly ten per character at launch. Each carries an unlock rule
+  (`FREE`, `STAGE`, `AFFINITY`, or `PURCHASE`) and a caption written in the character's voice.
+  Locked moments are visible as cards so the user knows what is there to earn or buy.
+- **Enforcement is server-side.** A locked card is sent without the asset URL; the client never
+  holds what it is not allowed to show. `toMomentCard` in `packages/shared` is the single point
+  where that decision is made.
+
+### Runtime generation: v2, gated on a measurement
+
+Generated images are only worth shipping if they look like *him* every time. A selfie that does
+not is worse than none: it breaks the exact illusion being sold. Consistency today means either a
+LoRA per character (feasible for a curated roster, not for user-built faces — which is why §1
+now fixes the face) or reference-image conditioning. Both need evaluation before a user sees the
+output.
+
+Before any of that, v1 answers the cheaper question first: **do identity images and moments move
+paywall conversion?** Paywall A/B with and without the moments gallery, two weeks. If they do not,
+runtime generation is not the next investment either.
+
+### Store and safety implications
+
+Generated imagery of people draws extra review attention. Under an SFW positioning, prompts and
+outputs both need a filter in front of them before v2, or "him, in bed" requests will move the
+rating and possibly the listing. Offline assets sidestep all of this in v1.
+
 ## Open Questions
 
-- [ ] Inference vendor and tiering strategy (blocked on cost measurement)
+- [ ] Inference vendor and tiering strategy (blocked on cost measurement). Current default:
+      Novita for EVERYDAY, Anthropic for PIVOTAL, DeepInfra as EVERYDAY failover (same models,
+      OpenAI-compatible, a base-URL change).
+- [ ] Image asset pipeline for §14: who produces portraits and moments, at what per-character cost
+- [ ] Moment unlock cadence and PURCHASE pricing
 - [ ] TTS vendor — English-first, latency is the primary criterion (candidates: Cartesia, ElevenLabs, PlayHT)
 - [ ] Subscription pricing and tier design — flat vs. metered, see §7
-- [ ] How granular should primary-boyfriend persona customization be
+- [x] How granular should primary-boyfriend persona customization be — name and personality only;
+      the face is a preset (§1, decided 2026-09-02)
 - [ ] Launch geographies — determines both compliance regimes (§11) and the crisis-resource mapping we must maintain (§12)
