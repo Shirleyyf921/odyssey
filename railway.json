@@ -5,7 +5,7 @@
     "buildCommand": "pnpm install --frozen-lockfile && pnpm --filter @odyssey/api build"
   },
   "deploy": {
-    "startCommand": "pnpm --filter @odyssey/api start",
+    "startCommand": "pnpm --filter @odyssey/api db:migrate && pnpm --filter @odyssey/api db:seed && pnpm --filter @odyssey/api start",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 30,
     "restartPolicyType": "ON_FAILURE"
