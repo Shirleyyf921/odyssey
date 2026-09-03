@@ -1,7 +1,7 @@
 # odyssey — Technical Architecture
 
-> Status: Draft v0.2 · Pending review
-> Last updated: 2026-08-31
+> Status: Draft v0.3 · Pending review
+> Last updated: 2026-09-02 (v0.3.1: memory and identity status)
 
 ## 1. Product Definition
 
@@ -44,12 +44,17 @@ How we handle it:
    primary relationship only. Exploration characters are lightweight conversations.
 3. **Curated characters only, no UGC at launch.** UGC means moderation cost plus a cold-start
    supply problem — a separate business entirely.
+4. **The primary boyfriend is chosen from a curated set of preset faces**, not built from
+   sliders. Name and personality are customizable; the face is not. Decided 2026-09-02, because
+   identity images (§14) have to show the same person every time, and that is only achievable
+   today for faces we produced ourselves. Choosing a face is also a conversion step in its own
+   right, not a cost.
 
 ## 2. Stack
 
 | Layer | Choice | Rationale |
 |---|---|---|
-| Client | Expo (SDK 54+) + EAS Build | Config plugins now cover native modules; skips the entire native build setup. OTA updates let us ship prompt and copy changes without review |
+| Client | Expo (SDK 52, pinned in `apps/mobile`) + EAS Build | Config plugins now cover native modules; skips the entire native build setup. OTA updates let us ship prompt and copy changes without review |
 | Routing | expo-router | File-based, same mental model as Next.js |
 | State | Zustand + TanStack Query | Separates local UI state from server state |
 | Local storage | expo-sqlite + expo-secure-store | Message cache enables offline history; tokens go in secure store |
@@ -91,6 +96,15 @@ The real moat for a companion product. Four layers, routed by `Relationship.dept
 | Relationship state | Affinity, stage, anniversaries → injected into system prompt | ✅ | ❌ |
 
 Long-term memory writes are async jobs (BullMQ) and never block the reply path.
+
+**Status (2026-09-02).** All four layers exist in `apps/api/src/memory`. Short-term is the
+verbatim window after the last summarized message; the mid-term summary folds the oldest turns
+in once the window overflows by a batch; long-term extracts facts per turn into pgvector and
+retrieves by cosine similarity against the incoming message. Jobs run in-process after the reply
+is sent, tracked so shutdown can drain them; BullMQ replaces that once Redis exists. Extraction
+and summaries run on the tier set by `MEMORY_TIER` (PIVOTAL by default, per §6). What is not
+done: the summary is never re-compacted, retrieved memories carry no recency weighting, and
+nothing dedupes a fact learned twice.
 
 ## 5. Data Model (draft)
 
@@ -165,6 +179,19 @@ Subscription-primary, with metering hidden behind generous caps rather than surf
 - Revisit consumables only if measured usage shows the ceiling cannot be set profitably
 
 This is a hypothesis, not a decision. It depends entirely on the cost measurement in §6.
+
+### Update 2026-09-02: conversation is subscription, images are consumables
+
+The friction argument above is about metering *conversation*: making every sentence a purchase
+decision breaks the fiction. It does not apply to images. "He sent you a photo" is a discrete
+act with its own ritual, and users pay for it in every adjacent category (otome games, Replika
+outfits and selfies) without feeling billed. So the split is:
+
+- **Conversation** — subscription, with the soft fair-use ceiling above
+- **Images** — earned through the relationship (stage, affinity) or purchased as a consumable
+
+This passes variable cost through where it is tolerable and leaves the conversation unmetered.
+Details in §14.
 
 ## 8. Proactive Messaging
 
@@ -261,6 +288,27 @@ effective jailbreak vector because the product legitimately asks the model to pl
 Persona prompts in `packages/prompts` need adversarial test coverage in CI, treated as regression
 tests rather than one-off manual QA.
 
+### Identity
+
+Two tiers. A **guest** is an anonymous device id minted by the client and sent as
+`x-device-id`; it lets someone browse and start talking before committing to an account. An
+**account** is Sign in with Apple or Google: the client sends the provider's identity token,
+the server verifies signature, issuer, audience, and expiry against the provider's published
+keys, and looks the person up by `(provider, subject)`.
+
+Sessions are opaque random tokens stored only as a hash, with expiry and revocation. A stateless
+JWT would be simpler, and wrong here: the data behind a session is intimate, and "sign out
+everywhere" and account erasure both need the server to be able to end a session it did not
+just issue.
+
+When a guest signs in, their progress follows them. A new account adopts the guest row outright.
+An existing account absorbs the guest's relationships where it has none for that character; a
+collision keeps the account's history, because the account is the thing the person came back
+for. This is also where a reinstall stops being a new person.
+
+Neither tier is an age gate. Apple's private relay email and Google's email are stored on the
+identity, not shown anywhere yet.
+
 ### Age assurance
 
 A checkbox is not an age gate. Requirements grow from §11 obligations, and the enforcement point
@@ -276,22 +324,143 @@ indicators alongside engagement.
 
 ## 13. Proposed MVP Scope
 
-**v1 ships**: primary boyfriend (customizable appearance, personality, name) + text chat +
-the four-layer memory system + subscription + 3–5 curated exploration characters.
+**v1 ships**: primary boyfriend (preset face, customizable name and personality) + text chat +
+the four-layer memory system + subscription + 3–5 curated exploration characters + **identity
+images for every character and roughly ten collectible moments (§14), all produced offline**.
 
 **Not deferrable**: the safety systems in §12 ship in v1.
 
 **Deferred to v2**: voice (TTS latency optimization is its own engineering effort), proactive
-messaging, anniversary system, expanded character roster.
+messaging, anniversary system, expanded character roster, **runtime image generation** (§14).
 
 Rationale: whether the memory system actually works is the **single validation point** for whether
 this product exists. Everything else is an amplifier. Validating amplifiers before the core is
 wasted effort.
 
+## 14. Visual Assets
+
+Visuals are not decoration in this category. Across the products women actually pay for in it
+(otome games, Replika's outfits and selfies, companion apps' photo features), the image is the
+first thing that converts. The working model is: **memory drives retention, images drive
+conversion.** Both are true; earlier drafts only wrote down the first.
+
+"Images" is three different things with three different cost and risk profiles:
+
+| Kind | What | Produced | Cost lands on | Hard part |
+|---|---|---|---|---|
+| Identity images | Portraits shown on the character page | Offline, curated | Art budget up front | None — taste and money |
+| Moments | Collectible scenes, unlocked over time | Offline, batch-generated then hand-picked | Art budget up front | Ops cadence |
+| Runtime generation | "Send me a selfie", generated now | Per request via API | Per image, $0.01–$0.36 | **Identity consistency** |
+
+### v1: identity images and moments only
+
+Both are produced offline and shipped as static assets. The runtime does nothing but serve URLs
+and decide who may see which. This has no inference cost, no consistency problem, and no
+moderation surface beyond our own review.
+
+- **Identity images** (`Portrait`): a small set per character, visible as soon as the user opens
+  the character. This is what a preset face means in §1.
+- **Moments** (`Moment`): roughly ten per character at launch. Each carries an unlock rule
+  (`FREE`, `STAGE`, `AFFINITY`, or `PURCHASE`) and a caption written in the character's voice.
+  Locked moments are visible as cards so the user knows what is there to earn or buy.
+- **Enforcement is server-side.** A locked card is sent without the asset URL; the client never
+  holds what it is not allowed to show. `toMomentCard` in `packages/shared` is the single point
+  where that decision is made.
+
+### Scenes: the setting, his first line, and the image of that setting
+
+Every character-chat product that works converges on the same two fields: a *scenario* (where
+you are, what you are to each other) and a *first message* the character speaks before the user
+does. The first message matters more than it looks: the model treats it as the strongest sample
+of how this character writes, and keeps that register. Otome games go one step further and give
+every setting its own backdrop art.
+
+A `Scene` is those three things together: a setting line the persona reads as "where you are",
+the character's opener (inserted into the conversation as a real first message, in the
+beat-plus-speech shape), and a backdrop image that is the visual of that setting. Conversations
+are set in a scene from the moment they start. Portraits will follow scenes, not the other way
+round: the first image a user sees of him should be him *there*.
+
+v1 ships one or two curated scenes per character with placeholder backdrops. Changing scenes
+mid-relationship, and scene-specific portraits, come with the art.
+
+### Runtime generation: v2, gated on a measurement
+
+Generated images are only worth shipping if they look like *him* every time. A selfie that does
+not is worse than none: it breaks the exact illusion being sold. Consistency today means either a
+LoRA per character (feasible for a curated roster, not for user-built faces — which is why §1
+now fixes the face) or reference-image conditioning. Both need evaluation before a user sees the
+output.
+
+Before any of that, v1 answers the cheaper question first: **do identity images and moments move
+paywall conversion?** Paywall A/B with and without the moments gallery, two weeks. If they do not,
+runtime generation is not the next investment either.
+
+### Store and safety implications
+
+Generated imagery of people draws extra review attention. Under an SFW positioning, prompts and
+outputs both need a filter in front of them before v2, or "him, in bed" requests will move the
+rating and possibly the listing. Offline assets sidestep all of this in v1.
+
+## 15. Relationship Progression
+
+`Relationship.affinity` (0–100, never shown as a number) and `Relationship.stage` are the
+state the memory system, the moments gallery, and the persona prompt all key off. How they move
+is a product rule, not an engineering detail, so the rules live in one file
+(`apps/api/src/relationship/rules.ts`) and every change is logged to `relationship_events`
+with a reason, so tuning can be done on data.
+
+### Affinity
+
+| Source | Amount | Daily cap | Why |
+|---|---|---|---|
+| A user message | +1 | 10 | Showing up counts, grinding does not |
+| First message of a new day | +3 | once | Coming back is the behaviour worth rewarding |
+| A durable fact the memory layer extracts | +2 | 6 | Sharing yourself deepens a relationship; volume does not |
+
+There is **no decay and no streak loss**. A companion that punishes you for living your life is
+the dependency trap §12 says we will not build. If absence should be felt, it should be felt in
+what he says, not in a number going down.
+
+EXPLORE relationships are LIGHT and extract no facts, so they climb on messages alone. That is
+the capability tiering from §1 expressed as a rule rather than a gate.
+
+### Stages
+
+| Stage | Affinity | Active days |
+|---|---|---|
+| ACQUAINTED | ≥ 15 | ≥ 2 |
+| CLOSE | ≥ 45 | ≥ 7 |
+| INTIMATE | ≥ 80 | ≥ 21 |
+
+Both gates must hold, so a stage cannot be bought with one long night. Stages never regress in
+v1. Days are UTC calendar days until users carry a timezone.
+
+### The transition turn
+
+Progression runs on the user's message *before* generation. When a stage changes, that reply is
+routed to the PIVOTAL tier (the first concrete use of it), the prompt tells the character what
+just shifted without letting him announce it, and the client receives `relationship_updated`
+followed by any `moment_unlocked` it earned, all before `message_start`. Fact-driven affinity is
+credited from the memory job afterwards; a stage it qualifies is announced on the next message,
+in the conversation, rather than from a background job.
+
+### Open
+
+- Whether EXPLORE relationships should be capped below INTIMATE (§1 says exploration must not
+  dilute the primary; a hard cap is the bluntest tool for that)
+- Whether the primary should react to affinity spent elsewhere (§1, item 1)
+- Timezone-aware days
+
 ## Open Questions
 
-- [ ] Inference vendor and tiering strategy (blocked on cost measurement)
+- [ ] Inference vendor and tiering strategy (blocked on cost measurement). Current default:
+      Novita for EVERYDAY, Anthropic for PIVOTAL, DeepInfra as EVERYDAY failover (same models,
+      OpenAI-compatible, a base-URL change).
+- [ ] Image asset pipeline for §14: who produces portraits and moments, at what per-character cost
+- [ ] Moment unlock cadence and PURCHASE pricing
 - [ ] TTS vendor — English-first, latency is the primary criterion (candidates: Cartesia, ElevenLabs, PlayHT)
 - [ ] Subscription pricing and tier design — flat vs. metered, see §7
-- [ ] How granular should primary-boyfriend persona customization be
+- [x] How granular should primary-boyfriend persona customization be — name and personality only;
+      the face is a preset (§1, decided 2026-09-02)
 - [ ] Launch geographies — determines both compliance regimes (§11) and the crisis-resource mapping we must maintain (§12)

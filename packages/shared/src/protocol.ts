@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Message } from './domain.js'
+import { Message, MomentCard, Relationship, RelationshipStage } from './domain.js'
 
 /**
  * WebSocket wire protocol.
@@ -31,6 +31,16 @@ export type ClientEvent = z.infer<typeof ClientEvent>
 
 // ---------------------------------------------------------------- server → client
 
+/**
+ * The user's message was stored. Carries the server-side row so the client can
+ * replace its optimistic bubble with the real thing before the reply starts.
+ */
+export const MessageAck = z.object({
+  type: z.literal('message_ack'),
+  clientMsgId: z.string().uuid(),
+  message: Message,
+})
+
 export const MessageStart = z.object({
   type: z.literal('message_start'),
   messageId: z.string().uuid(),
@@ -47,6 +57,35 @@ export const MessageEnd = z.object({
   type: z.literal('message_end'),
   messageId: z.string().uuid(),
   message: Message,
+})
+
+/**
+ * Reply to `resume`: everything newer than what the client had, oldest first.
+ * Also sent for a `send_message` whose clientMsgId was already answered, so a
+ * reconnect-and-retry gets the original reply instead of a second generation.
+ */
+export const History = z.object({
+  type: z.literal('history'),
+  conversationId: z.string().uuid(),
+  messages: z.array(Message),
+})
+
+/**
+ * The relationship moved. Sent before the reply on the turn it happens, so the
+ * client can mark the moment before he speaks. previousStage is null when only
+ * affinity changed. See ARCHITECTURE.md section 15.
+ */
+export const RelationshipUpdated = z.object({
+  type: z.literal('relationship_updated'),
+  relationship: Relationship,
+  previousStage: RelationshipStage.nullable(),
+})
+
+/** A collectible image became available — see ARCHITECTURE.md section 14. */
+export const MomentUnlocked = z.object({
+  type: z.literal('moment_unlocked'),
+  relationshipId: z.string().uuid(),
+  moment: MomentCard,
 })
 
 /** Delivered outside a request/response turn — see ARCHITECTURE.md section 8. */
@@ -91,9 +130,13 @@ export const ServerError = z.object({
 })
 
 export const ServerEvent = z.discriminatedUnion('type', [
+  MessageAck,
   MessageStart,
   MessageDelta,
   MessageEnd,
+  History,
+  RelationshipUpdated,
+  MomentUnlocked,
   ProactiveMessage,
   SafetyIntervention,
   ServerError,
