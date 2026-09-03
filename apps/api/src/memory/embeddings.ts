@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { fetchWithRetry } from '../llm/http.js'
 
 export interface EmbeddingProvider {
   readonly name: string
@@ -29,11 +30,15 @@ export class OpenAiCompatibleEmbeddings implements EmbeddingProvider {
 
   async embed(texts: string[]): Promise<number[][]> {
     if (!texts.length) return []
-    const res = await this.fetchImpl(`${this.opts.baseUrl.replace(/\/$/, '')}/embeddings`, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${this.opts.apiKey}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ model: this.opts.model, input: texts }),
-    })
+    const res = await fetchWithRetry(
+      `${this.opts.baseUrl.replace(/\/$/, '')}/embeddings`,
+      {
+        method: 'POST',
+        headers: { authorization: `Bearer ${this.opts.apiKey}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ model: this.opts.model, input: texts }),
+      },
+      this.fetchImpl
+    )
     if (!res.ok) throw new Error(`${this.name} embeddings ${res.status}: ${(await res.text()).slice(0, 300)}`)
     const json = (await res.json()) as { data?: Array<{ index?: number; embedding: number[] }> }
     const out: number[][] = new Array(texts.length)

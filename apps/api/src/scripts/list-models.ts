@@ -1,4 +1,5 @@
 import { env } from '../env.js'
+import { fetchWithRetry } from '../llm/http.js'
 
 /**
  * `pnpm --filter @odyssey/api list:models [filter]`
@@ -14,9 +15,17 @@ if (!env.NOVITA_API_KEY) {
 }
 
 const filter = (process.argv[2] ?? '').toLowerCase()
-const res = await fetch(`${env.NOVITA_BASE_URL.replace(/\/$/, '')}/models`, {
-  headers: { authorization: `Bearer ${env.NOVITA_API_KEY}` },
-})
+let res: Response
+try {
+  res = await fetchWithRetry(`${env.NOVITA_BASE_URL.replace(/\/$/, '')}/models`, {
+    headers: { authorization: `Bearer ${env.NOVITA_API_KEY}` },
+  })
+} catch (err) {
+  const cause = (err as { cause?: { code?: string } }).cause
+  console.log(`Could not reach ${env.NOVITA_BASE_URL} after 3 tries (${cause?.code ?? String(err)}).`)
+  console.log('Check your connection or VPN; the terminal must be able to reach api.novita.ai.')
+  process.exit(1)
+}
 if (!res.ok) {
   console.log(`${res.status}: ${(await res.text()).slice(0, 300)}`)
   process.exit(1)

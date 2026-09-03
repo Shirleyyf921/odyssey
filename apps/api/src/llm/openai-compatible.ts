@@ -1,3 +1,4 @@
+import { fetchWithRetry } from './http.js'
 import { readSse } from './sse.js'
 import type { CompletionEvent, CompletionRequest, LlmProvider } from './types.js'
 
@@ -31,7 +32,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
   }
 
   async *stream(req: CompletionRequest, signal?: AbortSignal): AsyncIterable<CompletionEvent> {
-    const res = await this.fetchImpl(`${this.opts.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+    const res = await fetchWithRetry(`${this.opts.baseUrl.replace(/\/$/, '')}/chat/completions`, {
       method: 'POST',
       headers: {
         authorization: `Bearer ${this.opts.apiKey}`,
@@ -47,7 +48,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
         messages: [{ role: 'system', content: req.system }, ...req.messages],
       }),
       signal,
-    })
+    }, this.fetchImpl)
     if (!res.ok || !res.body) {
       const detail = await res.text().catch(() => '')
       throw new Error(`${this.name} ${res.status}: ${detail.slice(0, 300)}`)
