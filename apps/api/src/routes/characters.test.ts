@@ -128,3 +128,30 @@ test('the dev stage override exists only when enabled, and satisfies the stage g
   const sunday = moments.moments.find((m) => m.unlock.kind === 'STAGE' && m.unlock.stage === 'CLOSE')!
   assert.equal(sunday.status, 'UNLOCKED', 'forcing the stage unlocks what it earns')
 })
+
+test('starting a relationship opens in the first scene with his opener as the first message', async () => {
+  const { app, repo } = await build()
+  const device = randomUUID()
+  const roster = CharactersResponse.parse((await app.inject({ method: 'GET', url: '/characters', headers: { 'x-device-id': device } })).json())
+  const primary = roster.characters.find((c) => c.kind === 'PRIMARY')!
+
+  const detail = CharacterDetail.parse((await app.inject({ method: 'GET', url: `/characters/${primary.id}`, headers: { 'x-device-id': device } })).json())
+  assert.ok(detail.scenes.length >= 1, 'scenes ship with the character')
+
+  const started = StartRelationshipResponse.parse(
+    (await app.inject({ method: 'POST', url: `/characters/${primary.id}/start`, headers: { 'x-device-id': device } })).json()
+  )
+  assert.equal(started.relationship.sceneId, detail.scenes[0]!.id)
+
+  const history = await repo.listRecentMessages(started.relationship.conversationId, 5)
+  assert.equal(history.length, 1)
+  assert.equal(history[0]?.role, 'CHARACTER')
+  assert.equal(history[0]?.content, detail.scenes[0]!.opener)
+
+  const ctx = await repo.getConversationContext(started.relationship.conversationId)
+  assert.equal(ctx?.conversation.scene?.id, detail.scenes[0]!.id)
+
+  // Idempotent: a second start neither creates a second opener nor moves the scene.
+  await app.inject({ method: 'POST', url: `/characters/${primary.id}/start`, headers: { 'x-device-id': device } })
+  assert.equal((await repo.listRecentMessages(started.relationship.conversationId, 5)).length, 1)
+})

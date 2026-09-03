@@ -29,6 +29,13 @@
       "when": 1788349952906,
       "tag": "0003_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788406288496,
+      "tag": "0004_scenes",
+      "breakpoints": true
     }
   ]
 }

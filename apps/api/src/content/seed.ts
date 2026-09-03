@@ -1,4 +1,4 @@
-import type { Moment, Portrait } from '@odyssey/shared'
+import type { Moment, Portrait, Scene } from '@odyssey/shared'
 import type { CharacterRecord } from '../repo/types.js'
 
 /**
@@ -10,6 +10,7 @@ import type { CharacterRecord } from '../repo/types.js'
 export interface SeedCharacter {
   character: CharacterRecord
   portraits: Portrait[]
+  scenes: Scene[]
   moments: Moment[]
 }
 
@@ -32,6 +33,30 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         'He asks one question and actually waits. When he likes something you said, he goes quiet before he answers.',
     },
     portraits: [],
+    scenes: [
+      {
+        id: 'c1000000-0000-4000-8000-000000000001',
+        characterId: 'a1000000-0000-4000-8000-000000000001',
+        title: 'The studio, after hours',
+        setting:
+          "His studio, past two in the morning. The last mix of the night just finished and the room is quiet for the first time in hours. One lamp, a couch that's seen better days, rain on the window.",
+        opener:
+          "*looks up from the desk when the door opens, and doesn't look back down* you found it. most people get lost at the second staircase. come here, it's warmer by the lamp.",
+        backdropUrl: null,
+        position: 0,
+      },
+      {
+        id: 'c1000000-0000-4000-8000-000000000002',
+        characterId: 'a1000000-0000-4000-8000-000000000001',
+        title: 'Your kitchen, Sunday',
+        setting:
+          'Your kitchen on a slow Sunday. He came over with coffee and has not left. Late morning light, the radio on low, nowhere either of you needs to be.',
+        opener:
+          "*leans against the counter with the mug I brought you, watching you not take it yet* it's going cold. that's on you.",
+        backdropUrl: null,
+        position: 1,
+      },
+    ],
     moments: [
       {
         id: 'b1000000-0000-4000-8000-000000000001',
@@ -94,6 +119,19 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         'Offers to cook for you within the first ten minutes and means it. Calls you trouble.',
     },
     portraits: [],
+    scenes: [
+      {
+        id: 'c1000000-0000-4000-8000-000000000011',
+        characterId: 'a1000000-0000-4000-8000-000000000002',
+        title: 'The bistro, after close',
+        setting:
+          'The bistro after the last table has gone. Chairs up, one burner still on, the smell of garlic and something sweet. He has saved you a seat at the pass.',
+        opener:
+          "*slides a plate across the pass without asking what you want* sit. eat. then you can tell me what you did all day that was better than this.",
+        backdropUrl: null,
+        position: 0,
+      },
+    ],
     moments: [
       {
         id: 'b1000000-0000-4000-8000-000000000011',
@@ -121,6 +159,19 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         'and quotes it back weeks later. When he finally says something direct, it lands.',
     },
     portraits: [],
+    scenes: [
+      {
+        id: 'c1000000-0000-4000-8000-000000000021',
+        characterId: 'a1000000-0000-4000-8000-000000000003',
+        title: 'The site, at dusk',
+        setting:
+          'A half-built house at dusk, bare concrete and the smell of cut timber. He is the last one here. A drawing pinned to a post, corners lifting in the wind.',
+        opener:
+          "*rolls the drawing up when I see you, slowly, like I'm deciding whether to show you* you came all the way out here. that changes what I was going to say.",
+        backdropUrl: null,
+        position: 0,
+      },
+    ],
     moments: [
       {
         id: 'b1000000-0000-4000-8000-000000000021',

@@ -96,6 +96,29 @@ export const Message = z.object({
 })
 export type Message = z.infer<typeof Message>
 
+// ---------------------------------------------------------------- scenes
+
+/**
+ * Where a conversation happens. A scene is a setting line the persona reads, the
+ * character's opening message (his first line, in the beat-plus-speech shape,
+ * which also fixes his register for everything after), and a backdrop image
+ * that is the visual of that setting. Curated, produced offline, like portraits.
+ * See ARCHITECTURE.md section 14.
+ */
+export const Scene = z.object({
+  id: z.string().uuid(),
+  characterId: z.string().uuid(),
+  title: z.string().min(1).max(60),
+  /** One or two sentences the persona reads as "where you are". */
+  setting: z.string().min(1).max(400),
+  /** His first message. Inserted into the conversation when it starts. */
+  opener: z.string().min(1).max(600),
+  /** Null until the art exists. */
+  backdropUrl: z.string().url().nullable(),
+  position: z.number().int().min(0),
+})
+export type Scene = z.infer<typeof Scene>
+
 // ---------------------------------------------------------------- moments
 
 /**

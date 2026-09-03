@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { SEED_CHARACTERS } from '../content/seed.js'
-import { characters, moments, portraits } from './schema.js'
+import { characters, moments, portraits, scenes } from './schema.js'
 
 /** Upserts the launch roster. Safe to re-run: ids are fixed. */
 const url = process.env.DATABASE_URL
@@ -34,6 +34,15 @@ for (const seed of SEED_CHARACTERS) {
       .insert(portraits)
       .values({ id: p.id, characterId: p.characterId, url: p.url, position: p.position, label: p.label })
       .onConflictDoUpdate({ target: portraits.id, set: { url: p.url, position: p.position, label: p.label } })
+  }
+  for (const sc of seed.scenes) {
+    await db
+      .insert(scenes)
+      .values({ id: sc.id, characterId: sc.characterId, title: sc.title, setting: sc.setting, opener: sc.opener, backdropUrl: sc.backdropUrl, position: sc.position })
+      .onConflictDoUpdate({
+        target: scenes.id,
+        set: { title: sc.title, setting: sc.setting, opener: sc.opener, backdropUrl: sc.backdropUrl, position: sc.position },
+      })
   }
   for (const m of seed.moments) {
     await db

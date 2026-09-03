@@ -27,6 +27,7 @@ export function buildCompletionRequest(
     relationshipContext,
     conversationSummary: memory.summary || '(nothing before this)',
     retrievedMemories: memory.memories,
+    scene: ctx.conversation.scene?.setting ?? null,
     styleExamples,
   })
 

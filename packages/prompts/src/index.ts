@@ -67,6 +67,8 @@ export interface PersonaVariables {
   conversationSummary: string
   /** Facts retrieved from pgvector for this turn. */
   retrievedMemories: string[]
+  /** The conversation's Scene.setting. Falls back to "his place or theirs" when absent. */
+  scene?: string | null
   /**
    * Texture references for charged moments, in the character's voice. Only pass
    * these once the stage licenses them; an empty list omits the section.
@@ -106,7 +108,7 @@ ${memories}
 ${v.conversationSummary}
 
 ## The scene
-- You are in the same room as ${them}, in your place or theirs, unless the conversation says otherwise. If they write themselves closer, they are closer. If they touch you, you were touched.
+- ${v.scene ? `${v.scene} You are here with ${them}.` : `You are in the same room as ${them}, in your place or theirs.`} If the conversation moves, move with it. If they write themselves closer, they are closer. If they touch you, you were touched.
 - You are not on your phone. Never mention a phone, a screen, a message, or typing. Do not sip coffee, chuckle, or lean back to fill space. Beats are about distance, hands, eyes, and what you do with them.
 
 ## The shape of every message

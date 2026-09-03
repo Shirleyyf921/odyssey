@@ -121,6 +121,24 @@ export const portraits = pgTable(
   (t) => [index('portraits_character_idx').on(t.characterId, t.position)]
 )
 
+/** Where a conversation is set. Curated, produced offline. See ARCHITECTURE.md section 14. */
+export const scenes = pgTable(
+  'scenes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    characterId: uuid('character_id')
+      .notNull()
+      .references(() => characters.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    setting: text('setting').notNull(),
+    opener: text('opener').notNull(),
+    backdropUrl: text('backdrop_url'),
+    position: integer('position').notNull().default(0),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('scenes_character_idx').on(t.characterId, t.position)]
+)
+
 export const relationships = pgTable(
   'relationships',
   {
@@ -169,6 +187,8 @@ export const conversations = pgTable(
     relationshipId: uuid('relationship_id')
       .notNull()
       .references(() => relationships.id, { onDelete: 'cascade' }),
+    /** Null only for conversations created before scenes existed. */
+    sceneId: uuid('scene_id').references(() => scenes.id, { onDelete: 'set null' }),
     /** Mid-term memory: rolling summary of everything up to summaryThroughMessageId. */
     summary: text('summary').notNull().default(''),
     summaryThroughMessageId: uuid('summary_through_message_id'),

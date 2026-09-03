@@ -367,6 +367,23 @@ moderation surface beyond our own review.
   holds what it is not allowed to show. `toMomentCard` in `packages/shared` is the single point
   where that decision is made.
 
+### Scenes: the setting, his first line, and the image of that setting
+
+Every character-chat product that works converges on the same two fields: a *scenario* (where
+you are, what you are to each other) and a *first message* the character speaks before the user
+does. The first message matters more than it looks: the model treats it as the strongest sample
+of how this character writes, and keeps that register. Otome games go one step further and give
+every setting its own backdrop art.
+
+A `Scene` is those three things together: a setting line the persona reads as "where you are",
+the character's opener (inserted into the conversation as a real first message, in the
+beat-plus-speech shape), and a backdrop image that is the visual of that setting. Conversations
+are set in a scene from the moment they start. Portraits will follow scenes, not the other way
+round: the first image a user sees of him should be him *there*.
+
+v1 ships one or two curated scenes per character with placeholder backdrops. Changing scenes
+mid-relationship, and scene-specific portraits, come with the art.
+
 ### Runtime generation: v2, gated on a measurement
 
 Generated images are only worth shipping if they look like *him* every time. A selfie that does

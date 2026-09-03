@@ -35,13 +35,14 @@ export async function characterRoutes(
     const { id } = Params.parse(req.params)
     const character = await repo.getCharacter(id)
     if (!character) return reply.code(404).send({ error: 'character not found' })
-    const [portraits, relationship, moments] = await Promise.all([
+    const [portraits, relationship, moments, scenes] = await Promise.all([
       repo.listPortraits(id),
       repo.findRelationship(req.user.id, id),
       repo.listMoments(id),
+      repo.listScenes(id),
     ])
     const { personaNotes: _notes, ...pub } = character
-    return { ...pub, portraits, relationship, momentCount: moments.length }
+    return { ...pub, portraits, relationship, momentCount: moments.length, scenes }
   })
 
   /**
@@ -52,11 +53,28 @@ export async function characterRoutes(
     const { id } = Params.parse(req.params)
     const character = await repo.getCharacter(id)
     if (!character) return reply.code(404).send({ error: 'character not found' })
+    const existing = await repo.findRelationship(req.user.id, id)
+    if (existing) return { relationship: existing }
+
+    // The conversation opens in the character's first scene, and he speaks first.
+    // His opener is the strongest style sample the model will see, so it is a real
+    // message in the history, not a client-side decoration.
+    const [scene] = await repo.listScenes(id)
     const relationship = await repo.createRelationship(
       req.user.id,
       id,
-      character.kind === 'PRIMARY' ? 'DEEP' : 'LIGHT'
+      character.kind === 'PRIMARY' ? 'DEEP' : 'LIGHT',
+      scene?.id ?? null
     )
+    if (scene) {
+      await repo.insertMessage({
+        conversationId: relationship.conversationId,
+        role: 'CHARACTER',
+        content: scene.opener,
+        clientMsgId: null,
+        inReplyTo: null,
+      })
+    }
     return { relationship }
   })
 

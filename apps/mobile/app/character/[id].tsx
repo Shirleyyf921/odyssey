@@ -28,7 +28,10 @@ export default function CharacterScreen() {
     onSuccess: ({ relationship }) => {
       qc.invalidateQueries({ queryKey: ['characters'] })
       qc.invalidateQueries({ queryKey: ['character', id] })
-      router.push({ pathname: '/chat/[conversationId]', params: { conversationId: relationship.conversationId, name: data?.name ?? '' } })
+      router.push({
+        pathname: '/chat/[conversationId]',
+        params: { conversationId: relationship.conversationId, name: data?.name ?? '', characterId: id },
+      })
     },
   })
 
@@ -57,7 +60,10 @@ export default function CharacterScreen() {
         disabled={start.isPending}
         onPress={() =>
           rel
-            ? router.push({ pathname: '/chat/[conversationId]', params: { conversationId: rel.conversationId, name: data.name } })
+            ? router.push({
+                pathname: '/chat/[conversationId]',
+                params: { conversationId: rel.conversationId, name: data.name, characterId: id },
+              })
             : start.mutate()
         }
       >

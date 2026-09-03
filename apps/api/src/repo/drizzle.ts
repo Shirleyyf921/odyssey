@@ -7,6 +7,7 @@ import type {
   MomentUnlockSource,
   Portrait,
   RelationshipDepth,
+  Scene,
 } from '@odyssey/shared'
 import type { Db } from '../db/client.js'
 import {
@@ -20,6 +21,7 @@ import {
   portraits,
   relationshipEvents,
   relationships,
+  scenes,
   sessions,
   users,
 } from '../db/schema.js'
@@ -57,7 +59,7 @@ function toMessage(row: MessageRow): Message {
   }
 }
 
-function toRelationship(row: RelationshipRow, conversationId: string): RelationshipRecord {
+function toRelationship(row: RelationshipRow, conversationId: string, sceneId: string | null = null): RelationshipRecord {
   return {
     id: row.id,
     userId: row.userId,
@@ -67,6 +69,7 @@ function toRelationship(row: RelationshipRow, conversationId: string): Relations
     affinity: row.affinity,
     startedAt: row.startedAt.toISOString(),
     conversationId,
+    sceneId,
     activeDays: row.activeDays,
     lastActiveDate: row.lastActiveDate,
     messageGainsToday: row.messageGainsToday,
@@ -208,24 +211,24 @@ export class DrizzleRepository implements AppRepository {
 
   private relationshipQuery() {
     return this.db
-      .select({ relationship: relationships, conversationId: conversations.id })
+      .select({ relationship: relationships, conversationId: conversations.id, sceneId: conversations.sceneId })
       .from(relationships)
       .innerJoin(conversations, eq(conversations.relationshipId, relationships.id))
   }
 
   async listRelationships(userId: string) {
     const rows = await this.relationshipQuery().where(eq(relationships.userId, userId))
-    return rows.map((r) => toRelationship(r.relationship, r.conversationId))
+    return rows.map((r) => toRelationship(r.relationship, r.conversationId, r.sceneId))
   }
 
   async findRelationship(userId: string, characterId: string) {
     const [row] = await this.relationshipQuery()
       .where(and(eq(relationships.userId, userId), eq(relationships.characterId, characterId)))
       .limit(1)
-    return row ? toRelationship(row.relationship, row.conversationId) : null
+    return row ? toRelationship(row.relationship, row.conversationId, row.sceneId) : null
   }
 
-  async createRelationship(userId: string, characterId: string, depth: RelationshipDepth) {
+  async createRelationship(userId: string, characterId: string, depth: RelationshipDepth, sceneId: string | null = null) {
     return this.db.transaction(async (tx) => {
       const [rel] = await tx
         .insert(relationships)
@@ -237,22 +240,38 @@ export class DrizzleRepository implements AppRepository {
         if (!existing) throw new Error('relationship exists but could not be read')
         return existing
       }
-      const [conv] = await tx.insert(conversations).values({ relationshipId: rel.id }).returning({ id: conversations.id })
+      const [conv] = await tx
+        .insert(conversations)
+        .values({ relationshipId: rel.id, sceneId })
+        .returning({ id: conversations.id })
       if (!conv) throw new Error('conversation insert returned no row')
-      return toRelationship(rel, conv.id)
+      return toRelationship(rel, conv.id, sceneId)
     })
+  }
+
+  async listScenes(characterId: string): Promise<Scene[]> {
+    const rows = await this.db.select().from(scenes).where(eq(scenes.characterId, characterId)).orderBy(asc(scenes.position))
+    return rows.map((r) => ({
+      id: r.id,
+      characterId: r.characterId,
+      title: r.title,
+      setting: r.setting,
+      opener: r.opener,
+      backdropUrl: r.backdropUrl,
+      position: r.position,
+    }))
   }
 
   async updateRelationship(id: string, patch: RelationshipPatch) {
     const [row] = await this.db.update(relationships).set(patch).where(eq(relationships.id, id)).returning()
     if (!row) throw new Error(`unknown relationship ${id}`)
     const [conv] = await this.db
-      .select({ id: conversations.id })
+      .select({ id: conversations.id, sceneId: conversations.sceneId })
       .from(conversations)
       .where(eq(conversations.relationshipId, id))
       .limit(1)
     if (!conv) throw new Error(`relationship ${id} has no conversation`)
-    return toRelationship(row, conv.id)
+    return toRelationship(row, conv.id, conv.sceneId)
   }
 
   async insertRelationshipEvents(events: RelationshipEvent[]) {
@@ -307,7 +326,7 @@ export class DrizzleRepository implements AppRepository {
   async getConversationContext(conversationId: string): Promise<ConversationContext | null> {
     const [row] = await this.db
       .select({
-        conversation: { id: conversations.id, relationshipId: conversations.relationshipId },
+        conversation: { id: conversations.id, relationshipId: conversations.relationshipId, sceneId: conversations.sceneId },
         relationship: relationships,
         character: {
           id: characters.id,
@@ -324,9 +343,12 @@ export class DrizzleRepository implements AppRepository {
       .where(eq(conversations.id, conversationId))
       .limit(1)
     if (!row) return null
+    const scene = row.conversation.sceneId
+      ? ((await this.listScenes(row.character.id)).find((sc) => sc.id === row.conversation.sceneId) ?? null)
+      : null
     return {
-      conversation: row.conversation,
-      relationship: toRelationship(row.relationship, row.conversation.id),
+      conversation: { id: row.conversation.id, relationshipId: row.conversation.relationshipId, scene },
+      relationship: toRelationship(row.relationship, row.conversation.id, row.conversation.sceneId),
       character: row.character,
       user: row.user,
     }

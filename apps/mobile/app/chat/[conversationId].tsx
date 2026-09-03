@@ -1,8 +1,11 @@
+import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MessageBubble } from '../../src/components/MessageBubble'
+import { SceneCard } from '../../src/components/SceneCard'
+import { api } from '../../src/lib/api'
 import { ChatSocket } from '../../src/lib/socket'
 import { useChatStore } from '../../src/store/chat'
 import { colors, radius, spacing } from '../../src/theme'
@@ -10,7 +13,13 @@ import { colors, radius, spacing } from '../../src/theme'
 type Row = { key: string; role: 'USER' | 'CHARACTER' | 'SYSTEM'; text: string; pending?: boolean; at: string }
 
 export default function ChatScreen() {
-  const { conversationId, name } = useLocalSearchParams<{ conversationId: string; name?: string }>()
+  const { conversationId, name, characterId } = useLocalSearchParams<{ conversationId: string; name?: string; characterId?: string }>()
+  const character = useQuery({
+    queryKey: ['character', characterId],
+    queryFn: () => api.character(characterId!),
+    enabled: !!characterId,
+  })
+  const scene = character.data?.scenes.find((sc) => sc.id === character.data?.relationship?.sceneId) ?? null
   const insets = useSafeAreaInsets()
   const [draft, setDraft] = useState('')
   const socketRef = useRef<ChatSocket | null>(null)
@@ -62,6 +71,8 @@ export default function ChatScreen() {
         keyExtractor={(r) => r.key}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => <MessageBubble role={item.role} text={item.text} pending={item.pending} />}
+        // Inverted list: the footer renders at the visual top, above the oldest message.
+        ListFooterComponent={scene ? <SceneCard scene={scene} /> : null}
       />
 
       {conv?.intervention && (

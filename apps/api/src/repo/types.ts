@@ -10,6 +10,7 @@ import type {
   Portrait,
   Relationship,
   RelationshipDepth,
+  Scene,
 } from '@odyssey/shared'
 
 export interface UserRecord {
@@ -47,6 +48,7 @@ export interface RelationshipRecord extends Relationship, RelationshipProgress {
   userId: string
   /** One conversation per relationship for now. */
   conversationId: string
+  sceneId: string | null
 }
 
 export type RelationshipPatch = Partial<
@@ -82,7 +84,7 @@ export interface ConversationSummary {
 
 /** Everything the chat pipeline needs to know about a conversation, in one read. */
 export interface ConversationContext {
-  conversation: { id: string; relationshipId: string }
+  conversation: { id: string; relationshipId: string; scene: Scene | null }
   relationship: RelationshipRecord
   character: { id: string; kind: CharacterKind; name: string; personaNotes: string }
   user: { id: string; displayName: string | null; locale: string }
@@ -148,11 +150,17 @@ export interface AppRepository extends ChatRepository {
   listCharacters(): Promise<CharacterRecord[]>
   getCharacter(id: string): Promise<CharacterRecord | null>
   listPortraits(characterId: string): Promise<Portrait[]>
+  listScenes(characterId: string): Promise<Scene[]>
 
   listRelationships(userId: string): Promise<RelationshipRecord[]>
   findRelationship(userId: string, characterId: string): Promise<RelationshipRecord | null>
-  /** Creates the relationship and its conversation. */
-  createRelationship(userId: string, characterId: string, depth: RelationshipDepth): Promise<RelationshipRecord>
+  /** Creates the relationship and its conversation, set in `sceneId` when given. */
+  createRelationship(
+    userId: string,
+    characterId: string,
+    depth: RelationshipDepth,
+    sceneId?: string | null
+  ): Promise<RelationshipRecord>
   updateRelationship(id: string, patch: RelationshipPatch): Promise<RelationshipRecord>
   insertRelationshipEvents(events: RelationshipEvent[]): Promise<void>
 

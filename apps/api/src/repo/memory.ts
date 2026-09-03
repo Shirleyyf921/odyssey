@@ -7,6 +7,7 @@ import type {
   MomentUnlockSource,
   Portrait,
   RelationshipDepth,
+  Scene,
 } from '@odyssey/shared'
 import { SEED_CHARACTERS } from '../content/seed.js'
 import type {
@@ -38,9 +39,13 @@ export class MemoryRepository implements AppRepository {
   private usersByDevice = new Map<string, string>()
   private characters = new Map<string, CharacterRecord>()
   private portraits = new Map<string, Portrait[]>()
+  private scenes = new Map<string, Scene[]>()
   private moments = new Map<string, Moment[]>()
   private relationships = new Map<string, RelationshipRecord>()
-  private conversations = new Map<string, { id: string; relationshipId: string; summary: ConversationSummary }>()
+  private conversations = new Map<
+    string,
+    { id: string; relationshipId: string; sceneId: string | null; summary: ConversationSummary }
+  >()
   private messages = new Map<string, Message[]>()
   private unlocks = new Map<string, MomentUnlock[]>()
   private memories = new Map<string, StoredMemory[]>()
@@ -52,6 +57,7 @@ export class MemoryRepository implements AppRepository {
     for (const s of seed) {
       this.characters.set(s.character.id, s.character)
       this.portraits.set(s.character.id, [...s.portraits])
+      this.scenes.set(s.character.id, [...s.scenes])
       this.moments.set(s.character.id, [...s.moments])
     }
   }
@@ -172,6 +178,10 @@ export class MemoryRepository implements AppRepository {
     return [...(this.portraits.get(characterId) ?? [])].sort((a, b) => a.position - b.position)
   }
 
+  async listScenes(characterId: string) {
+    return [...(this.scenes.get(characterId) ?? [])].sort((a, b) => a.position - b.position)
+  }
+
   // ---------------------------------------------------------------- relationships
 
   async listRelationships(userId: string) {
@@ -185,7 +195,7 @@ export class MemoryRepository implements AppRepository {
     )
   }
 
-  async createRelationship(userId: string, characterId: string, depth: RelationshipDepth) {
+  async createRelationship(userId: string, characterId: string, depth: RelationshipDepth, sceneId: string | null = null) {
     const existing = await this.findRelationship(userId, characterId)
     if (existing) return existing
     if (!this.characters.has(characterId)) throw new Error(`unknown character ${characterId}`)
@@ -198,6 +208,7 @@ export class MemoryRepository implements AppRepository {
       affinity: 0,
       startedAt: new Date().toISOString(),
       conversationId: randomUUID(),
+      sceneId,
       activeDays: 0,
       lastActiveDate: null,
       messageGainsToday: 0,
@@ -207,6 +218,7 @@ export class MemoryRepository implements AppRepository {
     this.conversations.set(relationship.conversationId, {
       id: relationship.conversationId,
       relationshipId: relationship.id,
+      sceneId,
       summary: { text: '', throughMessageId: null },
     })
     this.messages.set(relationship.conversationId, [])
@@ -255,8 +267,9 @@ export class MemoryRepository implements AppRepository {
     const relationship = this.relationships.get(conversation.relationshipId)!
     const character = this.characters.get(relationship.characterId)!
     const user = this.users.get(relationship.userId)!
+    const scene = (this.scenes.get(character.id) ?? []).find((sc) => sc.id === conversation.sceneId) ?? null
     return {
-      conversation: { id: conversation.id, relationshipId: conversation.relationshipId },
+      conversation: { id: conversation.id, relationshipId: conversation.relationshipId, scene },
       relationship,
       character: { id: character.id, kind: character.kind, name: character.name, personaNotes: character.personaNotes },
       user,

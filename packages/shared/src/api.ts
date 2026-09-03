@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Character, CharacterProfile, MomentCard, Relationship, RelationshipStage } from './domain.js'
+import { Character, CharacterProfile, MomentCard, Relationship, RelationshipStage, Scene } from './domain.js'
 
 /**
  * REST shapes. The client validates every response against these, so a server
@@ -10,6 +10,8 @@ import { Character, CharacterProfile, MomentCard, Relationship, RelationshipStag
 /** A relationship as the client needs it: includes the conversation to open. */
 export const RelationshipSummary = Relationship.extend({
   conversationId: z.string().uuid(),
+  /** The scene the conversation is set in. Null only for conversations older than scenes. */
+  sceneId: z.string().uuid().nullable(),
 })
 export type RelationshipSummary = z.infer<typeof RelationshipSummary>
 
@@ -28,6 +30,7 @@ export type CharactersResponse = z.infer<typeof CharactersResponse>
 export const CharacterDetail = CharacterProfile.extend({
   relationship: RelationshipSummary.nullable(),
   momentCount: z.number().int().min(0),
+  scenes: z.array(Scene),
 })
 export type CharacterDetail = z.infer<typeof CharacterDetail>
 
