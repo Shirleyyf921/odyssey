@@ -14,6 +14,15 @@ export default function CharacterScreen() {
   // Stage and moments move while chatting; pick that up when the user comes back.
   useFocusEffect(useCallback(() => void refetch(), [refetch]))
 
+  const devStage = useMutation({
+    mutationFn: (stage: 'STRANGER' | 'ACQUAINTED' | 'CLOSE' | 'INTIMATE') => api.devSetStage(id, { stage }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['character', id] })
+      qc.invalidateQueries({ queryKey: ['characters'] })
+      qc.invalidateQueries({ queryKey: ['moments', id] })
+    },
+  })
+
   const start = useMutation({
     mutationFn: () => api.start(id),
     onSuccess: ({ relationship }) => {
@@ -62,11 +71,36 @@ export default function CharacterScreen() {
       >
         <Text style={styles.secondaryText}>Moments · {data.momentCount}</Text>
       </Pressable>
+
+      {__DEV__ && rel && (
+        <View style={styles.devBox}>
+          <Text style={styles.devLabel}>Dev · jump to stage</Text>
+          <View style={styles.devRow}>
+            {(['STRANGER', 'ACQUAINTED', 'CLOSE', 'INTIMATE'] as const).map((s) => (
+              <Pressable
+                key={s}
+                onPress={() => devStage.mutate(s)}
+                style={[styles.devChip, rel.stage === s && styles.devChipActive]}
+                disabled={devStage.isPending}
+              >
+                <Text style={[styles.devChipText, rel.stage === s && styles.devChipTextActive]}>{s.toLowerCase()}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      )}
     </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
+  devBox: { marginTop: spacing.xl, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.lg, gap: spacing.sm },
+  devLabel: { color: colors.textFaint, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  devRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  devChip: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 6 },
+  devChipActive: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
+  devChipText: { color: colors.textMuted, fontSize: 13 },
+  devChipTextActive: { color: colors.accent },
   content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
   strip: { gap: spacing.sm },
   stripItem: { width: 96 },

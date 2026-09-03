@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Character, CharacterProfile, MomentCard, Relationship } from './domain.js'
+import { Character, CharacterProfile, MomentCard, Relationship, RelationshipStage } from './domain.js'
 
 /**
  * REST shapes. The client validates every response against these, so a server
@@ -42,6 +42,12 @@ export const MomentsResponse = z.object({
   moments: z.array(MomentCard),
 })
 export type MomentsResponse = z.infer<typeof MomentsResponse>
+
+/** Development only: jump a relationship to a stage without waiting the days out. */
+export const DevSetStageRequest = z.object({
+  stage: RelationshipStage,
+})
+export type DevSetStageRequest = z.infer<typeof DevSetStageRequest>
 
 export const ApiError = z.object({
   error: z.string(),

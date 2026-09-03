@@ -7,6 +7,7 @@ import {
   MomentsResponse,
   SignInResponse,
   StartRelationshipResponse,
+  type DevSetStageRequest,
   type SignInRequest,
 } from '@odyssey/shared'
 import { API_URL } from './config'
@@ -63,4 +64,7 @@ export const api = {
   me: () => request('GET', '/me', MeResponse),
   signIn: (body: SignInRequest) => request('POST', '/auth/sign-in', SignInResponse, body),
   signOut: () => request('POST', '/auth/sign-out', MeResponse.optional()),
+  /** Development builds only; the server refuses it in production. */
+  devSetStage: (id: string, body: DevSetStageRequest) =>
+    request('POST', `/characters/${id}/dev/stage`, StartRelationshipResponse, body),
 }

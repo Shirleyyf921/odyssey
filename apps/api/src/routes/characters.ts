@@ -1,17 +1,22 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import type {
-  CharacterDetail,
-  CharactersResponse,
-  MomentsResponse,
-  StartRelationshipResponse,
+import {
+  DevSetStageRequest,
+  type CharacterDetail,
+  type CharactersResponse,
+  type MomentsResponse,
+  type StartRelationshipResponse,
 } from '@odyssey/shared'
+import { RULES } from '../relationship/rules.js'
 import { evaluateUnlocks } from '../moments/unlocks.js'
 import type { AppRepository } from '../repo/types.js'
 
 const Params = z.object({ id: z.string().uuid() })
 
-export async function characterRoutes(app: FastifyInstance, opts: { repo: AppRepository }) {
+export async function characterRoutes(
+  app: FastifyInstance,
+  opts: { repo: AppRepository; devTools?: boolean }
+) {
   const { repo } = opts
 
   app.get('/characters', async (req): Promise<CharactersResponse> => {
@@ -54,6 +59,31 @@ export async function characterRoutes(app: FastifyInstance, opts: { repo: AppRep
     )
     return { relationship }
   })
+
+  /**
+   * Development only. Sets stage and the minimum affinity and active days that
+   * stage requires, so the persona and the moments gallery can be reviewed at
+   * CLOSE or INTIMATE today instead of in three weeks. Not registered in production.
+   */
+  if (opts.devTools) {
+    app.post('/characters/:id/dev/stage', async (req, reply): Promise<StartRelationshipResponse | void> => {
+      const { id } = Params.parse(req.params)
+      const parsed = DevSetStageRequest.safeParse(req.body)
+      if (!parsed.success) return reply.code(400).send({ error: 'stage required' })
+      const relationship = await repo.findRelationship(req.user.id, id)
+      if (!relationship) return reply.code(404).send({ error: 'start the relationship first' })
+      const { stage } = parsed.data
+      const gate = stage === 'STRANGER' ? { affinity: 0, activeDays: 0 } : RULES.stages[stage]
+      const updated = await repo.updateRelationship(relationship.id, {
+        stage,
+        affinity: Math.max(relationship.affinity, gate.affinity),
+        activeDays: Math.max(relationship.activeDays, gate.activeDays),
+        stageChangedAt: new Date(),
+      })
+      req.log.warn({ relationshipId: relationship.id, stage }, 'dev: stage forced')
+      return { relationship: updated }
+    })
+  }
 
   app.get('/characters/:id/moments', async (req, reply): Promise<MomentsResponse | void> => {
     const { id } = Params.parse(req.params)

@@ -66,7 +66,7 @@ await app.register(publicAuthRoutes, { repo, auth })
 await app.register(authRoutes, { repo, auth })
 await app.register(async (scoped) => {
   requireIdentity(scoped, repo)
-  await scoped.register(characterRoutes, { repo })
+  await scoped.register(characterRoutes, { repo, devTools: env.NODE_ENV !== 'production' })
   await scoped.register(chatWebsocket, {
     repo,
     gateway,

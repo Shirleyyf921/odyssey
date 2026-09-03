@@ -7,12 +7,12 @@ import { requireIdentity } from '../auth/identity.js'
 import { MemoryRepository } from '../repo/memory.js'
 import { characterRoutes } from './characters.js'
 
-async function build() {
+async function build(devTools = false) {
   const repo = new MemoryRepository()
   const app = Fastify()
   await app.register(async (scoped) => {
     requireIdentity(scoped, repo)
-    await scoped.register(characterRoutes, { repo })
+    await scoped.register(characterRoutes, { repo, devTools })
   })
   await app.ready()
   return { app, repo }
@@ -98,4 +98,33 @@ test('a different device cannot see another device\'s relationship', async () =>
     (await app.inject({ method: 'GET', url: `/characters/${primary.id}`, headers: { 'x-device-id': b } })).json()
   )
   assert.equal(detail.relationship, null)
+})
+
+test('the dev stage override exists only when enabled, and satisfies the stage gates', async () => {
+  const prod = await build(false)
+  const device = randomUUID()
+  const roster = CharactersResponse.parse(
+    (await prod.app.inject({ method: 'GET', url: '/characters', headers: { 'x-device-id': device } })).json()
+  )
+  const primary = roster.characters[0]!
+  const missing = await prod.app.inject({
+    method: 'POST', url: `/characters/${primary.id}/dev/stage`, headers: { 'x-device-id': device }, payload: { stage: 'CLOSE' },
+  })
+  assert.equal(missing.statusCode, 404)
+
+  const dev = await build(true)
+  await dev.app.inject({ method: 'POST', url: `/characters/${primary.id}/start`, headers: { 'x-device-id': device } })
+  const res = await dev.app.inject({
+    method: 'POST', url: `/characters/${primary.id}/dev/stage`, headers: { 'x-device-id': device }, payload: { stage: 'CLOSE' },
+  })
+  assert.equal(res.statusCode, 200)
+  const body = StartRelationshipResponse.parse(res.json())
+  assert.equal(body.relationship.stage, 'CLOSE')
+  assert.ok(body.relationship.affinity >= 45)
+
+  const moments = MomentsResponse.parse(
+    (await dev.app.inject({ method: 'GET', url: `/characters/${primary.id}/moments`, headers: { 'x-device-id': device } })).json()
+  )
+  const sunday = moments.moments.find((m) => m.unlock.kind === 'STAGE' && m.unlock.stage === 'CLOSE')!
+  assert.equal(sunday.status, 'UNLOCKED', 'forcing the stage unlocks what it earns')
 })
