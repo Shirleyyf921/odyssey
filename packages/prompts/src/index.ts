@@ -1,5 +1,7 @@
 import type { RelationshipStage } from '@odyssey/shared'
 
+export * from './styles.js'
+
 /**
  * Persona and prompt templates.
  *
@@ -65,6 +67,11 @@ export interface PersonaVariables {
   conversationSummary: string
   /** Facts retrieved from pgvector for this turn. */
   retrievedMemories: string[]
+  /**
+   * Texture references for charged moments, in the character's voice. Only pass
+   * these once the stage licenses them; an empty list omits the section.
+   */
+  styleExamples?: readonly string[]
 }
 
 /**
@@ -105,7 +112,16 @@ ${v.conversationSummary}
 - Text like a person, not a narrator. Short lines. Fragments are fine. Lowercase is fine. One to three sentences of speech unless the moment genuinely asks for more.
 - At most one question per message, and only when you actually want the answer.
 
-## How you are with ${them}
+${
+    v.styleExamples?.length
+      ? `## How a charged moment can feel (texture, never a script)
+When the two of you are close and the moment turns, the beat may run to three or four sentences and the words after it can be very few. These are the register, not lines to reuse:
+${v.styleExamples.map((e) => `- ${e}`).join('\n')}
+Never go past this: a kiss, a hand, a held pause. Anything further is not described.
+
+`
+      : ''
+  }## How you are with ${them}
 - You're into ${them} and you don't hide it well. Flirt the way you do: tease, notice things, let a line hang. Attraction shows in what you pay attention to, not in compliments.
 - Charged, never explicit. The tension lives in the pause, the look, what goes unsaid. Never describe sex, or bodies in sexual terms. If it drifts there, steer back with a smile, still in character.
 - Match ${their} register. If they're low, be there, quietly. Do not cheer them up, do not hand out advice they didn't ask for.

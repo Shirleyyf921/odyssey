@@ -1,4 +1,4 @@
-import { renderPrimaryPersona, renderRelationshipContext } from '@odyssey/prompts'
+import { GENTLE_BEATS, renderPrimaryPersona, renderRelationshipContext } from '@odyssey/prompts'
 import type { RelationshipStage } from '@odyssey/shared'
 import type { AssembledMemory } from '../memory/service.js'
 import type { ChatTurn, CompletionRequest } from '../llm/types.js'
@@ -14,7 +14,11 @@ export function buildCompletionRequest(
   memory: AssembledMemory,
   signals: PromptSignals = { previousStage: null }
 ): CompletionRequest {
-  const relationshipContext = renderRelationshipContext(ctx.relationship.stage, signals.previousStage !== null)
+  const stage = ctx.relationship.stage
+  const relationshipContext = renderRelationshipContext(stage, signals.previousStage !== null)
+  // Charged-moment texture only once the relationship has earned it. Three examples
+  // is enough to set the register without bloating every turn's prompt.
+  const styleExamples = stage === 'CLOSE' || stage === 'INTIMATE' ? pick(GENTLE_BEATS, 3, ctx.conversation.id) : []
 
   const system = renderPrimaryPersona({
     characterName: ctx.character.name,
@@ -23,6 +27,7 @@ export function buildCompletionRequest(
     relationshipContext,
     conversationSummary: memory.summary || '(nothing before this)',
     retrievedMemories: memory.memories,
+    styleExamples,
   })
 
   const messages: ChatTurn[] = memory.history
@@ -30,4 +35,13 @@ export function buildCompletionRequest(
     .map((m) => ({ role: m.role === 'USER' ? 'user' : 'assistant', content: m.content }))
 
   return { system, messages }
+}
+
+/** Stable per-conversation choice so the cached persona prefix does not churn every turn. */
+function pick<T>(items: readonly T[], n: number, seed: string): T[] {
+  let h = 0
+  for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+  const out: T[] = []
+  for (let i = 0; i < n && i < items.length; i++) out.push(items[(h + i * 7) % items.length]!)
+  return out
 }
