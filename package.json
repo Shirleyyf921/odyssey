@@ -11,7 +11,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "start": "pnpm --filter @odyssey/api db:migrate && pnpm --filter @odyssey/api db:seed && pnpm --filter @odyssey/api start"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.10",
