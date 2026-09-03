@@ -13,6 +13,16 @@ import type { LlmProvider } from '../llm/types.js'
 
 const stack = inferenceFromEnv(env)
 
+/** "fetch failed" hides the useful part; surface the socket-level cause when there is one. */
+function describe(err: unknown): string {
+  const e = err as { message?: string; cause?: { code?: string; message?: string } }
+  if (e?.cause?.code || e?.cause?.message) {
+    return `${e.message ?? 'fetch failed'} (${e.cause.code ?? ''} ${e.cause.message ?? ''}). ` +
+      'Connection-level failure after 3 tries: check VPN/proxy, the terminal must reach the host.'
+  }
+  return e?.message ?? String(err)
+}
+
 if (!stack.configured.length) {
   console.log('No provider keys found. Put NOVITA_API_KEY and/or ANTHROPIC_API_KEY in apps/api/.env and run again.')
   process.exit(1)
@@ -38,7 +48,7 @@ async function probe(provider: LlmProvider) {
     console.log(`  "${text.trim()}"`)
   } catch (err) {
     failed = true
-    console.log(`✗ ${provider.name}: ${err instanceof Error ? err.message : String(err)}`)
+    console.log(`✗ ${provider.name}: ${describe(err)}`)
   }
 }
 
@@ -51,7 +61,7 @@ if (stack.embeddings.name !== 'hash') {
     console.log(`✓ embeddings ${stack.embeddings.name}  dims=${vec?.length}  ${Date.now() - started}ms`)
   } catch (err) {
     failed = true
-    console.log(`✗ embeddings: ${err instanceof Error ? err.message : String(err)}`)
+    console.log(`✗ embeddings: ${describe(err)}`)
   }
 } else {
   console.log('- embeddings: no NOVITA_API_KEY, long-term memory would use hash embeddings')
