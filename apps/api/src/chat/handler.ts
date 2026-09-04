@@ -84,7 +84,12 @@ async function handleSendMessage(
       clientMsgId: null,
       inReplyTo: userMessage.id,
     })
-    log.info({ conversationId: event.conversationId }, 'safety intervention')
+    // Incident record for human review (section 12). Ids only: the message itself is in the
+    // conversation, and this line must be safe to ship to a log vendor.
+    log.info(
+      { conversationId: event.conversationId, userId: ctx.user.id, messageId: userMessage.id, locale: ctx.user.locale },
+      'safety intervention'
+    )
     return send({
       type: 'safety_intervention',
       conversationId: event.conversationId,

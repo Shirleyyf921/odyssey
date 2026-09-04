@@ -13,7 +13,8 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
     "check:llm": "tsx src/scripts/check-llm.ts",
-    "list:models": "tsx src/scripts/list-models.ts"
+    "list:models": "tsx src/scripts/list-models.ts",
+    "eval:crisis": "tsx src/scripts/eval-crisis.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",

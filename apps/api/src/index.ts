@@ -16,7 +16,8 @@ import type { AppRepository } from './repo/types.js'
 import { gatewayFromEnv } from './llm/from-env.js'
 import { MemoryService } from './memory/service.js'
 import { RelationshipService } from './relationship/service.js'
-import { NoopCrisisDetector } from './safety/crisis.js'
+import { NoopCrisisDetector, type CrisisDetector } from './safety/crisis.js'
+import { LlmCrisisDetector } from './safety/llm-detector.js'
 
 const app = Fastify({
   logger: { level: env.NODE_ENV === 'production' ? 'info' : 'debug' },
@@ -45,6 +46,20 @@ if (!inference.live) app.log.warn('no LLM keys: replies are scripted (see README
 if (embeddings.name === 'hash') app.log.warn('no embedding key: long-term memory uses hash embeddings')
 app.log.info({ EVERYDAY: inference.routes.EVERYDAY.name, PIVOTAL: inference.routes.PIVOTAL.name }, 'llm routes')
 
+// ---------------------------------------------------------------- safety
+let crisis: CrisisDetector
+if (inference.crisisProvider) {
+  crisis = new LlmCrisisDetector(inference.crisisProvider, { timeoutMs: env.CRISIS_TIMEOUT_MS, log: app.log })
+  app.log.info({ model: env.CRISIS_MODEL, timeoutMs: env.CRISIS_TIMEOUT_MS }, 'crisis classifier')
+} else {
+  if (env.NODE_ENV === 'production') {
+    app.log.error('no crisis classifier in production: NOVITA_API_KEY is required (ARCHITECTURE.md section 12)')
+    process.exit(1)
+  }
+  app.log.warn('no NOVITA_API_KEY: crisis detection is a no-op (development only)')
+  crisis = new NoopCrisisDetector()
+}
+
 const relationship = new RelationshipService(repo, app.log)
 const memory = new MemoryService(repo, gateway, embeddings, app.log, { tier: env.MEMORY_TIER }, (ctx, n) =>
   relationship.onFactsShared(ctx, n)
@@ -72,7 +87,7 @@ await app.register(async (scoped) => {
     gateway,
     memory,
     relationship,
-    crisis: new NoopCrisisDetector(),
+    crisis,
   })
 })
 
