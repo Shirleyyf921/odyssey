@@ -89,7 +89,9 @@ pnpm --filter @odyssey/api list:models qwen     # substring filter
 NOVITA_MODEL=deepseek/deepseek-v4-flash pnpm --filter @odyssey/api check:llm   # try one without editing .env
 ```
 
-Either key alone works: the other tier falls back to whichever provider exists. `.env` is
+Either key alone works: the other tier falls back to whichever provider exists. Crisis screening
+(`CRISIS_MODEL`, a small model on the Novita host) needs the Novita key and is mandatory in
+production; `pnpm --filter @odyssey/api eval:crisis` scores it against the labeled set. `.env` is
 gitignored; never commit it. On Railway, set the same variables in the service settings.
 
 ### Running the client

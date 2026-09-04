@@ -30,6 +30,13 @@ const Env = z.object({
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   ANTHROPIC_MODEL: z.string().default('claude-opus-5'),
 
+  /**
+   * Crisis classifier (ARCHITECTURE.md section 12): a small, fast model on the
+   * OpenAI-compatible host, separate from the persona tiers. Needs NOVITA_API_KEY.
+   */
+  CRISIS_MODEL: z.string().default('meta-llama/llama-3.1-8b-instruct'),
+  CRISIS_TIMEOUT_MS: z.coerce.number().int().positive().default(3000),
+
   /** Which tier runs memory extraction and summaries. */
   MEMORY_TIER: z.enum(['EVERYDAY', 'PIVOTAL']).default('PIVOTAL'),
 

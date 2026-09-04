@@ -14,6 +14,8 @@ export interface InferenceStack {
   embeddings: EmbeddingProvider
   /** True when at least one tier is served by a real model. */
   live: boolean
+  /** Small model for crisis screening, or null when there is no key for it. */
+  crisisProvider: LlmProvider | null
 }
 
 /**
@@ -48,12 +50,22 @@ export function inferenceFromEnv(env: Env): InferenceStack {
       })
     : new HashEmbeddings(EMBEDDING_DIMENSIONS)
 
+  const crisisProvider = env.NOVITA_API_KEY
+    ? new OpenAiCompatibleProvider({
+        name: 'novita-crisis',
+        baseUrl: env.NOVITA_BASE_URL,
+        apiKey: env.NOVITA_API_KEY,
+        model: env.CRISIS_MODEL,
+      })
+    : null
+
   const candidates: Array<LlmProvider | null> = [novita, anthropic]
   return {
     configured: candidates.filter((p): p is LlmProvider => p !== null),
     routes: { EVERYDAY: everyday, PIVOTAL: pivotal },
     embeddings,
     live: everyday !== scripted,
+    crisisProvider,
   }
 }
 

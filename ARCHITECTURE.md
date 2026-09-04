@@ -267,6 +267,18 @@ These have different failure costs and must not share a code path or a threshold
 Crisis detection runs on user input on the critical path, so it must be low latency — a small
 classifier, not a full model call.
 
+**Status (2026-09-04).** `apps/api/src/safety/llm-detector.ts`. A small instruction model
+(`CRISIS_MODEL`, default llama-3.1-8b on the OpenAI-compatible host) reads the single message at
+temperature 0 with a four-token budget and answers CRISIS or SAFE; the prompt carries the label
+definitions and the tie-break rule (unsure → CRISIS). It is held to the labeled set in
+`crisis-eval-set.ts` by `pnpm eval:crisis`, which fails on any missed positive or precision
+under 0.75. Failure policy: an unparseable answer or a vendor refusal counts as CRISIS; an
+unreachable or slow model (`CRISIS_TIMEOUT_MS`) falls to a narrow first-person lexical floor and
+logs the outage. Fail-closed was rejected because an outage would then fire the intervention on
+every message and teach users to dismiss it. Production refuses to boot without a classifier.
+Incidents are logged by id (user, conversation, message) for review; a dedicated table with
+retention rules is still to do, as is running the eval set in CI once a key is available there.
+
 ### Response protocol
 
 On trigger, the character **breaks the fiction**. This is the one place where persona consistency
