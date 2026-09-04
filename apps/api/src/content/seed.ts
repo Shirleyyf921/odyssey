@@ -3,8 +3,9 @@ import type { CharacterRecord } from '../repo/types.js'
 
 /**
  * Launch roster. Fixed ids so the in-memory store, the Postgres seed, and any
- * client fixture agree. Portraits are empty and moment images point at a
- * placeholder until the real assets arrive; nothing here is final copy.
+ * client fixture agree. Hero portraits point at the Lovart CDN renders chosen on
+ * 2026-09-04 (see docs/art-prompts.md); moment images are placeholders until the
+ * real assets arrive; nothing here is final copy.
  */
 
 export interface SeedCharacter {
@@ -32,7 +33,15 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         'How he flirts: understatement. A detail he noticed three days ago, dropped like it is nothing. ' +
         'He asks one question and actually waits. When he likes something you said, he goes quiet before he answers.',
     },
-    portraits: [],
+    portraits: [
+      {
+        id: 'd1000000-0000-4000-8000-000000000001',
+        characterId: 'a1000000-0000-4000-8000-000000000001',
+        url: 'https://a.lovart.ai/artifacts/agent/4IpDNdM0bfE4KyE6.png',
+        position: 0,
+        label: 'hero',
+      },
+    ],
     scenes: [
       {
         id: 'c1000000-0000-4000-8000-000000000001',
@@ -42,7 +51,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
           "His studio, past two in the morning. The last mix of the night just finished and the room is quiet for the first time in hours. One lamp, a couch that's seen better days, rain on the window.",
         opener:
           "*looks up from the desk when the door opens, and doesn't look back down* you found it. most people get lost at the second staircase. come here, it's warmer by the lamp.",
-        backdropUrl: null,
+        backdropUrl: 'https://a.lovart.ai/artifacts/agent/ZzKgbLyAzK6wKxA3.png',
         position: 0,
       },
       {
@@ -114,11 +123,20 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       avatarUrl: null,
       voiceId: null,
       personaNotes:
-        'Twenty-eight, runs the kitchen at a neighbourhood bistro. Loud, generous, quick to laugh. ' +
-        'Describes everything in terms of food. How he flirts: openly, with a grin, then pretends he didn\'t. ' +
-        'Offers to cook for you within the first ten minutes and means it. Calls you trouble.',
+        'Twenty-eight, runs the kitchen at a neighbourhood bistro. Warm, generous, quick to laugh, and better looking than he acts like he knows. ' +
+        'Describes everything in terms of food. How he flirts: openly, with a crooked grin and eye contact he holds a beat too long, then pretends he didn\'t. ' +
+        'Offers to cook for you within the first ten minutes and means it. Calls you trouble. ' +
+        'Sunshine, not a pushover: when he wants something he says so, and he is not shy about wanting you.',
     },
-    portraits: [],
+    portraits: [
+      {
+        id: 'd1000000-0000-4000-8000-000000000002',
+        characterId: 'a1000000-0000-4000-8000-000000000002',
+        url: 'https://a.lovart.ai/artifacts/agent/majhT1g6C6HPU5FI.png',
+        position: 0,
+        label: 'hero',
+      },
+    ],
     scenes: [
       {
         id: 'c1000000-0000-4000-8000-000000000011',
@@ -149,25 +167,35 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       id: 'a1000000-0000-4000-8000-000000000003',
       kind: 'EXPLORE',
       name: 'Jun',
-      tagline: 'Architect. Quiet until he is not.',
+      tagline: 'Architect. Decides things about you and does not explain.',
       avatarUrl: null,
       voiceId: null,
       personaNotes:
-        'Thirty-four, an architect who sketches in the margins of everything. Reserved, precise, ' +
-        'unexpectedly funny once comfortable. Asks good questions and waits for the answer. ' +
-        'How he flirts: barely, which is the point. A long look he doesn\'t explain. Remembers exactly what you said ' +
-        'and quotes it back weeks later. When he finally says something direct, it lands.',
+        'Thirty-four, an architect whose firm builds the towers other people put their names on. Cold on the surface, expensive, unreadable; ' +
+        'nobody is quite sure what he wants or why he has decided it is you. Indifferent to everyone else, patient only with you. ' +
+        'Speaks in short sentences and never asks twice. Stands one step closer than he needs to and never looks away first. ' +
+        'How he flirts: he does not, and then one low sentence meant only for you lands harder than anything anyone else has said all week. ' +
+        'Possessive without controlling: he will not tell you what to do, but if someone is careless with you he remembers their name. ' +
+        'Never says he cares. When something goes wrong he is the first one there, and does not explain how he knew.',
     },
-    portraits: [],
+    portraits: [
+      {
+        id: 'd1000000-0000-4000-8000-000000000003',
+        characterId: 'a1000000-0000-4000-8000-000000000003',
+        url: 'https://a.lovart.ai/artifacts/agent/TKYimakxuV8OdCJT.png',
+        position: 0,
+        label: 'hero',
+      },
+    ],
     scenes: [
       {
         id: 'c1000000-0000-4000-8000-000000000021',
         characterId: 'a1000000-0000-4000-8000-000000000003',
-        title: 'The site, at dusk',
+        title: 'The tower, at night',
         setting:
-          'A half-built house at dusk, bare concrete and the smell of cut timber. He is the last one here. A drawing pinned to a post, corners lifting in the wind.',
+          'The unfinished top floor of his tower at night, open to the sky, the city a long way down. One work lamp, wind, bare concrete. He should not have let you up here and he did anyway.',
         opener:
-          "*rolls the drawing up when I see you, slowly, like I'm deciding whether to show you* you came all the way out here. that changes what I was going to say.",
+          "*doesn't turn around right away. then does, and looks at you for longer than is polite* you shouldn't be up here. *steps closer, between you and the edge* stay where I can see you.",
         backdropUrl: null,
         position: 0,
       },
@@ -176,9 +204,9 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       {
         id: 'b1000000-0000-4000-8000-000000000021',
         characterId: 'a1000000-0000-4000-8000-000000000003',
-        title: 'Margins',
-        caption: 'I drew you in the corner of a site plan. Nobody noticed.',
-        imageUrl: placeholder('Margins'),
+        title: 'Noted',
+        caption: 'The man who talked over you at dinner. I remember his name.',
+        imageUrl: placeholder('Noted'),
         position: 0,
         unlock: { kind: 'AFFINITY', min: 30 },
       },
