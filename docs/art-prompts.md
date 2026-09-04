@@ -26,6 +26,30 @@ Parameters, in one place:
 Rules of thumb: pick the face at step 1 and never regenerate it, only reference it. Run
 the face through reverse image search once; if it lands on a real person, throw it out.
 
+## Chosen heroes (2026-09-04, Lovart)
+
+The faces are locked. Every later prompt attaches the hero as the character reference and
+Elliot's hero (plus one other) as the style reference. Canvas:
+https://www.lovart.ai/canvas?projectId=aa287d47e7de4473826d22c4bfeda743
+
+| Character | Hero | Also done |
+|---|---|---|
+| Elliot | https://a.lovart.ai/artifacts/agent/4IpDNdM0bfE4KyE6.png | studio backdrop `ZzKgbLyAzK6wKxA3`, studio portrait `9brfqKinVJFW6kOo` |
+| Theo | https://a.lovart.ai/artifacts/agent/majhT1g6C6HPU5FI.png | |
+| Jun | https://a.lovart.ai/artifacts/agent/TKYimakxuV8OdCJT.png | |
+
+What the first round taught us, so the next rounds do not relearn it:
+
+- **Not posing.** "Looking just past the camera" produced a model. "Has just looked up because
+  someone walked in" produced a person. Write the moment, not the pose.
+- **Heat is in eye contact and proximity, not skin.** Direct gaze with intent, leaning toward the
+  viewer, open collar, throat and forearms. Fully clothed still reads as sexy. Fully buttoned and
+  seated in the dark reads as celibate.
+- **Wide laughs kill attractiveness.** Closed-mouth crooked grin with a dimple, eyes open. No teeth.
+- **The models drift photoreal.** Attach two painterly references and say "illustration, not a
+  photograph, matte skin, visible brushwork" or the render comes back looking like a stock photo.
+- **State the age as a number and say "not older".** Left alone, 28 renders as 34 and 34 as 40.
+
 ## Characters
 
 ### Elliot — primary. Sound engineer, 31, works nights.
@@ -36,18 +60,22 @@ portrait of a 31 year old man, dark tousled hair falling over his forehead, ligh
 ```
 
 ### Theo — explore. Chef, 28.
-Register: golden retriever. Open face, easy grin, says things with his hands.
+Register: golden retriever heartthrob. Sunny, open, and the kind of face people blush at.
 
 ```
-portrait of a 28 year old man, warm tan skin, tousled light brown hair pushed back, wide easy grin with a dimple, bright eyes, strong forearms, white chef's jacket with sleeves rolled to the elbow, dark apron, a dish towel over one shoulder, leaning on a steel kitchen pass after service, warm tungsten light, looking straight at the camera mid-laugh, semi-realistic 2.5D illustration, otome game key art --ar 3:4 --sref <anchor> --v 7
+portrait of a 28 year old chef, strikingly handsome, defined cheekbones and jaw, straight nose, warm tan skin, bright eyes with long lashes, thick eyebrows, dry tousled light brown hair with volume pushed back, light stubble, closed-mouth crooked grin with one corner higher and a dimple, eyes open and looking straight at the viewer with warm playful confidence, no teeth, white chef's jacket unbuttoned at the collar showing his throat, sleeves pushed above the elbow, strong forearms, dish towel over one shoulder, leaning on a steel kitchen pass toward the viewer, warm tungsten light after service, a little steam, clearly 28 not older, semi-realistic 2.5D illustration, otome game key art --ar 3:4 --sref <anchor> --v 7
 ```
 
-### Jun — explore. Architect, 34.
-Register: sharp edge. Restraint, precision, one look that says more than he will.
+### Jun — explore. Architect, 34. The roster's dangerous one.
+Register: dangerous guardian. Cold, expensive, unreadable; indifferent to everyone, patient only
+with you. Possessive without controlling. The Sylus slot, not a copy of him.
 
 ```
-portrait of a 34 year old man, sharp jawline, neat black hair with a clean side part, pale cool skin, narrow calm eyes behind thin steel-rimmed glasses, black turtleneck under a slate wool coat, a rolled drawing in one hand, standing on a concrete construction site at dusk, cool blue hour light with one warm work lamp, looking slightly down at the camera, semi-realistic 2.5D illustration, otome game key art --ar 3:4 --sref <anchor> --v 7
+portrait of a 34 year old East Asian man, sharp jawline, neat black hair swept back with a few strands fallen loose, pale cool skin, thin steel-rimmed glasses, black shirt with the top two buttons open showing his throat and collarbone, sleeves pushed up, dark coat hanging off one shoulder, leaning slightly toward the viewer, close, looking straight into the camera with intent, eyes steady, the gaze of a man who has decided something about you and is not going to explain it, not smiling, faint tension at the mouth, night rooftop of a half-built tower, city lights far below, cool blue-black night with one warm amber light on his jaw and throat, fully clothed, the heat is in the eye contact, clearly 34 not older, semi-realistic 2.5D illustration, otome game key art --ar 3:4 --sref <anchor> --v 7
 ```
+
+Next pass, if wanted: one hand reaching toward the viewer, cut off at the wrist, the frame
+before he touches your face.
 
 ## Character sheets (for consistency, not for the app)
 
@@ -84,9 +112,12 @@ the same man leaning against a kitchen counter in a grey t-shirt holding out a m
 small neighbourhood bistro kitchen after closing, chairs stacked on tables in the dining room beyond, one burner still lit, steel pass with a single plated dish, warm low light, steam, no people, semi-realistic 2.5D illustration --ar 16:9 --sref <anchor> --v 7
 ```
 
-### Jun — The site, at dusk
+### Jun — The tower, at night
 ```
-half-built house at dusk, bare concrete and fresh timber framing, a drawing pinned to a post with its corners lifting in the wind, one work lamp, blue hour sky, no people, semi-realistic 2.5D illustration --ar 16:9 --sref <anchor> --v 7
+unfinished top floor of a skyscraper at night, open to the sky, bare concrete columns, rebar, a single work lamp, wind-blown plastic sheeting, the city lights a long way below, cool blue-black night with one warm amber light, no people, semi-realistic 2.5D illustration --ar 16:9 --sref <anchor> --v 7
+```
+```
+the same man standing on the unfinished top floor at night, between the viewer and the edge, coat moving in the wind, one work lamp on his jaw, looking at the viewer as if he has just told them to stay where he can see them, semi-realistic 2.5D illustration --ar 3:4 --oref <hero> --ow 200 --sref <anchor> --v 7
 ```
 
 ## Moments (collectibles)
