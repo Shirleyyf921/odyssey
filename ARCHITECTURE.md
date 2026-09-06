@@ -115,7 +115,8 @@ relationships      user × character, depth, stage, affinity, anniversaries
 conversations      conversation container
 messages           role, content, client_msg_id, token usage
 memories           user × character, fact text, embedding(pgvector), confidence
-subscriptions      synced from RevenueCat
+subscriptions      user × entitlement, synced from RevenueCat; tier is derived from unexpired rows
+purchases          one-time SKUs (moments), keyed by store transaction id
 proactive_jobs     proactive message scheduling and rate limiting
 ```
 
@@ -284,6 +285,18 @@ sold.
 Data model additions: `subscriptions` (already listed in §5, synced from RevenueCat
 entitlements) and `purchases` (moment SKUs, store transaction id, restored-at). Both are
 written only by the RevenueCat webhook and the restore path, never by the client.
+
+**Status (2026-09-06).** Both tables exist (`drizzle/0005_billing.sql`) and
+`apps/api/src/billing` is their only writer. Every signal — the webhook at
+`POST /billing/revenuecat`, the client's `POST /billing/restore`, a guest signing in — ends in
+one `reconcile(appUserId)` that re-reads the subscriber from RevenueCat's REST API and
+overwrites our copy, so webhook ordering and duplicates are harmless. The RevenueCat app user
+id is our user id; the client configures the SDK with it before any purchase, and a guest's
+rows move with `mergeUsers` on sign-in. `GET /me` returns the derived tier, and a `PURCHASE`
+moment unlocks in `evaluateUnlocks` when its SKU is among the user's unrefunded purchases.
+Not done: the tier gates nothing yet (memory depth, message caps, proactive messages all
+ignore it), bundle SKUs (monthly set, character set) have no mapping to moments, there is no
+paywall screen, and the store products and entitlements have not been created in RevenueCat.
 
 ## 8. Proactive Messaging
 

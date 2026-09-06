@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Character, CharacterProfile, MomentCard, Relationship, RelationshipStage, Scene } from './domain.js'
+import { BillingStatus, Character, CharacterProfile, MomentCard, Relationship, RelationshipStage, Scene } from './domain.js'
 
 /**
  * REST shapes. The client validates every response against these, so a server
@@ -97,5 +97,15 @@ export const SignInResponse = z.object({
 })
 export type SignInResponse = z.infer<typeof SignInResponse>
 
-export const MeResponse = z.object({ user: AuthUser })
+export const MeResponse = z.object({ user: AuthUser, billing: BillingStatus })
 export type MeResponse = z.infer<typeof MeResponse>
+
+// ---------------------------------------------------------------- billing
+
+/**
+ * Re-read the caller's state from RevenueCat and write it down. The client calls
+ * this after a purchase, after "Restore purchases", and after sign-in, so the
+ * server never depends on the webhook having arrived first.
+ */
+export const RestoreResponse = z.object({ billing: BillingStatus })
+export type RestoreResponse = z.infer<typeof RestoreResponse>

@@ -4,6 +4,7 @@ import { InvalidTokenError } from '../auth/providers.js'
 import { AuthService, UnsupportedProviderError } from '../auth/service.js'
 import { deviceIdFrom, requireIdentity, sessionTokenFrom } from '../auth/identity.js'
 import type { AppRepository } from '../repo/types.js'
+import type { BillingService } from '../billing/service.js'
 
 /**
  * Public: sign-in. It resolves the device's guest user itself (optional) rather
@@ -29,11 +30,17 @@ export async function publicAuthRoutes(app: FastifyInstance, opts: { repo: AppRe
 }
 
 /** Inside requireIdentity: who am I, and sign out. */
-export async function authRoutes(app: FastifyInstance, opts: { repo: AppRepository; auth: AuthService }) {
-  const { repo, auth } = opts
+export async function authRoutes(
+  app: FastifyInstance,
+  opts: { repo: AppRepository; auth: AuthService; billing: BillingService }
+) {
+  const { repo, auth, billing } = opts
   requireIdentity(app, repo)
 
-  app.get('/me', async (req): Promise<MeResponse> => ({ user: await auth.describe(req.user) }))
+  app.get('/me', async (req): Promise<MeResponse> => {
+    const [user, status] = await Promise.all([auth.describe(req.user), billing.status(req.user.id)])
+    return { user, billing: status }
+  })
 
   app.post('/auth/sign-out', async (req, reply) => {
     const token = sessionTokenFrom(req)

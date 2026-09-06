@@ -19,10 +19,12 @@ import {
   momentUnlocks,
   moments,
   portraits,
+  purchases,
   relationshipEvents,
   relationships,
   scenes,
   sessions,
+  subscriptions,
   users,
 } from '../db/schema.js'
 import type {
@@ -34,10 +36,12 @@ import type {
   MemoryRecord,
   NewMemory,
   NewMessage,
+  PurchaseRecord,
   RelationshipEvent,
   RelationshipPatch,
   RelationshipRecord,
   SessionRecord,
+  SubscriptionRecord,
   UserRecord,
 } from './types.js'
 
@@ -182,6 +186,22 @@ export class DrizzleRepository implements AppRepository {
       if (from?.deviceId && into && !into.deviceId) {
         await tx.update(users).set({ deviceId: from.deviceId }).where(eq(users.id, intoUserId))
       }
+      // Paid state follows the person. A subscription the account already holds for the
+      // same entitlement wins; the guest's row is then dropped by the cascade below.
+      const held = await tx
+        .select({ entitlement: subscriptions.entitlement })
+        .from(subscriptions)
+        .where(eq(subscriptions.userId, intoUserId))
+      const heldIds = held.map((h) => h.entitlement)
+      await tx
+        .update(subscriptions)
+        .set({ userId: intoUserId })
+        .where(
+          heldIds.length
+            ? and(eq(subscriptions.userId, fromUserId), notInArray(subscriptions.entitlement, heldIds))
+            : eq(subscriptions.userId, fromUserId)
+        )
+      await tx.update(purchases).set({ userId: intoUserId }).where(eq(purchases.userId, fromUserId))
       // Cascades the colliding relationships, their messages, unlocks, memories, and sessions.
       await tx.delete(users).where(eq(users.id, fromUserId))
       return { moved: moved.length }
@@ -319,6 +339,77 @@ export class DrizzleRepository implements AppRepository {
       .returning()
     if (!row) throw new Error('unlock upsert returned no row')
     return { relationshipId: row.relationshipId, momentId: row.momentId, source: row.source, unlockedAt: row.unlockedAt.toISOString() }
+  }
+
+  // ---------------------------------------------------------------- billing
+
+  async upsertSubscription(input: SubscriptionRecord) {
+    await this.db
+      .insert(subscriptions)
+      .values({ ...input, syncedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [subscriptions.userId, subscriptions.entitlement],
+        set: {
+          productId: input.productId,
+          store: input.store,
+          environment: input.environment,
+          purchasedAt: input.purchasedAt,
+          expiresAt: input.expiresAt,
+          unsubscribedAt: input.unsubscribedAt,
+          billingIssueAt: input.billingIssueAt,
+          rcAppUserId: input.rcAppUserId,
+          syncedAt: new Date(),
+        },
+      })
+  }
+
+  async listSubscriptions(userId: string): Promise<SubscriptionRecord[]> {
+    const rows = await this.db.select().from(subscriptions).where(eq(subscriptions.userId, userId))
+    return rows.map((r) => ({
+      userId: r.userId,
+      entitlement: r.entitlement,
+      productId: r.productId,
+      store: r.store,
+      environment: r.environment,
+      purchasedAt: r.purchasedAt,
+      expiresAt: r.expiresAt,
+      unsubscribedAt: r.unsubscribedAt,
+      billingIssueAt: r.billingIssueAt,
+      rcAppUserId: r.rcAppUserId,
+    }))
+  }
+
+  async upsertPurchase(input: PurchaseRecord) {
+    await this.db
+      .insert(purchases)
+      .values({ ...input, syncedAt: new Date() })
+      .onConflictDoUpdate({
+        target: purchases.storeTransactionId,
+        set: {
+          userId: input.userId,
+          productId: input.productId,
+          store: input.store,
+          environment: input.environment,
+          purchasedAt: input.purchasedAt,
+          refundedAt: input.refundedAt,
+          rcAppUserId: input.rcAppUserId,
+          syncedAt: new Date(),
+        },
+      })
+  }
+
+  async listPurchases(userId: string): Promise<PurchaseRecord[]> {
+    const rows = await this.db.select().from(purchases).where(eq(purchases.userId, userId))
+    return rows.map((r) => ({
+      userId: r.userId,
+      productId: r.productId,
+      store: r.store,
+      environment: r.environment,
+      storeTransactionId: r.storeTransactionId,
+      purchasedAt: r.purchasedAt,
+      refundedAt: r.refundedAt,
+      rcAppUserId: r.rcAppUserId,
+    }))
   }
 
   // ---------------------------------------------------------------- chat

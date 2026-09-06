@@ -39,6 +39,16 @@ export const momentUnlockSource = pgEnum('moment_unlock_source', [
 ])
 
 export const authProvider = pgEnum('auth_provider', ['apple', 'google', 'dev'])
+export const store = pgEnum('store', [
+  'APP_STORE',
+  'PLAY_STORE',
+  'STRIPE',
+  'PROMOTIONAL',
+  'AMAZON',
+  'MAC_APP_STORE',
+  'UNKNOWN',
+])
+export const billingEnvironment = pgEnum('billing_environment', ['SANDBOX', 'PRODUCTION'])
 
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' })
 
@@ -268,4 +278,64 @@ export const momentUnlocks = pgTable(
     unlockedAt: timestamptz('unlocked_at').notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.relationshipId, t.momentId] })]
+)
+
+// ---------------------------------------------------------------- billing (ARCHITECTURE.md section 7)
+
+/**
+ * One row per (user, RevenueCat entitlement). Written only by the RevenueCat
+ * reconcile path (webhook and restore), never by the client. The tier a user
+ * holds is derived from the rows whose expires_at is in the future.
+ */
+export const subscriptions = pgTable(
+  'subscriptions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** RevenueCat entitlement identifier: `plus` or `premium`. */
+    entitlement: text('entitlement').notNull(),
+    productId: text('product_id').notNull(),
+    store: store('store').notNull(),
+    environment: billingEnvironment('environment').notNull(),
+    purchasedAt: timestamptz('purchased_at').notNull(),
+    /** Null for lifetime or promotional grants that never lapse. */
+    expiresAt: timestamptz('expires_at'),
+    /** Set when the store reports the user turned off renewal. The entitlement holds until expiresAt. */
+    unsubscribedAt: timestamptz('unsubscribed_at'),
+    billingIssueAt: timestamptz('billing_issue_at'),
+    /** RevenueCat's app_user_id at the time of the last sync; equals our user id unless transferred. */
+    rcAppUserId: text('rc_app_user_id').notNull(),
+    syncedAt: timestamptz('synced_at').notNull().defaultNow(),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('subscriptions_user_entitlement_uq').on(t.userId, t.entitlement), index('subscriptions_user_idx').on(t.userId)]
+)
+
+/**
+ * One-time purchases: moment SKUs. Consumable in StoreKit terms, permanent in
+ * ours. The store transaction id is the idempotency key, so the same receipt seen
+ * through the webhook and through restore lands once.
+ */
+export const purchases = pgTable(
+  'purchases',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** The SKU. Matches `unlock.sku` on a PURCHASE moment. */
+    productId: text('product_id').notNull(),
+    store: store('store').notNull(),
+    environment: billingEnvironment('environment').notNull(),
+    storeTransactionId: text('store_transaction_id').notNull(),
+    purchasedAt: timestamptz('purchased_at').notNull(),
+    /** Set from a RevenueCat refund event; a refunded SKU no longer unlocks anything new. */
+    refundedAt: timestamptz('refunded_at'),
+    rcAppUserId: text('rc_app_user_id').notNull(),
+    syncedAt: timestamptz('synced_at').notNull().defaultNow(),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('purchases_store_transaction_uq').on(t.storeTransactionId), index('purchases_user_idx').on(t.userId)]
 )

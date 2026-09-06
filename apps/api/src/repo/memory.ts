@@ -19,10 +19,12 @@ import type {
   MemoryRecord,
   NewMemory,
   NewMessage,
+  PurchaseRecord,
   RelationshipEvent,
   RelationshipPatch,
   RelationshipRecord,
   SessionRecord,
+  SubscriptionRecord,
   UserRecord,
 } from './types.js'
 
@@ -52,6 +54,8 @@ export class MemoryRepository implements AppRepository {
   readonly relationshipEvents: Array<RelationshipEvent & { createdAt: string }> = []
   private identities: IdentityRecord[] = []
   private sessions = new Map<string, SessionRecord & { revokedAt: Date | null }>()
+  private subscriptions: SubscriptionRecord[] = []
+  private purchases: PurchaseRecord[] = []
 
   constructor(seed = SEED_CHARACTERS) {
     for (const s of seed) {
@@ -160,8 +164,33 @@ export class MemoryRepository implements AppRepository {
       if (userId === fromUserId) this.usersByDevice.set(device, intoUserId)
     }
     for (const [hash, s] of this.sessions) if (s.userId === fromUserId) this.sessions.delete(hash)
+    const heldEntitlements = new Set(this.subscriptions.filter((s) => s.userId === intoUserId).map((s) => s.entitlement))
+    this.subscriptions = this.subscriptions.flatMap((s) => {
+      if (s.userId !== fromUserId) return [s]
+      return heldEntitlements.has(s.entitlement) ? [] : [{ ...s, userId: intoUserId }]
+    })
+    this.purchases = this.purchases.map((p) => (p.userId === fromUserId ? { ...p, userId: intoUserId } : p))
     this.users.delete(fromUserId)
     return { moved }
+  }
+
+  // ---------------------------------------------------------------- billing
+
+  async upsertSubscription(input: SubscriptionRecord) {
+    const i = this.subscriptions.findIndex((s) => s.userId === input.userId && s.entitlement === input.entitlement)
+    if (i >= 0) this.subscriptions[i] = { ...input }
+    else this.subscriptions.push({ ...input })
+  }
+  async listSubscriptions(userId: string) {
+    return this.subscriptions.filter((s) => s.userId === userId).map((s) => ({ ...s }))
+  }
+  async upsertPurchase(input: PurchaseRecord) {
+    const i = this.purchases.findIndex((p) => p.storeTransactionId === input.storeTransactionId)
+    if (i >= 0) this.purchases[i] = { ...input }
+    else this.purchases.push({ ...input })
+  }
+  async listPurchases(userId: string) {
+    return this.purchases.filter((p) => p.userId === userId).map((p) => ({ ...p }))
   }
 
   // ---------------------------------------------------------------- characters

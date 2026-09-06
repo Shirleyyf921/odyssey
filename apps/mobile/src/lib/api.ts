@@ -5,6 +5,7 @@ import {
   DEVICE_ID_HEADER,
   MeResponse,
   MomentsResponse,
+  RestoreResponse,
   SignInResponse,
   StartRelationshipResponse,
   type DevSetStageRequest,
@@ -62,6 +63,8 @@ export const api = {
   start: (id: string) => request('POST', `/characters/${id}/start`, StartRelationshipResponse),
   moments: (id: string) => request('GET', `/characters/${id}/moments`, MomentsResponse),
   me: () => request('GET', '/me', MeResponse),
+  /** Server re-reads RevenueCat for the caller. After a purchase, a restore, or a sign-in. */
+  restore: () => request('POST', '/billing/restore', RestoreResponse),
   signIn: (body: SignInRequest) => request('POST', '/auth/sign-in', SignInResponse, body),
   signOut: () => request('POST', '/auth/sign-out', MeResponse.optional()),
   /** Development builds only; the server refuses it in production. */

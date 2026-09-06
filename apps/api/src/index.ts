@@ -18,6 +18,9 @@ import { MemoryService } from './memory/service.js'
 import { RelationshipService } from './relationship/service.js'
 import { NoopCrisisDetector, type CrisisDetector } from './safety/crisis.js'
 import { LlmCrisisDetector } from './safety/llm-detector.js'
+import { RevenueCatHttpClient } from './billing/revenuecat.js'
+import { BillingService } from './billing/service.js'
+import { billingRoutes, billingWebhookRoutes } from './routes/billing.js'
 
 const app = Fastify({
   logger: { level: env.NODE_ENV === 'production' ? 'info' : 'debug' },
@@ -72,16 +75,31 @@ if (env.NODE_ENV !== 'production') verifiers.push(devVerifier())
 const auth = new AuthService(repo, verifiers, app.log, env.SESSION_TTL_DAYS * 24 * 60 * 60 * 1000)
 app.log.info({ providers: auth.providers }, 'sign-in providers')
 
+// ---------------------------------------------------------------- billing
+const billing = new BillingService(
+  repo,
+  env.REVENUECAT_SECRET_KEY ? new RevenueCatHttpClient(env.REVENUECAT_SECRET_KEY) : null,
+  app.log
+)
+if (!billing.enabled) app.log.warn('no REVENUECAT_SECRET_KEY: billing disabled, every user is FREE')
+if (billing.enabled && !env.REVENUECAT_WEBHOOK_SECRET) {
+  app.log.warn('REVENUECAT_SECRET_KEY set without REVENUECAT_WEBHOOK_SECRET: webhook not registered, only restore syncs')
+}
+
 // ---------------------------------------------------------------- http + ws
 // The native client has no origin; CORS only matters for the web preview build.
 if (env.NODE_ENV !== 'production') await app.register(cors, { origin: true })
 await app.register(websocket)
 await app.register(healthRoutes)
 await app.register(publicAuthRoutes, { repo, auth })
-await app.register(authRoutes, { repo, auth })
+await app.register(authRoutes, { repo, auth, billing })
+if (billing.enabled && env.REVENUECAT_WEBHOOK_SECRET) {
+  await app.register(billingWebhookRoutes, { billing, webhookSecret: env.REVENUECAT_WEBHOOK_SECRET })
+}
 await app.register(async (scoped) => {
   requireIdentity(scoped, repo)
   await scoped.register(characterRoutes, { repo, devTools: env.NODE_ENV !== 'production' })
+  await scoped.register(billingRoutes, { billing })
   await scoped.register(chatWebsocket, {
     repo,
     gateway,

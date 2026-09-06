@@ -107,8 +107,13 @@ export async function characterRoutes(
     const { id } = Params.parse(req.params)
     const character = await repo.getCharacter(id)
     if (!character) return reply.code(404).send({ error: 'character not found' })
-    const [moments, relationship] = await Promise.all([repo.listMoments(id), repo.findRelationship(req.user.id, id)])
-    const { cards } = await evaluateUnlocks(repo, moments, relationship)
+    const [moments, relationship, purchases] = await Promise.all([
+      repo.listMoments(id),
+      repo.findRelationship(req.user.id, id),
+      repo.listPurchases(req.user.id),
+    ])
+    const skus = new Set(purchases.filter((p) => !p.refundedAt).map((p) => p.productId))
+    const { cards } = await evaluateUnlocks(repo, moments, relationship, skus)
     return { characterId: id, relationship, moments: cards }
   })
 }

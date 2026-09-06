@@ -7,17 +7,18 @@ import { requireIdentity } from '../auth/identity.js'
 import { devVerifier } from '../auth/providers.js'
 import { AuthService } from '../auth/service.js'
 import { MemoryRepository } from '../repo/memory.js'
+import { BillingService } from '../billing/service.js'
 import { authRoutes, publicAuthRoutes } from './auth.js'
 import { characterRoutes } from './characters.js'
 
-const silent = { info() {} }
+const silent = { info() {}, warn() {} }
 
 async function build(ttlMs?: number) {
   const repo = new MemoryRepository()
   const auth = new AuthService(repo, [devVerifier()], silent, ttlMs)
   const app = Fastify()
   await app.register(publicAuthRoutes, { repo, auth })
-  await app.register(authRoutes, { repo, auth })
+  await app.register(authRoutes, { repo, auth, billing: new BillingService(repo, null, silent) })
   await app.register(async (scoped) => {
     requireIdentity(scoped, repo)
     await scoped.register(characterRoutes, { repo })

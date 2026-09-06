@@ -63,8 +63,12 @@ export class RelationshipService {
   }
 
   private async unlockEarned(relationship: RelationshipRecord): Promise<MomentCard[]> {
-    const moments = await this.repo.listMoments(relationship.characterId)
-    const { newlyUnlocked } = await evaluateUnlocks(this.repo, moments, relationship)
+    const [moments, purchases] = await Promise.all([
+      this.repo.listMoments(relationship.characterId),
+      this.repo.listPurchases(relationship.userId),
+    ])
+    const skus = new Set(purchases.filter((p) => !p.refundedAt).map((p) => p.productId))
+    const { newlyUnlocked } = await evaluateUnlocks(this.repo, moments, relationship, skus)
     return newlyUnlocked
   }
 }

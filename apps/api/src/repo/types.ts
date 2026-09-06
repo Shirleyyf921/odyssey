@@ -11,6 +11,7 @@ import type {
   Relationship,
   RelationshipDepth,
   Scene,
+  Store,
 } from '@odyssey/shared'
 
 export interface UserRecord {
@@ -90,6 +91,34 @@ export interface ConversationContext {
   user: { id: string; displayName: string | null; locale: string }
 }
 
+export type BillingEnvironment = 'SANDBOX' | 'PRODUCTION'
+
+/** A RevenueCat entitlement as last synced. See db/schema.ts `subscriptions`. */
+export interface SubscriptionRecord {
+  userId: string
+  entitlement: string
+  productId: string
+  store: Store
+  environment: BillingEnvironment
+  purchasedAt: Date
+  expiresAt: Date | null
+  unsubscribedAt: Date | null
+  billingIssueAt: Date | null
+  rcAppUserId: string
+}
+
+/** A one-time purchase (moment SKU). See db/schema.ts `purchases`. */
+export interface PurchaseRecord {
+  userId: string
+  productId: string
+  store: Store
+  environment: BillingEnvironment
+  storeTransactionId: string
+  purchasedAt: Date
+  refundedAt: Date | null
+  rcAppUserId: string
+}
+
 export interface NewMessage {
   /** Supplied by the caller for CHARACTER messages so the id can be streamed before the row exists. */
   id?: string
@@ -167,4 +196,12 @@ export interface AppRepository extends ChatRepository {
   listMoments(characterId: string): Promise<Moment[]>
   listUnlocks(relationshipId: string): Promise<MomentUnlock[]>
   insertUnlock(input: { relationshipId: string; momentId: string; source: MomentUnlockSource }): Promise<MomentUnlock>
+
+  // billing — written only by the RevenueCat reconcile path
+  /** Upsert on (userId, entitlement). */
+  upsertSubscription(input: SubscriptionRecord): Promise<void>
+  listSubscriptions(userId: string): Promise<SubscriptionRecord[]>
+  /** Upsert on storeTransactionId. */
+  upsertPurchase(input: PurchaseRecord): Promise<void>
+  listPurchases(userId: string): Promise<PurchaseRecord[]>
 }
