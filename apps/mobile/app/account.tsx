@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import * as AppleAuthentication from 'expo-apple-authentication'
 import { api } from '../src/lib/api'
 import { appleAvailable, googleConfigured, signInDev, signInWithApple, signOut, useGoogleSignIn } from '../src/lib/auth'
+import { billing } from '../src/lib/billing'
 import { colors, radius, spacing } from '../src/theme'
 
 /**
@@ -30,9 +31,11 @@ export default function AccountScreen() {
   const appleSignIn = useMutation({ mutationFn: signInWithApple, onSuccess: refresh, onError: fail })
   const devSignIn = useMutation({ mutationFn: () => signInDev(devName.trim()), onSuccess: refresh, onError: fail })
   const out = useMutation({ mutationFn: signOut, onSuccess: refresh, onError: fail })
+  const restore = useMutation({ mutationFn: () => billing.restore(), onSuccess: refresh, onError: fail })
 
   if (me.isLoading) return <View style={styles.centered}><ActivityIndicator color={colors.accent} /></View>
   const user = me.data?.user
+  const status = me.data?.billing
 
   return (
     <View style={styles.screen}>
@@ -78,9 +81,28 @@ export default function AccountScreen() {
           )}
         </>
       )}
+      {status?.enabled && (
+        <View style={styles.billingBox}>
+          <Text style={styles.devLabel}>Plan</Text>
+          <Text style={styles.plan}>{planLine(status.tier, status.expiresAt, status.willRenew)}</Text>
+          {billing.available && (
+            <Pressable style={styles.secondary} onPress={() => restore.mutate()} disabled={restore.isPending}>
+              <Text style={styles.secondaryText}>{restore.isPending ? 'Restoring…' : 'Restore purchases'}</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
       {error && <Text style={styles.error}>{error}</Text>}
     </View>
   )
+}
+
+function planLine(tier: string, expiresAt: string | null, willRenew: boolean): string {
+  if (tier === 'FREE') return 'Free'
+  const name = tier === 'PLUS' ? 'Plus' : 'Premium'
+  if (!expiresAt) return name
+  const date = new Date(expiresAt).toLocaleDateString()
+  return willRenew ? `${name} · renews ${date}` : `${name} · until ${date}`
 }
 
 /** Separate component so the Google hook only mounts when client ids exist; it throws otherwise. */
@@ -106,5 +128,7 @@ const styles = StyleSheet.create({
   devBox: { marginTop: spacing.xl, gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.lg },
   devLabel: { color: colors.textFaint, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
   input: { color: colors.text, fontSize: 16, backgroundColor: colors.surface, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 10 },
+  billingBox: { marginTop: spacing.xl, gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.lg },
+  plan: { color: colors.text, fontSize: 16 },
   error: { color: colors.danger, marginTop: spacing.md },
 })

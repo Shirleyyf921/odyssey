@@ -1,4 +1,4 @@
-import { Image, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { MomentCard } from '@odyssey/shared'
 import { colors, radius, spacing } from '../theme'
 
@@ -15,9 +15,18 @@ function unlockHint(card: MomentCard): string {
   }
 }
 
+interface Props {
+  card: MomentCard
+  /** Present when the store is available; called with the SKU of a locked PURCHASE card. */
+  onUnlock?: (sku: string) => void
+  unlocking?: boolean
+}
+
 /** Locked tiles never receive the asset URL, so there is nothing to blur or hide here. */
-export function MomentTile({ card }: { card: MomentCard }) {
+export function MomentTile({ card, onUnlock, unlocking }: Props) {
   const locked = card.status === 'LOCKED'
+  const buyable = locked && card.unlock.kind === 'PURCHASE' && onUnlock !== undefined
+  const sku = card.unlock.kind === 'PURCHASE' ? card.unlock.sku : null
   return (
     <View style={styles.tile}>
       {locked ? (
@@ -30,9 +39,15 @@ export function MomentTile({ card }: { card: MomentCard }) {
       <Text style={styles.title} numberOfLines={1}>
         {card.title}
       </Text>
-      <Text style={styles.sub} numberOfLines={2}>
-        {locked ? unlockHint(card) : card.caption}
-      </Text>
+      {buyable && sku ? (
+        <Pressable style={styles.unlock} onPress={() => onUnlock(sku)} disabled={unlocking}>
+          {unlocking ? <ActivityIndicator size="small" color="#1a0a10" /> : <Text style={styles.unlockText}>Unlock</Text>}
+        </Pressable>
+      ) : (
+        <Text style={styles.sub} numberOfLines={2}>
+          {locked ? unlockHint(card) : card.caption}
+        </Text>
+      )}
     </View>
   )
 }
@@ -44,4 +59,6 @@ const styles = StyleSheet.create({
   lockGlyph: { fontSize: 22, opacity: 0.6 },
   title: { color: colors.text, fontSize: 14, fontWeight: '600', marginTop: spacing.xs },
   sub: { color: colors.textMuted, fontSize: 12 },
+  unlock: { backgroundColor: colors.accent, paddingVertical: 8, borderRadius: radius.pill, alignItems: 'center', marginTop: 2 },
+  unlockText: { color: '#1a0a10', fontSize: 13, fontWeight: '700' },
 })

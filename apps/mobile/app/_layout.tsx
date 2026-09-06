@@ -1,16 +1,30 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
+import { useEffect } from 'react'
+import { api } from '../src/lib/api'
+import { billing } from '../src/lib/billing'
 import { colors } from '../src/theme'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
 })
 
+/** Keeps RevenueCat bound to whoever /me says we are. Renders nothing. */
+function BillingIdentity() {
+  const me = useQuery({ queryKey: ['me'], queryFn: api.me })
+  const userId = me.data?.user.id
+  useEffect(() => {
+    if (userId) void billing.identify(userId)
+  }, [userId])
+  return null
+}
+
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <StatusBar style="light" />
+      <BillingIdentity />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: colors.bg },

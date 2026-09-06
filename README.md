@@ -125,8 +125,33 @@ or `x-device-id: <uuid>`. The token wins; an expired token is a 401 rather than 
 | `GET /characters` | Roster with the caller's relationship on each |
 | `GET /characters/:id` | Portraits, relationship, moment count |
 | `POST /characters/:id/start` | Idempotent; creates the relationship and its conversation |
-| `GET /characters/:id/moments` | Cards; locked ones carry no asset URL |
+| `GET /characters/:id/moments` | Cards; locked ones carry no asset URL. A PURCHASE card unlocks once its SKU is among the caller's purchases |
+| `POST /billing/restore` | Server re-reads the caller from RevenueCat and returns `billing` (tier, expiry, purchased SKUs) |
+| `POST /billing/revenuecat` | Public RevenueCat webhook, authenticated by `REVENUECAT_WEBHOOK_SECRET` in the Authorization header |
 | `ws://…/ws/chat?token=…` or `?deviceId=…` | Chat, see `packages/shared/src/protocol.ts` |
+
+`GET /me` also carries `billing`. Every paid-state write goes through one reconcile path that
+re-reads the subscriber from RevenueCat; webhook payloads are only a nudge to re-read, so
+duplicate or out-of-order deliveries cannot corrupt the tables.
+
+### Billing
+
+RevenueCat wraps StoreKit and Play Billing. Set the server side first:
+
+```bash
+REVENUECAT_SECRET_KEY=sk_...          # RevenueCat → API keys → secret key (v1)
+REVENUECAT_WEBHOOK_SECRET=<random>    # the same value goes in the webhook's Authorization header
+```
+
+Then in the RevenueCat dashboard: entitlements named `plus` and `premium`, the moment SKUs
+as non-subscription products (their ids must equal `unlock.sku` in `src/content/seed.ts`),
+and a webhook to `https://<api>/billing/revenuecat`. Without the keys everyone is FREE and the
+client hides purchase UI.
+
+The client needs `EXPO_PUBLIC_REVENUECAT_IOS_KEY` and `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY`
+(public SDK keys) and a development build: `react-native-purchases` is a native module, so
+Expo Go and the web preview run with purchases disabled. The SDK is configured with our
+user id as the RevenueCat app user id, so the server can map a webhook straight to a row.
 
 ### A note on pnpm configuration
 

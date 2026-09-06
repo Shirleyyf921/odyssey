@@ -186,3 +186,43 @@ export const MomentUnlock = z.object({
   unlockedAt: z.string().datetime(),
 })
 export type MomentUnlock = z.infer<typeof MomentUnlock>
+
+// ---------------------------------------------------------------- billing
+
+/**
+ * Subscription tiers from ARCHITECTURE.md section 7. PREMIUM is defined so the
+ * entitlement can exist in RevenueCat before voice ships; nothing grants it yet.
+ */
+export const Tier = z.enum(['FREE', 'PLUS', 'PREMIUM'])
+export type Tier = z.infer<typeof Tier>
+
+/** RevenueCat entitlement identifiers, configured in the RevenueCat dashboard under these exact names. */
+export const ENTITLEMENTS = { PLUS: 'plus', PREMIUM: 'premium' } as const
+export type EntitlementId = (typeof ENTITLEMENTS)[keyof typeof ENTITLEMENTS]
+
+export const TIER_BY_ENTITLEMENT: Record<EntitlementId, Exclude<Tier, 'FREE'>> = {
+  [ENTITLEMENTS.PLUS]: 'PLUS',
+  [ENTITLEMENTS.PREMIUM]: 'PREMIUM',
+}
+
+export const TIER_ORDER: Tier[] = ['FREE', 'PLUS', 'PREMIUM']
+
+export const Store = z.enum(['APP_STORE', 'PLAY_STORE', 'STRIPE', 'PROMOTIONAL', 'AMAZON', 'MAC_APP_STORE', 'UNKNOWN'])
+export type Store = z.infer<typeof Store>
+
+/**
+ * What the client needs to know about the caller's paid state. Derived from the
+ * subscriptions table at request time; never trusted from the client.
+ */
+export const BillingStatus = z.object({
+  tier: Tier,
+  /** When the current tier lapses. Null on FREE. */
+  expiresAt: z.string().datetime().nullable(),
+  /** True when the user turned off renewal; the tier holds until expiresAt. */
+  willRenew: z.boolean(),
+  /** Product ids of every one-time purchase on the account (moment SKUs). */
+  purchasedSkus: z.array(z.string()),
+  /** False until RevenueCat is configured on the server, so the client hides purchase UI. */
+  enabled: z.boolean(),
+})
+export type BillingStatus = z.infer<typeof BillingStatus>

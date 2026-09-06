@@ -16,13 +16,15 @@ export interface UnlockEvaluation {
 /**
  * Earned unlocks (FREE, STAGE, AFFINITY) are recorded the first time the
  * relationship qualifies, so unlockedAt is stable and the same call can announce
- * them. PURCHASE only ever unlocks through a purchase record, which does not
- * exist yet. This is the only place unlock records are created.
+ * them. PURCHASE unlocks when the user's purchases carry the moment's SKU; the
+ * purchase itself is written by the billing reconcile, never here. This is the
+ * only place unlock records are created.
  */
 export async function evaluateUnlocks(
   repo: AppRepository,
   moments: Moment[],
-  relationship: RelationshipRecord | null
+  relationship: RelationshipRecord | null,
+  purchasedSkus: ReadonlySet<string> = new Set()
 ): Promise<UnlockEvaluation> {
   if (!relationship) return { cards: moments.map((m) => toMomentCard(m, null)), newlyUnlocked: [] }
   const unlocks = new Map((await repo.listUnlocks(relationship.id)).map((u) => [u.momentId, u]))
@@ -31,7 +33,8 @@ export async function evaluateUnlocks(
   for (const moment of moments) {
     let unlock = unlocks.get(moment.id) ?? null
     let fresh = false
-    if (!unlock && relationshipSatisfies(moment.unlock, relationship)) {
+    const bought = moment.unlock.kind === 'PURCHASE' && purchasedSkus.has(moment.unlock.sku)
+    if (!unlock && (bought || relationshipSatisfies(moment.unlock, relationship))) {
       unlock = await repo.insertUnlock({
         relationshipId: relationship.id,
         momentId: moment.id,

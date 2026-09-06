@@ -48,6 +48,13 @@ const Env = z.object({
     .default('')
     .transform((s) => s.split(',').map((x) => x.trim()).filter(Boolean)),
   SESSION_TTL_DAYS: z.coerce.number().int().positive().default(30),
+
+  // Billing (ARCHITECTURE.md section 7). Both optional until the store products exist;
+  // without them purchase UI is hidden and everyone is FREE.
+  /** RevenueCat secret API key (v1, `sk_...`), used to re-read a subscriber. */
+  REVENUECAT_SECRET_KEY: z.string().min(1).optional(),
+  /** The Authorization header value configured on the RevenueCat webhook. */
+  REVENUECAT_WEBHOOK_SECRET: z.string().min(16).optional(),
 })
 
 export const env = Env.parse(process.env)
