@@ -1,7 +1,7 @@
 # odyssey — Technical Architecture
 
 > Status: Draft v0.3 · Pending review
-> Last updated: 2026-09-02 (v0.3.1: memory and identity status)
+> Last updated: 2026-09-06 (v0.3.2: tiers and price list in §7)
 
 ## 1. Product Definition
 
@@ -192,6 +192,98 @@ outfits and selfies) without feeling billed. So the split is:
 
 This passes variable cost through where it is tolerable and leaves the conversation unmetered.
 Details in §14.
+### Update 2026-09-06: tiers and a price list
+
+The split above (conversation is subscription, images are consumables) is kept. What was
+missing is the shape of the tiers and actual prices, so RevenueCat can be wired and the
+`PURCHASE` unlock rule in §14 can carry real SKUs. These numbers are a v1 starting point to be
+tuned on data, not a pricing study.
+
+**Where the money is.** Two reference points bracket us. Replika-style companion subscriptions
+top out around $20/month and the whole category ran at roughly $120M annualized in 2025. Love and
+Deepspace, an otome gacha, passed $930M in two years selling collectible "memory" cards from
+monthly rotating limited pools — which is exactly what our moments are. Jun was rewritten as
+the dangerous-guardian archetype because that is where English-market otome revenue sits. So
+the design follows the money: **subscription is the floor, moments are the engine.** The
+subscription keeps the relationship unmetered and covers inference; the ceiling on what an
+engaged user can spend lives in moments.
+
+#### Tiers
+
+| | Free | Plus · $9.99/mo · $59.99/yr | Premium (v2) · $19.99/mo · $119.99/yr |
+|---|---|---|---|
+| Primary boyfriend | ✅ | ✅ | ✅ |
+| Messages | 30 per day | Unmetered, soft ceiling 200/day | Unmetered, soft ceiling 400/day |
+| Memory (§4) | Short + mid-term only | All four layers | All four layers, larger retrieval budget |
+| Pivotal turns (§6) | ❌ everyday model only | ✅ | ✅ |
+| Exploration characters | 1 slot, LIGHT | 3 slots, LIGHT | All, LIGHT |
+| Proactive messages (§8) | ❌ | ✅ | ✅ |
+| Voice (v2) | ❌ | ❌ | ✅ |
+| Moments | FREE tier only | FREE + STAGE + AFFINITY | Same, plus one monthly moment included |
+
+Rules behind the table:
+
+- **The free tier must demonstrate the moat.** Long-term memory is the reason to pay, so the
+  first seven days of a new relationship run with all four layers regardless of tier. On day
+  eight a free user's long-term retrieval switches off; he does not forget, he stops bringing
+  things up. The paywall copy says exactly that. Guests (§12 identity) count as free.
+- **Message caps are never shown as a meter.** The free cap surfaces once, as his last message of
+  the day, in character. The Plus soft ceiling is invisible: past it, replies route to a cheaper
+  everyday model and pivotal routing is suspended until the next day. No user ever sees a
+  counter.
+- **Trial is the free tier, not a separate free trial.** No store-managed trial in v1; it
+  doubles the RevenueCat surface and the seven-day memory window already plays that role.
+- **Annual is priced at six months**, because a companion product's churn is front-loaded and
+  an annual buyer who stays past month three is worth more than the discount.
+- Premium ships with voice and not before. Listing a tier with no feature behind it teaches
+  users the prices are arbitrary.
+
+#### Moments (consumable)
+
+Moments are sold directly, not drawn. Gacha odds disclosure and the state-level attention on
+otome loot mechanics are a compliance surface we do not need at launch; direct purchase keeps
+the App Store review boring. Gacha is a v2 question if measured spend justifies it.
+
+| SKU shape | Price | Notes |
+|---|---|---|
+| Single moment | $2.99 | Permanent catalogue, `PURCHASE` rule on the card |
+| Monthly limited set (3 moments, one per character) | $7.99 | On sale for the calendar month, then retired from purchase |
+| Character set (all purchasable moments of one character) | $14.99 | Discounted bundle, catalogue only |
+
+- Earned and bought moments are the same table; `momentUnlocks` records the source so the
+  paywall A/B in §14 can read conversion by unlock kind.
+- Roughly a third of each character's moments are `PURCHASE`; the rest are earned. A gallery
+  that is mostly for sale reads as a shop, not a relationship.
+- The monthly set is the cadence answer to the open question below: one drop per month, all
+  three characters, retired at month end. Retired moments never return to sale in v1, because
+  scarcity only works if it is true.
+- Purchases are consumables in StoreKit terms but non-consumable in ours: bought once, kept
+  forever, restored with the account.
+
+#### Unit economics to validate
+
+Per §6, a Plus user at 30 messages/day on the everyday tier costs on the order of $1–3/month
+in inference, against $7–8.50 net of store commission. The number that can break this is
+pivotal-turn frequency on the strong model, which is why Plus caps it by day and Free has none.
+The measurement gate stands: **no price above is final until a week of dogfood token accounting
+has been read.** Two hard checks before launch:
+
+1. Median and p95 monthly inference cost per Plus user, split by model tier.
+2. Free-to-Plus conversion at the day-eight memory switch, with and without the moments gallery
+   visible (the §14 A/B).
+
+#### Store, compliance, and where this stops
+
+Nothing above is offered to a user who has not passed age assurance (§11, §12). The companion
+chatbot laws now in force (California SB 243 from January 2026, roughly a dozen states by
+mid-year) carry a private right of action, so the age gate is a precondition of the billing
+system rather than a follow-up to it. Proactive messaging, a Plus feature, is also the feature
+those laws constrain most directly, and its rate limits in §8 must satisfy them before it is
+sold.
+
+Data model additions: `subscriptions` (already listed in §5, synced from RevenueCat
+entitlements) and `purchases` (moment SKUs, store transaction id, restored-at). Both are
+written only by the RevenueCat webhook and the restore path, never by the client.
 
 ## 8. Proactive Messaging
 
@@ -470,9 +562,9 @@ in the conversation, rather than from a background job.
       Novita for EVERYDAY, Anthropic for PIVOTAL, DeepInfra as EVERYDAY failover (same models,
       OpenAI-compatible, a base-URL change).
 - [ ] Image asset pipeline for §14: who produces portraits and moments, at what per-character cost
-- [ ] Moment unlock cadence and PURCHASE pricing
+- [x] Moment unlock cadence and PURCHASE pricing — monthly limited set plus a permanent catalogue, see §7 (2026-09-06, pending dogfood cost data)
 - [ ] TTS vendor — English-first, latency is the primary criterion (candidates: Cartesia, ElevenLabs, PlayHT)
-- [ ] Subscription pricing and tier design — flat vs. metered, see §7
+- [x] Subscription pricing and tier design — Free / Plus $9.99 / Premium $19.99 (v2), subscription floor with moments as the consumable layer, see §7 (2026-09-06, pending dogfood cost data)
 - [x] How granular should primary-boyfriend persona customization be — name and personality only;
       the face is a preset (§1, decided 2026-09-02)
 - [ ] Launch geographies — determines both compliance regimes (§11) and the crisis-resource mapping we must maintain (§12)
