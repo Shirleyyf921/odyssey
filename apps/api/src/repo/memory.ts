@@ -342,6 +342,17 @@ export class MemoryRepository implements AppRepository {
     return list.slice(start, start + limit)
   }
 
+  async countUserMessagesSince(userId: string, since: Date) {
+    let n = 0
+    for (const rel of this.relationships.values()) {
+      if (rel.userId !== userId) continue
+      for (const m of this.messages.get(rel.conversationId) ?? []) {
+        if (m.role === 'USER' && new Date(m.createdAt) >= since) n++
+      }
+    }
+    return n
+  }
+
   // ---------------------------------------------------------------- memory
 
   async getSummary(conversationId: string) {

@@ -26,6 +26,13 @@ export const DEFAULT_MEMORY_OPTIONS: MemoryOptions = {
 /** Called after facts are stored, with how many. Lets progression credit sharing without a dependency on it. */
 export type FactsHook = (ctx: ConversationContext, count: number) => Promise<void>
 
+/** Per-turn override from the tier rules (ARCHITECTURE.md section 7). Defaults to the service options. */
+export interface MemoryPolicy {
+  /** False switches long-term retrieval off for this turn; extraction still runs after it. */
+  longTerm: boolean
+  retrieveK: number
+}
+
 export interface AssembledMemory {
   /** Verbatim short-term window, oldest first. */
   history: Message[]
@@ -61,7 +68,11 @@ export class MemoryService {
     this.opts = { ...DEFAULT_MEMORY_OPTIONS, ...opts }
   }
 
-  async assemble(ctx: ConversationContext, query: string): Promise<AssembledMemory> {
+  async assemble(
+    ctx: ConversationContext,
+    query: string,
+    policy: MemoryPolicy = { longTerm: true, retrieveK: this.opts.retrieveK }
+  ): Promise<AssembledMemory> {
     const summary = await this.repo.getSummary(ctx.conversation.id)
     const window = await this.repo.listMessagesAfter(
       ctx.conversation.id,
@@ -71,8 +82,8 @@ export class MemoryService {
     const history = window.slice(-this.opts.shortTermTurns)
 
     let memories: string[] = []
-    if (ctx.relationship.depth === 'DEEP') {
-      const found = await this.retrieve(ctx.relationship.id, query)
+    if (ctx.relationship.depth === 'DEEP' && policy.longTerm) {
+      const found = await this.retrieve(ctx.relationship.id, query, policy.retrieveK)
       memories = found.map((m) => m.fact)
     }
     return { history, summary: summary.text, memories }
@@ -93,11 +104,11 @@ export class MemoryService {
 
   // ---------------------------------------------------------------- internals
 
-  private async retrieve(relationshipId: string, query: string) {
-    if (!this.embeddings) return this.repo.listMemories(relationshipId, this.opts.retrieveK)
+  private async retrieve(relationshipId: string, query: string, k: number) {
+    if (!this.embeddings) return this.repo.listMemories(relationshipId, k)
     const [vec] = await this.embeddings.embed([query])
     if (!vec) return []
-    return this.repo.searchMemories(relationshipId, vec, this.opts.retrieveK)
+    return this.repo.searchMemories(relationshipId, vec, k)
   }
 
   private async runAfterTurn(ctx: ConversationContext, userMessage: Message, reply: Message) {

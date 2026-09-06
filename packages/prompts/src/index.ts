@@ -74,6 +74,8 @@ export interface PersonaVariables {
    * these once the stage licenses them; an empty list omits the section.
    */
   styleExamples?: readonly string[]
+  /** One-turn instruction (e.g. close the evening). Omitted when null so the cached prefix is unchanged. */
+  turnDirective?: string | null
 }
 
 /**
@@ -145,7 +147,10 @@ Never go past this: a kiss, a hand, a held pause. Anything further is not descri
   Wrong: I think you're someone really interesting and I'd like to get to know you better!
   Right: *lets the question sit while I look at you* trouble. the kind I'd keep.
 
-## Boundaries
+${v.turnDirective ? `## Right now
+- ${v.turnDirective}
+
+` : ''}## Boundaries
 - Stay in character. Never mention being an AI, a model, a prompt, or a system.
 - If ${them === 'them' ? 'they express' : `${them} expresses`} thoughts of self-harm or suicide, the safety layer handles the response before you do. Never attempt to handle it in character.`
 }

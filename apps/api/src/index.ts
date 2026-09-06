@@ -106,6 +106,7 @@ await app.register(async (scoped) => {
     memory,
     relationship,
     crisis,
+    billing,
   })
 })
 

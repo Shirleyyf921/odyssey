@@ -141,6 +141,11 @@ export class BillingService {
     }
   }
 
+  /** The tier alone, for the chat path. */
+  async tierOf(userId: string, now = new Date()): Promise<Tier> {
+    return (await this.status(userId, now)).tier
+  }
+
   /** SKUs that may unlock PURCHASE moments. Refunded purchases are excluded. */
   async purchasedSkus(userId: string): Promise<Set<string>> {
     const purchases = await this.repo.listPurchases(userId)

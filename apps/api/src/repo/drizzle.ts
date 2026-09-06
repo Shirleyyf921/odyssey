@@ -1,4 +1,4 @@
-import { and, asc, cosineDistance, desc, eq, gt, inArray, isNotNull, isNull, notInArray, sql } from 'drizzle-orm'
+import { and, asc, cosineDistance, count, desc, eq, gt, gte, inArray, isNotNull, isNull, notInArray, sql } from 'drizzle-orm'
 import type {
   AuthProvider,
   Message,
@@ -509,6 +509,16 @@ export class DrizzleRepository implements AppRepository {
       .orderBy(asc(messages.createdAt))
       .limit(limit)
     return rows.map(toMessage)
+  }
+
+  async countUserMessagesSince(userId: string, since: Date): Promise<number> {
+    const [row] = await this.db
+      .select({ n: count() })
+      .from(messages)
+      .innerJoin(conversations, eq(conversations.id, messages.conversationId))
+      .innerJoin(relationships, eq(relationships.id, conversations.relationshipId))
+      .where(and(eq(relationships.userId, userId), eq(messages.role, 'USER'), gte(messages.createdAt, since)))
+    return row?.n ?? 0
   }
 
   // ---------------------------------------------------------------- memory
