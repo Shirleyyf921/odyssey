@@ -3,11 +3,13 @@ import {
   CharacterDetail,
   CharactersResponse,
   DEVICE_ID_HEADER,
+  GRANT_SECRET_HEADER,
   MeResponse,
   MomentsResponse,
   RestoreResponse,
   SignInResponse,
   StartRelationshipResponse,
+  type DevGrantRequest,
   type DevSetStageRequest,
   type SignInRequest,
 } from '@odyssey/shared'
@@ -24,12 +26,15 @@ export class ApiError extends Error {
   }
 }
 
+const GRANT_SECRET = process.env.EXPO_PUBLIC_BILLING_GRANT_SECRET
+
 async function headers(): Promise<Record<string, string>> {
   const [deviceId, token] = await Promise.all([getDeviceId(), getSessionToken()])
   return {
     [DEVICE_ID_HEADER]: deviceId,
     accept: 'application/json',
     ...(token ? { authorization: `Bearer ${token}` } : {}),
+    ...(GRANT_SECRET ? { [GRANT_SECRET_HEADER]: GRANT_SECRET } : {}),
   }
 }
 
@@ -67,6 +72,8 @@ export const api = {
   restore: () => request('POST', '/billing/restore', RestoreResponse),
   signIn: (body: SignInRequest) => request('POST', '/auth/sign-in', SignInResponse, body),
   signOut: () => request('POST', '/auth/sign-out', MeResponse.optional()),
+  /** Dogfood: grant the caller a tier. Needs EXPO_PUBLIC_BILLING_GRANT_SECRET against production. */
+  devGrant: (body: DevGrantRequest) => request('POST', '/billing/dev/grant', RestoreResponse, body),
   /** Development builds only; the server refuses it in production. */
   devSetStage: (id: string, body: DevSetStageRequest) =>
     request('POST', `/characters/${id}/dev/stage`, StartRelationshipResponse, body),

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BillingStatus, Character, CharacterProfile, MomentCard, Relationship, RelationshipStage, Scene } from './domain.js'
+import { BillingStatus, Character, Tier, CharacterProfile, MomentCard, Relationship, RelationshipStage, Scene } from './domain.js'
 
 /**
  * REST shapes. The client validates every response against these, so a server
@@ -109,3 +109,18 @@ export type MeResponse = z.infer<typeof MeResponse>
  */
 export const RestoreResponse = z.object({ billing: BillingStatus })
 export type RestoreResponse = z.infer<typeof RestoreResponse>
+
+/**
+ * Manual grant for dogfooding: gives the caller a tier without a store purchase.
+ * Outside production it is open; in production it needs the grant secret header.
+ * FREE revokes earlier grants. Never reaches a real user.
+ */
+export const DevGrantRequest = z.object({
+  tier: Tier,
+  /** How long the grant lasts. Ignored for FREE. */
+  days: z.number().int().min(1).max(365).default(30),
+})
+export type DevGrantRequest = z.infer<typeof DevGrantRequest>
+
+/** Header carrying BILLING_GRANT_SECRET in production. */
+export const GRANT_SECRET_HEADER = 'x-grant-secret'

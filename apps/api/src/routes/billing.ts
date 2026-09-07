@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import type { RestoreResponse } from '@odyssey/shared'
+import { DevGrantRequest, GRANT_SECRET_HEADER, type RestoreResponse } from '@odyssey/shared'
 import { timingSafeEqual } from 'node:crypto'
 import { RcWebhook } from '../billing/revenuecat.js'
 import type { BillingService } from '../billing/service.js'
@@ -47,12 +47,31 @@ export async function billingWebhookRoutes(
   })
 }
 
-/** Inside requireIdentity: the client asks for its own state to be re-read. */
-export async function billingRoutes(app: FastifyInstance, opts: { billing: BillingService }) {
-  const { billing } = opts
+/**
+ * Inside requireIdentity: the client asks for its own state to be re-read, and
+ * the dogfood grant.
+ *
+ * `grant` controls the grant route: `'open'` outside production, a secret string
+ * in production (the caller must send it in x-grant-secret), or `null` to leave
+ * the route unregistered.
+ */
+export async function billingRoutes(app: FastifyInstance, opts: { billing: BillingService; grant?: 'open' | string | null }) {
+  const { billing, grant = null } = opts
 
   app.post('/billing/restore', async (req): Promise<RestoreResponse> => {
     const status = (await billing.reconcile(req.user.id)) ?? (await billing.status(req.user.id))
     return { billing: status }
   })
+
+  if (grant !== null) {
+    app.post('/billing/dev/grant', async (req, reply): Promise<RestoreResponse | void> => {
+      if (grant !== 'open' && !secretMatches(req.headers[GRANT_SECRET_HEADER], grant)) {
+        return reply.code(403).send({ error: 'grant secret required' })
+      }
+      const parsed = DevGrantRequest.safeParse(req.body)
+      if (!parsed.success) return reply.code(400).send({ error: parsed.error.issues.map((i) => i.message).join('; ') })
+      req.log.warn({ userId: req.user.id, tier: parsed.data.tier, days: parsed.data.days }, 'dev: tier granted')
+      return { billing: await billing.grant(req.user.id, parsed.data.tier, parsed.data.days) }
+    })
+  }
 }

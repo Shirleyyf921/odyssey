@@ -55,6 +55,11 @@ const Env = z.object({
   REVENUECAT_SECRET_KEY: z.string().min(1).optional(),
   /** The Authorization header value configured on the RevenueCat webhook. */
   REVENUECAT_WEBHOOK_SECRET: z.string().min(16).optional(),
+  /**
+   * Enables POST /billing/dev/grant in production for dogfooding, gated by this value in
+   * the x-grant-secret header. Outside production the route is open without it.
+   */
+  BILLING_GRANT_SECRET: z.string().min(16).optional(),
 })
 
 export const env = Env.parse(process.env)
