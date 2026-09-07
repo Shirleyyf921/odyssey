@@ -1,16 +1,18 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import type { MomentCard } from '@odyssey/shared'
 import { MessageBubble } from '../../src/components/MessageBubble'
 import { SceneCard } from '../../src/components/SceneCard'
 import { api } from '../../src/lib/api'
+import { billing } from '../../src/lib/billing'
 import { ChatSocket } from '../../src/lib/socket'
 import { useChatStore } from '../../src/store/chat'
 import { colors, radius, spacing } from '../../src/theme'
 
-type Row = { key: string; role: 'USER' | 'CHARACTER' | 'SYSTEM'; text: string; pending?: boolean; at: string }
+type Row = { key: string; role: 'USER' | 'CHARACTER' | 'SYSTEM'; text: string; pending?: boolean; at: string; momentId?: string | null }
 
 export default function ChatScreen() {
   const { conversationId, name, characterId } = useLocalSearchParams<{ conversationId: string; name?: string; characterId?: string }>()
@@ -20,6 +22,28 @@ export default function ChatScreen() {
     enabled: !!characterId,
   })
   const scene = character.data?.scenes.find((sc) => sc.id === character.data?.relationship?.sceneId) ?? null
+  const qc = useQueryClient()
+  // Photo messages read their card from here; the socket refetches it when he sends one.
+  const moments = useQuery({
+    queryKey: ['moments', characterId],
+    queryFn: () => api.moments(characterId!),
+    enabled: !!characterId,
+  })
+  const cardById = useMemo(() => new Map((moments.data?.moments ?? []).map((m) => [m.id, m])), [moments.data])
+  const me = useQuery({ queryKey: ['me'], queryFn: api.me })
+  const [unlockingSku, setUnlockingSku] = useState<string | null>(null)
+  const unlock = useMutation({
+    // Store purchase when the SDK is here; in a dev build without it, the dogfood route.
+    mutationFn: (sku: string) => (billing.available ? billing.purchaseSku(sku) : api.devPurchase({ sku }).then(() => true)),
+    onMutate: (sku) => setUnlockingSku(sku),
+    onSettled: () => {
+      setUnlockingSku(null)
+      void qc.invalidateQueries({ queryKey: ['moments', characterId] })
+      void qc.invalidateQueries({ queryKey: ['me'] })
+    },
+  })
+  const canUnlock = (billing.available && me.data?.billing.enabled === true) || __DEV__
+  const skuOf = (card: MomentCard | null | undefined) => (card?.unlock.kind === 'PURCHASE' ? card.unlock.sku : null)
   const insets = useSafeAreaInsets()
   const [draft, setDraft] = useState('')
   const socketRef = useRef<ChatSocket | null>(null)
@@ -32,18 +56,24 @@ export default function ChatScreen() {
     if (!conversationId) return
     const socket = new ChatSocket(
       conversationId,
-      { onStatus: setStatus, onEvent: (e) => apply(conversationId, e) },
+      {
+        onStatus: setStatus,
+        onEvent: (e) => {
+          apply(conversationId, e)
+          if (e.type === 'moment_offer' || e.type === 'moment_unlocked') void qc.invalidateQueries({ queryKey: ['moments', characterId] })
+        },
+      },
       () => lastMessageId(conversationId)
     )
     socketRef.current = socket
     void socket.connect()
     return () => socket.close()
-  }, [conversationId, setStatus, apply, lastMessageId])
+  }, [conversationId, characterId, qc, setStatus, apply, lastMessageId])
 
   // Inverted list: newest first in data, rendered bottom-up.
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = []
-    for (const m of conv?.messages ?? []) out.push({ key: m.id, role: m.role, text: m.content, at: m.createdAt })
+    for (const m of conv?.messages ?? []) out.push({ key: m.id, role: m.role, text: m.content, at: m.createdAt, momentId: m.momentId })
     for (const n of conv?.notices ?? []) out.push({ key: n.key, role: 'SYSTEM', text: n.text, at: n.at })
     out.sort((a, b) => a.at.localeCompare(b.at))
     const far = '9999'
@@ -70,7 +100,16 @@ export default function ChatScreen() {
         data={rows}
         keyExtractor={(r) => r.key}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => <MessageBubble role={item.role} text={item.text} pending={item.pending} />}
+        renderItem={({ item }) => (
+          <MessageBubble
+            role={item.role}
+            text={item.text}
+            pending={item.pending}
+            moment={item.momentId ? (cardById.get(item.momentId) ?? null) : undefined}
+            onUnlock={canUnlock ? (sku) => unlock.mutate(sku) : undefined}
+            unlocking={unlockingSku !== null && !!item.momentId && skuOf(cardById.get(item.momentId)) === unlockingSku}
+          />
+        )}
         // Inverted list: the footer renders at the visual top, above the oldest message.
         ListFooterComponent={scene ? <SceneCard scene={scene} /> : null}
       />

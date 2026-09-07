@@ -122,5 +122,9 @@ export const DevGrantRequest = z.object({
 })
 export type DevGrantRequest = z.infer<typeof DevGrantRequest>
 
+/** Dogfood: record a one-time purchase for the caller without the store. Same gating as DevGrantRequest. */
+export const DevPurchaseRequest = z.object({ sku: z.string().min(1) })
+export type DevPurchaseRequest = z.infer<typeof DevPurchaseRequest>
+
 /** Header carrying BILLING_GRANT_SECRET in production. */
 export const GRANT_SECRET_HEADER = 'x-grant-secret'

@@ -190,6 +190,25 @@ export const relationshipEvents = pgTable(
   (t) => [index('relationship_events_relationship_idx').on(t.relationshipId, t.createdAt)]
 )
 
+export const moments = pgTable(
+  'moments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    characterId: uuid('character_id')
+      .notNull()
+      .references(() => characters.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    caption: text('caption').notNull().default(''),
+    imageUrl: text('image_url').notNull(),
+    /** Tiny blurred copy that is safe to send while locked. See @odyssey/shared Moment. */
+    teaserUrl: text('teaser_url'),
+    position: integer('position').notNull().default(0),
+    unlockRule: jsonb('unlock_rule').$type<MomentUnlockRule>().notNull(),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('moments_character_idx').on(t.characterId, t.position)]
+)
+
 export const conversations = pgTable(
   'conversations',
   {
@@ -218,6 +237,8 @@ export const messages = pgTable(
     content: text('content').notNull(),
     clientMsgId: uuid('client_msg_id'),
     inReplyTo: uuid('in_reply_to'),
+    /** Set on a photo message: he sent this moment in the conversation. */
+    momentId: uuid('moment_id').references(() => moments.id, { onDelete: 'set null' }),
     model: text('model'),
     inputTokens: integer('input_tokens'),
     outputTokens: integer('output_tokens'),
@@ -246,23 +267,6 @@ export const memories = pgTable(
     index('memories_relationship_idx').on(t.relationshipId),
     index('memories_embedding_idx').using('hnsw', t.embedding.op('vector_cosine_ops')),
   ]
-)
-
-export const moments = pgTable(
-  'moments',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    characterId: uuid('character_id')
-      .notNull()
-      .references(() => characters.id, { onDelete: 'cascade' }),
-    title: text('title').notNull(),
-    caption: text('caption').notNull().default(''),
-    imageUrl: text('image_url').notNull(),
-    position: integer('position').notNull().default(0),
-    unlockRule: jsonb('unlock_rule').$type<MomentUnlockRule>().notNull(),
-    createdAt: timestamptz('created_at').notNull().defaultNow(),
-  },
-  (t) => [index('moments_character_idx').on(t.characterId, t.position)]
 )
 
 export const momentUnlocks = pgTable(

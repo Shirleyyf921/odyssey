@@ -127,6 +127,8 @@ export interface NewMessage {
   content: string
   clientMsgId: string | null
   inReplyTo: string | null
+  /** A photo message. */
+  momentId?: string | null
   model?: string | null
   inputTokens?: number | null
   outputTokens?: number | null
@@ -144,6 +146,8 @@ export interface ChatRepository {
   listMessagesAfter(conversationId: string, afterId: string | null, limit: number): Promise<Message[]>
   /** USER messages this person sent since `since`, across every relationship. Drives the daily caps. */
   countUserMessagesSince(userId: string, since: Date): Promise<number>
+  /** Photo messages in this conversation, oldest first. Drives the offer cadence. */
+  listOfferedMoments(conversationId: string): Promise<Array<{ momentId: string; createdAt: string }>>
 
   // mid-term memory
   getSummary(conversationId: string): Promise<ConversationSummary>

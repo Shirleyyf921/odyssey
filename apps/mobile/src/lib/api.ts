@@ -10,6 +10,7 @@ import {
   SignInResponse,
   StartRelationshipResponse,
   type DevGrantRequest,
+  type DevPurchaseRequest,
   type DevSetStageRequest,
   type SignInRequest,
 } from '@odyssey/shared'
@@ -74,6 +75,8 @@ export const api = {
   signOut: () => request('POST', '/auth/sign-out', MeResponse.optional()),
   /** Dogfood: grant the caller a tier. Needs EXPO_PUBLIC_BILLING_GRANT_SECRET against production. */
   devGrant: (body: DevGrantRequest) => request('POST', '/billing/dev/grant', RestoreResponse, body),
+  /** Dogfood: record a SKU purchase without the store. Same gating as devGrant. */
+  devPurchase: (body: DevPurchaseRequest) => request('POST', '/billing/dev/purchase', RestoreResponse, body),
   /** Development builds only; the server refuses it in production. */
   devSetStage: (id: string, body: DevSetStageRequest) =>
     request('POST', `/characters/${id}/dev/stage`, StartRelationshipResponse, body),

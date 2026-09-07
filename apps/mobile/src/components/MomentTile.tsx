@@ -31,6 +31,8 @@ export function MomentTile({ card, onUnlock, unlocking }: Props) {
     <View style={styles.tile}>
       {locked ? (
         <View style={[styles.image, styles.locked]}>
+          {card.teaserUrl && <Image source={{ uri: card.teaserUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={18} />}
+          {card.teaserUrl && <View style={styles.veil} />}
           <Text style={styles.lockGlyph}>🔒</Text>
         </View>
       ) : (
@@ -55,7 +57,8 @@ export function MomentTile({ card, onUnlock, unlocking }: Props) {
 const styles = StyleSheet.create({
   tile: { flex: 1, gap: spacing.xs },
   image: { width: '100%', aspectRatio: 3 / 4, borderRadius: radius.md, backgroundColor: colors.surfaceRaised },
-  locked: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  locked: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  veil: { ...{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, backgroundColor: 'rgba(10, 6, 12, 0.6)' },
   lockGlyph: { fontSize: 22, opacity: 0.6 },
   title: { color: colors.text, fontSize: 14, fontWeight: '600', marginTop: spacing.xs },
   sub: { color: colors.textMuted, fontSize: 12 },

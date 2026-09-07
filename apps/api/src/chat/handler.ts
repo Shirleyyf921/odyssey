@@ -4,13 +4,15 @@ import { DAILY_CAP_MESSAGE, LAST_MESSAGE_DIRECTIVE, rulesFor, utcDayStart } from
 import type { LlmGateway } from '../llm/gateway.js'
 import type { MemoryService } from '../memory/service.js'
 import type { RelationshipService } from '../relationship/service.js'
-import type { ChatRepository, UserRecord } from '../repo/types.js'
+import type { AppRepository, UserRecord } from '../repo/types.js'
+import { pickOffer } from '../moments/offers.js'
+import { toMomentCard } from '@odyssey/shared'
 import { INTERVENTION_BODY, resourcesFor, type CrisisDetector } from '../safety/crisis.js'
 import { buildCompletionRequest } from './prompt.js'
 import { chooseTier } from './tier.js'
 
 export interface ChatDeps {
-  repo: ChatRepository
+  repo: AppRepository
   gateway: LlmGateway
   memory: MemoryService
   relationship: RelationshipService
@@ -197,8 +199,43 @@ async function handleSendMessage(
   )
   send({ type: 'message_end', messageId, message: reply })
 
+  // He may follow the reply with a photo (section 14). The card goes out locked:
+  // teaser only, the asset stays on the server until the SKU is bought.
+  const offer = await maybeOffer(deps, ctx, {
+    sentToday: sentToday + 1,
+    stageChanged: progress.previousStage !== null,
+    now,
+  })
+  if (offer) send(offer)
+
   // Memory writes never block the reply path.
   memory.afterTurn(ctx, userMessage, reply)
+}
+
+async function maybeOffer(
+  deps: ChatDeps,
+  ctx: Awaited<ReturnType<typeof authorize>> & object,
+  signals: { sentToday: number; stageChanged: boolean; now: Date }
+): Promise<Extract<ServerEvent, { type: 'moment_offer' }> | null> {
+  const { repo, log } = deps
+  const conversationId = ctx.conversation.id
+  const [moments, unlocks, offered] = await Promise.all([
+    repo.listMoments(ctx.character.id),
+    repo.listUnlocks(ctx.relationship.id),
+    repo.listOfferedMoments(conversationId),
+  ])
+  const moment = pickOffer(moments, unlocks, offered, signals)
+  if (!moment) return null
+  const message = await repo.insertMessage({
+    conversationId,
+    role: 'CHARACTER',
+    content: moment.caption,
+    clientMsgId: null,
+    inReplyTo: null,
+    momentId: moment.id,
+  })
+  log.info({ conversationId, momentId: moment.id, sku: moment.unlock.kind === 'PURCHASE' ? moment.unlock.sku : null }, 'moment offered')
+  return { type: 'moment_offer', message, moment: toMomentCard(moment, null) }
 }
 
 async function handleResume(

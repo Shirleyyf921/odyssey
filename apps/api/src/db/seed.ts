@@ -53,12 +53,13 @@ for (const seed of SEED_CHARACTERS) {
         title: m.title,
         caption: m.caption,
         imageUrl: m.imageUrl,
+        teaserUrl: m.teaserUrl ?? null,
         position: m.position,
         unlockRule: m.unlock,
       })
       .onConflictDoUpdate({
         target: moments.id,
-        set: { title: m.title, caption: m.caption, imageUrl: m.imageUrl, position: m.position, unlockRule: m.unlock },
+        set: { title: m.title, caption: m.caption, imageUrl: m.imageUrl, teaserUrl: m.teaserUrl ?? null, position: m.position, unlockRule: m.unlock },
       })
   }
 }

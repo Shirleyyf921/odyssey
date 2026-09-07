@@ -43,6 +43,13 @@
       "when": 1788691392812,
       "tag": "0005_billing",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788781600172,
+      "tag": "0006_photo_offers",
+      "breakpoints": true
     }
   ]
 }

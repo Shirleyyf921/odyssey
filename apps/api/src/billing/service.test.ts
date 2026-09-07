@@ -282,3 +282,20 @@ test('dev grant: open outside production, secret-gated in production, FREE revok
     assert.equal(res.statusCode, 404)
   }
 })
+
+test('dev purchase: a granted SKU unlocks its moment and is idempotent', async () => {
+  const { app, repo } = await build(null)
+  const device = randomUUID()
+  const elliot = (await repo.listCharacters()).find((c) => c.kind === 'PRIMARY')!
+  await app.inject({ method: 'POST', url: `/characters/${elliot.id}/start`, headers: asDevice(device) })
+  for (let i = 0; i < 2; i++) {
+    const res = await app.inject({ method: 'POST', url: '/billing/dev/purchase', headers: asDevice(device), payload: { sku: MOMENT_SKU } })
+    assert.equal(res.statusCode, 200)
+    assert.deepEqual(RestoreResponse.parse(res.json()).billing.purchasedSkus, [MOMENT_SKU])
+  }
+  const userId = await userIdOf(app, device)
+  assert.equal((await repo.listPurchases(userId)).length, 1)
+  const gallery = MomentsResponse.parse((await app.inject({ method: 'GET', url: `/characters/${elliot.id}/moments`, headers: asDevice(device) })).json())
+  const card = gallery.moments.find((m) => m.unlock.kind === 'PURCHASE' && m.unlock.sku === MOMENT_SKU)!
+  assert.equal(card.status, 'UNLOCKED')
+})

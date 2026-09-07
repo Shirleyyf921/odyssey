@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { DevGrantRequest, GRANT_SECRET_HEADER, type RestoreResponse } from '@odyssey/shared'
+import { DevGrantRequest, DevPurchaseRequest, GRANT_SECRET_HEADER, type RestoreResponse } from '@odyssey/shared'
 import { timingSafeEqual } from 'node:crypto'
 import { RcWebhook } from '../billing/revenuecat.js'
 import type { BillingService } from '../billing/service.js'
@@ -72,6 +72,16 @@ export async function billingRoutes(app: FastifyInstance, opts: { billing: Billi
       if (!parsed.success) return reply.code(400).send({ error: parsed.error.issues.map((i) => i.message).join('; ') })
       req.log.warn({ userId: req.user.id, tier: parsed.data.tier, days: parsed.data.days }, 'dev: tier granted')
       return { billing: await billing.grant(req.user.id, parsed.data.tier, parsed.data.days) }
+    })
+
+    app.post('/billing/dev/purchase', async (req, reply): Promise<RestoreResponse | void> => {
+      if (grant !== 'open' && !secretMatches(req.headers[GRANT_SECRET_HEADER], grant)) {
+        return reply.code(403).send({ error: 'grant secret required' })
+      }
+      const parsed = DevPurchaseRequest.safeParse(req.body)
+      if (!parsed.success) return reply.code(400).send({ error: 'sku required' })
+      req.log.warn({ userId: req.user.id, sku: parsed.data.sku }, 'dev: purchase granted')
+      return { billing: await billing.grantPurchase(req.user.id, parsed.data.sku) }
     })
   }
 }
