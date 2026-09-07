@@ -4,6 +4,8 @@ import type { ConversationContext } from '../repo/types.js'
 export interface TurnSignals {
   /** The relationship advanced a stage on this message. */
   stageChanged: boolean
+  /** From the tier rules: false on FREE and past a paid tier's soft ceiling. */
+  pivotalAllowed: boolean
 }
 
 /**
@@ -15,5 +17,5 @@ export interface TurnSignals {
  * for (emotionally loaded input, anniversaries).
  */
 export function chooseTier(_ctx: ConversationContext, _content: string, signals: TurnSignals): ModelTier {
-  return signals.stageChanged ? 'PIVOTAL' : 'EVERYDAY'
+  return signals.stageChanged && signals.pivotalAllowed ? 'PIVOTAL' : 'EVERYDAY'
 }

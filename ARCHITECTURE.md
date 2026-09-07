@@ -136,6 +136,8 @@ Business code never calls a vendor SDK directly. Everything routes through an in
 A deep primary conversation carries roughly 3–8k tokens of context per message. At 30 messages
 per day, that is ~150k input tokens per daily active user per day. This number determines whether
 subscription pricing can cover cost, and **must be measured during the MVP**, not estimated.
+The `turn complete` log line carries `plan`, `sentToday`, `longTerm`, the model tier, and token
+usage per turn, which is the measurement.
 
 ## 7. Monetization
 
@@ -294,9 +296,27 @@ overwrites our copy, so webhook ordering and duplicates are harmless. The Revenu
 id is our user id; the client configures the SDK with it before any purchase, and a guest's
 rows move with `mergeUsers` on sign-in. `GET /me` returns the derived tier, and a `PURCHASE`
 moment unlocks in `evaluateUnlocks` when its SKU is among the user's unrefunded purchases.
-Not done: the tier gates nothing yet (memory depth, message caps, proactive messages all
-ignore it), bundle SKUs (monthly set, character set) have no mapping to moments, there is no
-paywall screen, and the store products and entitlements have not been created in RevenueCat.
+Bundle SKUs (monthly set, character set) have no mapping to moments yet, there is no paywall
+screen, and the store products and entitlements have not been created in RevenueCat.
+
+**Tier gating (2026-09-06).** `apps/api/src/billing/rules.ts` holds the table above as code
+and the chat handler reads it once per turn, before anything is stored:
+
+- *Daily cap* (FREE, 30). Counted as USER messages across every relationship since the UTC
+  day start. The 30th message carries a one-turn directive so he closes the evening in
+  character; the 31st is refused with `QUOTA_EXCEEDED` before the row exists, costs no
+  generation, and the client drops the bubble. He never names a number.
+- *Soft ceiling* (PLUS 200, PREMIUM 400). Past it, pivotal routing is suspended for the day
+  and every reply runs on EVERYDAY. Nothing is refused and nothing is shown.
+- *Long-term memory*. Retrieval is on for PLUS and PREMIUM (PREMIUM retrieves 12 facts, others
+  6) and for the first seven days of any relationship on any tier. After that a FREE user's
+  retrieval switches off; extraction still runs, so nothing is lost if they upgrade. Short- and
+  mid-term memory are untouched by tier.
+- *Pivotal turns*. FREE never routes to the strong model, so a stage transition on FREE reads
+  the same as any other turn.
+
+Not gated: exploration slots, proactive messaging (does not exist yet), and the day-eight
+paywall copy on the client, which needs the paywall screen.
 
 ## 8. Proactive Messaging
 

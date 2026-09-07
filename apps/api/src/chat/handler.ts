@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import type { ClientEvent, ServerEvent } from '@odyssey/shared'
+import type { ClientEvent, ServerEvent, Tier } from '@odyssey/shared'
+import { DAILY_CAP_MESSAGE, LAST_MESSAGE_DIRECTIVE, rulesFor, utcDayStart } from '../billing/rules.js'
 import type { LlmGateway } from '../llm/gateway.js'
 import type { MemoryService } from '../memory/service.js'
 import type { RelationshipService } from '../relationship/service.js'
@@ -14,6 +15,8 @@ export interface ChatDeps {
   memory: MemoryService
   relationship: RelationshipService
   crisis: CrisisDetector
+  /** Paid state, read once per turn. */
+  billing: { tierOf(userId: string): Promise<Tier> }
   /** The authenticated user behind this socket. */
   user: UserRecord
   log: { info(obj: Record<string, unknown>, msg: string): void; error(obj: Record<string, unknown>, msg: string): void }
@@ -49,7 +52,7 @@ async function handleSendMessage(
   event: Extract<ClientEvent, { type: 'send_message' }>,
   send: Send
 ): Promise<void> {
-  const { repo, gateway, memory, relationship, crisis, log } = deps
+  const { repo, gateway, memory, relationship, crisis, billing, log } = deps
   let ctx = await authorize(deps, event.conversationId, send)
   if (!ctx) return
 
@@ -63,6 +66,21 @@ async function handleSendMessage(
       messages: reply ? [existing, reply] : [existing],
     })
   }
+
+  // Tier rules (ARCHITECTURE.md section 7). The hard cap is checked before anything is
+  // stored, so a refused message leaves no trace and costs nothing.
+  const now = new Date()
+  const [tier, sentToday] = await Promise.all([
+    billing.tierOf(deps.user.id),
+    repo.countUserMessagesSince(deps.user.id, utcDayStart(now)),
+  ])
+  const rules = rulesFor(tier, ctx.relationship, now)
+  if (rules.dailyMessages !== null && sentToday >= rules.dailyMessages) {
+    log.info({ conversationId: event.conversationId, tier, sentToday }, 'daily cap reached')
+    return send({ type: 'error', code: 'QUOTA_EXCEEDED', message: DAILY_CAP_MESSAGE })
+  }
+  const lastOfDay = rules.dailyMessages !== null && sentToday + 1 === rules.dailyMessages
+  const pastCeiling = rules.softCeiling !== null && sentToday + 1 > rules.softCeiling
 
   const userMessage = await repo.insertMessage({
     conversationId: event.conversationId,
@@ -112,9 +130,18 @@ async function handleSendMessage(
     send({ type: 'moment_unlocked', relationshipId: progress.relationship.id, moment })
   }
 
-  const assembled = await memory.assemble(ctx, event.content)
-  const request = buildCompletionRequest(ctx, assembled, { previousStage: progress.previousStage })
-  const tier = chooseTier(ctx, event.content, { stageChanged: progress.previousStage !== null })
+  const assembled = await memory.assemble(ctx, event.content, {
+    longTerm: rules.longTermMemory,
+    retrieveK: rules.retrieveK,
+  })
+  const request = buildCompletionRequest(ctx, assembled, {
+    previousStage: progress.previousStage,
+    turnDirective: lastOfDay ? LAST_MESSAGE_DIRECTIVE : null,
+  })
+  const modelTier = chooseTier(ctx, event.content, {
+    stageChanged: progress.previousStage !== null,
+    pivotalAllowed: rules.pivotal && !pastCeiling,
+  })
 
   const messageId = randomUUID()
   send({ type: 'message_start', messageId, conversationId: event.conversationId })
@@ -123,7 +150,7 @@ async function handleSendMessage(
   let model: string | null = null
   let usage: { inputTokens: number; outputTokens: number } | null = null
   try {
-    for await (const chunk of gateway.stream(tier, request)) {
+    for await (const chunk of gateway.stream(modelTier, request)) {
       if (chunk.type === 'delta') {
         content += chunk.text
         send({ type: 'message_delta', messageId, delta: chunk.text })
@@ -136,7 +163,7 @@ async function handleSendMessage(
       }
     }
   } catch (err) {
-    log.error({ err, tier, conversationId: event.conversationId }, 'generation failed')
+    log.error({ err, tier: modelTier, conversationId: event.conversationId }, 'generation failed')
     return send({
       type: 'error',
       code: 'UPSTREAM_UNAVAILABLE',
@@ -156,7 +183,16 @@ async function handleSendMessage(
     outputTokens: usage?.outputTokens ?? null,
   })
   log.info(
-    { conversationId: event.conversationId, tier, model, memories: assembled.memories.length, ...usage },
+    {
+      conversationId: event.conversationId,
+      tier: modelTier,
+      plan: tier,
+      sentToday: sentToday + 1,
+      longTerm: rules.longTermMemory,
+      model,
+      memories: assembled.memories.length,
+      ...usage,
+    },
     'turn complete'
   )
   send({ type: 'message_end', messageId, message: reply })

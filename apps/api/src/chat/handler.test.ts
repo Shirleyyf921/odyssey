@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import type { ServerEvent } from '@odyssey/shared'
+import type { ServerEvent, Tier } from '@odyssey/shared'
 import { LlmGateway } from '../llm/gateway.js'
 import { ScriptedProvider } from '../llm/scripted.js'
 import { HashEmbeddings } from '../memory/embeddings.js'
@@ -13,7 +13,7 @@ import { handleClientEvent, type ChatDeps } from './handler.js'
 
 const silent = { info() {}, error() {} }
 
-async function setup(opts: { crisis?: CrisisDetector; reply?: string } = {}) {
+async function setup(opts: { crisis?: CrisisDetector; reply?: string; tier?: Tier } = {}) {
   const repo = new MemoryRepository()
   const demo = await repo.seedDemo()
   const provider = new ScriptedProvider(opts.reply ?? 'Hey, you. Long day?')
@@ -26,6 +26,7 @@ async function setup(opts: { crisis?: CrisisDetector; reply?: string } = {}) {
     memory,
     relationship,
     crisis: opts.crisis ?? new NoopCrisisDetector(),
+    billing: { async tierOf() { return opts.tier ?? 'PLUS' } },
     user: { id: demo.userId, displayName: null, locale: 'en-US' },
     log: silent,
   }

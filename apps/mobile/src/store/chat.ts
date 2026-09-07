@@ -124,7 +124,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           next = { ...c, streaming: null, pending: [], intervention: { body: event.body, resources: event.resources } }
           break
         case 'error':
-          next = { ...c, streaming: null, error: event.message }
+          // A quota refusal happened before the message was stored: drop its bubble.
+          next = { ...c, streaming: null, error: event.message, pending: event.code === 'QUOTA_EXCEEDED' ? [] : c.pending }
           break
         case 'relationship_updated':
           if (event.previousStage) {

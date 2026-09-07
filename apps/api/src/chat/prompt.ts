@@ -6,6 +6,8 @@ import type { ConversationContext } from '../repo/types.js'
 
 export interface PromptSignals {
   previousStage: RelationshipStage | null
+  /** One-turn instruction appended to the persona; null on an ordinary turn. */
+  turnDirective?: string | null
 }
 
 /** Assemble the prompt for one turn from the persona and the memory layers. */
@@ -29,6 +31,7 @@ export function buildCompletionRequest(
     retrievedMemories: memory.memories,
     scene: ctx.conversation.scene?.setting ?? null,
     styleExamples,
+    turnDirective: signals.turnDirective ?? null,
   })
 
   const messages: ChatTurn[] = memory.history

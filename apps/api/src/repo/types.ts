@@ -142,6 +142,8 @@ export interface ChatRepository {
   listRecentMessages(conversationId: string, limit: number): Promise<Message[]>
   /** Messages created after `afterId` (all messages when null), oldest first. */
   listMessagesAfter(conversationId: string, afterId: string | null, limit: number): Promise<Message[]>
+  /** USER messages this person sent since `since`, across every relationship. Drives the daily caps. */
+  countUserMessagesSince(userId: string, since: Date): Promise<number>
 
   // mid-term memory
   getSummary(conversationId: string): Promise<ConversationSummary>
