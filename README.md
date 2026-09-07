@@ -128,6 +128,7 @@ or `x-device-id: <uuid>`. The token wins; an expired token is a 401 rather than 
 | `GET /characters/:id/moments` | Cards; locked ones carry no asset URL. A PURCHASE card unlocks once its SKU is among the caller's purchases |
 | `POST /billing/restore` | Server re-reads the caller from RevenueCat and returns `billing` (tier, expiry, purchased SKUs) |
 | `POST /billing/revenuecat` | Public RevenueCat webhook, authenticated by `REVENUECAT_WEBHOOK_SECRET` in the Authorization header |
+| `POST /billing/dev/grant` | Dogfood: `{tier, days?}` grants the caller a tier as a PROMOTIONAL row. Open outside production; in production only with `BILLING_GRANT_SECRET` set and sent as `x-grant-secret` |
 | `ws://…/ws/chat?token=…` or `?deviceId=…` | Chat, see `packages/shared/src/protocol.ts` |
 
 `GET /me` also carries `billing`. Every paid-state write goes through one reconcile path that

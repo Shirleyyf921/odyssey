@@ -141,6 +141,40 @@ export class BillingService {
     }
   }
 
+  /**
+   * Manual grant, for dogfooding and support. Written as a PROMOTIONAL subscription
+   * so it is visible as such in the table and in status(). A later reconcile only
+   * overwrites it if RevenueCat also holds that entitlement. FREE ends every
+   * promotional grant the user holds.
+   */
+  async grant(userId: string, tier: Tier, days: number, now = new Date()): Promise<BillingStatus> {
+    const held = await this.repo.listSubscriptions(userId)
+    if (tier === 'FREE') {
+      for (const sub of held) {
+        if (sub.store === 'PROMOTIONAL' && (!sub.expiresAt || sub.expiresAt > now)) {
+          await this.repo.upsertSubscription({ ...sub, expiresAt: now })
+        }
+      }
+    } else {
+      const entitlement = tier === 'PLUS' ? ENTITLEMENTS.PLUS : ENTITLEMENTS.PREMIUM
+      await this.repo.upsertSubscription({
+        userId,
+        entitlement,
+        productId: `grant_${entitlement}`,
+        store: 'PROMOTIONAL',
+        environment: 'SANDBOX',
+        purchasedAt: now,
+        expiresAt: new Date(now.getTime() + days * 86_400_000),
+        unsubscribedAt: now,
+        billingIssueAt: null,
+        rcAppUserId: userId,
+      })
+    }
+    const status = await this.status(userId, now)
+    this.log.info({ userId, tier: status.tier, days }, 'billing: manual grant')
+    return status
+  }
+
   /** The tier alone, for the chat path. */
   async tierOf(userId: string, now = new Date()): Promise<Tier> {
     return (await this.status(userId, now)).tier

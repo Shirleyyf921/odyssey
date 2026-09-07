@@ -62,7 +62,7 @@ async function build(rc: RevenueCatClient | null = new FakeRc()) {
   await app.register(async (scoped) => {
     requireIdentity(scoped, repo)
     await scoped.register(characterRoutes, { repo })
-    await scoped.register(billingRoutes, { billing })
+    await scoped.register(billingRoutes, { billing, grant: 'open' })
   })
   await app.ready()
   return { app, repo, billing }
@@ -231,4 +231,54 @@ test('an unknown entitlement name is ignored rather than granting a tier', async
   )
   const status = await billing.reconcile(userId)
   assert.equal(status?.tier, 'FREE')
+})
+
+test('dev grant: open outside production, secret-gated in production, FREE revokes', async () => {
+  // Open.
+  {
+    const { app } = await build(null)
+    const device = randomUUID()
+    const res = await app.inject({ method: 'POST', url: '/billing/dev/grant', headers: asDevice(device), payload: { tier: 'PLUS' } })
+    assert.equal(res.statusCode, 200)
+    assert.equal(RestoreResponse.parse(res.json()).billing.tier, 'PLUS')
+    const me = MeResponse.parse((await app.inject({ method: 'GET', url: '/me', headers: asDevice(device) })).json())
+    assert.equal(me.billing.tier, 'PLUS')
+    assert.equal(me.billing.willRenew, false, 'a grant never renews')
+
+    const revoked = await app.inject({ method: 'POST', url: '/billing/dev/grant', headers: asDevice(device), payload: { tier: 'FREE' } })
+    assert.equal(RestoreResponse.parse(revoked.json()).billing.tier, 'FREE')
+  }
+  // Secret-gated.
+  {
+    const repo = new MemoryRepository()
+    const billing = new BillingService(repo, null, silent)
+    const app = Fastify()
+    await app.register(async (scoped) => {
+      requireIdentity(scoped, repo)
+      await scoped.register(billingRoutes, { billing, grant: 'grant-secret-for-tests-0123456789' })
+    })
+    await app.ready()
+    const device = randomUUID()
+    const denied = await app.inject({ method: 'POST', url: '/billing/dev/grant', headers: asDevice(device), payload: { tier: 'PREMIUM' } })
+    assert.equal(denied.statusCode, 403)
+    const ok = await app.inject({
+      method: 'POST',
+      url: '/billing/dev/grant',
+      headers: { ...asDevice(device), 'x-grant-secret': 'grant-secret-for-tests-0123456789' },
+      payload: { tier: 'PREMIUM', days: 7 },
+    })
+    assert.equal(RestoreResponse.parse(ok.json()).billing.tier, 'PREMIUM')
+  }
+  // Unregistered.
+  {
+    const repo = new MemoryRepository()
+    const app = Fastify()
+    await app.register(async (scoped) => {
+      requireIdentity(scoped, repo)
+      await scoped.register(billingRoutes, { billing: new BillingService(repo, null, silent), grant: null })
+    })
+    await app.ready()
+    const res = await app.inject({ method: 'POST', url: '/billing/dev/grant', headers: asDevice(randomUUID()), payload: { tier: 'PLUS' } })
+    assert.equal(res.statusCode, 404)
+  }
 })

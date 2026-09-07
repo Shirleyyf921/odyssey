@@ -99,7 +99,11 @@ if (billing.enabled && env.REVENUECAT_WEBHOOK_SECRET) {
 await app.register(async (scoped) => {
   requireIdentity(scoped, repo)
   await scoped.register(characterRoutes, { repo, devTools: env.NODE_ENV !== 'production' })
-  await scoped.register(billingRoutes, { billing })
+  await scoped.register(billingRoutes, {
+    billing,
+    grant: env.NODE_ENV !== 'production' ? 'open' : (env.BILLING_GRANT_SECRET ?? null),
+  })
+if (env.NODE_ENV === 'production' && env.BILLING_GRANT_SECRET) app.log.warn('BILLING_GRANT_SECRET set: /billing/dev/grant is live in production')
   await scoped.register(chatWebsocket, {
     repo,
     gateway,

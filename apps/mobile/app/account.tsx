@@ -32,6 +32,11 @@ export default function AccountScreen() {
   const devSignIn = useMutation({ mutationFn: () => signInDev(devName.trim()), onSuccess: refresh, onError: fail })
   const out = useMutation({ mutationFn: signOut, onSuccess: refresh, onError: fail })
   const restore = useMutation({ mutationFn: () => billing.restore(), onSuccess: refresh, onError: fail })
+  const grant = useMutation({
+    mutationFn: (tier: 'FREE' | 'PLUS' | 'PREMIUM') => api.devGrant({ tier, days: 30 }),
+    onSuccess: refresh,
+    onError: fail,
+  })
 
   if (me.isLoading) return <View style={styles.centered}><ActivityIndicator color={colors.accent} /></View>
   const user = me.data?.user
@@ -92,6 +97,19 @@ export default function AccountScreen() {
           )}
         </View>
       )}
+      {__DEV__ && (
+        <View style={styles.devBox}>
+          <Text style={styles.devLabel}>Dogfood grant</Text>
+          <Text style={styles.sub}>Current: {status ? planLine(status.tier, status.expiresAt, status.willRenew) : '…'}</Text>
+          <View style={styles.row}>
+            {(['FREE', 'PLUS', 'PREMIUM'] as const).map((t) => (
+              <Pressable key={t} style={styles.chip} onPress={() => grant.mutate(t)} disabled={grant.isPending}>
+                <Text style={styles.secondaryText}>{t}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      )}
       {error && <Text style={styles.error}>{error}</Text>}
     </View>
   )
@@ -128,6 +146,8 @@ const styles = StyleSheet.create({
   devBox: { marginTop: spacing.xl, gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.lg },
   devLabel: { color: colors.textFaint, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
   input: { color: colors.text, fontSize: 16, backgroundColor: colors.surface, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 10 },
+  row: { flexDirection: 'row', gap: spacing.sm },
+  chip: { flex: 1, borderWidth: 1, borderColor: colors.border, paddingVertical: 10, borderRadius: radius.pill, alignItems: 'center' },
   billingBox: { marginTop: spacing.xl, gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.lg },
   plan: { color: colors.text, fontSize: 16 },
   error: { color: colors.danger, marginTop: spacing.md },
