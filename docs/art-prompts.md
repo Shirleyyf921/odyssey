@@ -163,6 +163,29 @@ Beats, same pattern as above with `--oref <hero> --ow 200 --sref <anchor>`:
 - Theo, Heat: the alley door of the kitchen after service, chef's jacket off and hanging from one hand, white undershirt gone, trousers and apron strings at the hips, steam behind him, leaning on the doorframe with a grin, tungsten light.
 - Jun, Glasses off: dressing-room mirror, black shirt fully open and off one shoulder, glasses set down on the counter in front of him, hands on the counter, meeting the viewer's eyes in the mirror without the glasses, cold light with one warm lamp, the same unreadable intent as the hero.
 
+Done (2026-09-07, Lovart, faces referenced from the heroes):
+
+| Card | URL | Notes |
+|---|---|---|
+| Elliot, Steam | https://a.lovart.ai/artifacts/agent/jb7HukpQ0I131v6B.png | v5: the wiping hand was removed after four tries; a wiped stripe in the fog carries the beat |
+| Elliot, After the run | https://a.lovart.ai/artifacts/agent/PpTNroSmAYCvpuI4.png | Slightly photoreal; acceptable |
+| Elliot, Your side | https://a.lovart.ai/artifacts/agent/vIEczgGLhnCsEizt.png | Upscaled from 864×1152 to 1774×2365 |
+| Theo, Heat | https://a.lovart.ai/artifacts/agent/MzUJyVLAlCIc4ISg.png | First pass, locked |
+| Jun, Glasses off | https://a.lovart.ai/artifacts/agent/qpIM8XPKyQJLVLEO.png | Seedream 5.0 Pro after the default model refused the open shirt; upscaled to 1774×2365 |
+
+What the paid round taught us:
+
+- **Hands touching a mirror do not work.** Four attempts at "wiping the mirror from inside the
+  mirror" produced a hand seen from the wrong side, a stop gesture, or a giant palm. Write the
+  trace of the action (a wiped stripe, a dropped cloth) and keep hands at his sides or on a
+  surface.
+- **Fix one thing with an edit, not a regeneration.** Attaching the previous image and saying
+  "change only X" kept face, towel and light intact; re-prompting from scratch lost all three.
+- **Model safety filters differ by character.** "Black shirt completely unbuttoned, bare chest"
+  was rejected for Jun by the default model while Elliot's bare torso passed. When a prompt is
+  refused, switch model (`--prefer-models`, Seedream or Midjourney) before softening the brief.
+- **Say "trousers on" explicitly** for open-shirt beats or the model drops the waistline out of frame.
+
 Pricing per §7: singles $2.99; the three-character monthly set is one card each, so a month's
 drop is one new paid beat per man, retired at month end.
 
