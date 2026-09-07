@@ -67,16 +67,16 @@ test('rulesFor: free gets the four layers for the first week, paid tiers always'
   assert.equal(rulesFor('FREE', fresh).longTermMemory, true)
   assert.equal(rulesFor('FREE', old).longTermMemory, false)
   assert.equal(rulesFor('FREE', old).pivotal, false)
-  assert.equal(rulesFor('FREE', old).dailyMessages, 30)
+  assert.equal(rulesFor('FREE', old).dailyMessages, 15)
   assert.equal(rulesFor('PLUS', old).longTermMemory, true)
   assert.equal(rulesFor('PLUS', old).dailyMessages, null)
   assert.equal(rulesFor('PLUS', old).softCeiling, 200)
   assert.equal(rulesFor('PREMIUM', old).retrieveK, 12)
 })
 
-test('free: the 30th message of the day closes the evening in character, the 31st is refused unstored', async () => {
+test('free: the 15th message of the day closes the evening in character, the 16th is refused unstored', async () => {
   const { repo, sent, say, requests, conversationId } = await setup('FREE')
-  await preload(repo, conversationId, 29)
+  await preload(repo, conversationId, 14)
 
   await say('one more')
   assert.equal(sent.at(-1)?.type, 'message_end')

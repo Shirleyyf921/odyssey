@@ -55,7 +55,7 @@ test('start is idempotent and gives PRIMARY characters a DEEP relationship', asy
     (await app.inject({ method: 'GET', url: `/characters/${primary.id}`, headers: { 'x-device-id': device } })).json()
   )
   assert.equal(detail.relationship?.conversationId, first.relationship.conversationId)
-  assert.equal(detail.momentCount, 5)
+  assert.equal(detail.momentCount, 8)
 })
 
 test('moments: FREE unlocks on first read, the rest stay locked without the asset URL', async () => {

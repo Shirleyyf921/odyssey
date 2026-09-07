@@ -135,6 +135,37 @@ Elliot's five, as beats:
 - Sunday: on a couch in the afternoon with a book face-down on his chest, looking over at the viewer.
 - The one you asked for: a phone-selfie framing, slightly too close, deadpan, one eyebrow up.
 
+## Paid moments
+
+Half of every character's cards are `PURCHASE` (ARCHITECTURE §7, 2026-09-07). Earned cards are
+what he shows you anyway; paid cards are what he gives you because you asked. That is the
+register: charged, private, a little reluctant, never posed for a camera.
+
+**The line, and it is a hard one.** This keeps the listing at 17+ instead of gone:
+
+- Bare torso is fine. Nothing below the waistband, ever: towel, sheet, or trousers at the
+  hips, and they stay there.
+- One person in frame. Never two people on a bed, never a hand that is not his own.
+- No visible arousal, no wet-fabric transparency, no underwear as the only garment.
+- Bathroom scenes are mirror, steam, and towel at the waist. No shower glass, no tub.
+- Bed scenes are him alone, sitting up, sheet at the waist, morning light. Never lying down
+  facing the camera.
+- Face and hands carry the heat. If the torso is doing the work, the image is wrong.
+
+Append `fully covered below the waist, no nudity below the waist, one person` to every paid
+prompt. Generators drift; the negative prompt is not optional.
+
+Beats, same pattern as above with `--oref <hero> --ow 200 --sref <anchor>`:
+
+- Elliot, Steam: bathroom mirror after a shower, hair wet and pushed back, towel knotted at his hips, one hand wiping a clear stripe through the steam, looking at the viewer through the mirror, tired and unguarded, warm bathroom light.
+- Elliot, After the run: kitchen at dawn, shirtless, running shorts, a towel around his neck, drinking from a glass of water with his eyes on the viewer over the rim, sweat at the collarbone, grey-blue morning light.
+- Elliot, Your side: sitting up in an unmade bed alone, sheet at his waist, one knee up, morning light across his shoulders, looking at the empty side of the bed then back at the viewer, half a smile.
+- Theo, Heat: the alley door of the kitchen after service, chef's jacket off and hanging from one hand, white undershirt gone, trousers and apron strings at the hips, steam behind him, leaning on the doorframe with a grin, tungsten light.
+- Jun, Glasses off: dressing-room mirror, black shirt fully open and off one shoulder, glasses set down on the counter in front of him, hands on the counter, meeting the viewer's eyes in the mirror without the glasses, cold light with one warm lamp, the same unreadable intent as the hero.
+
+Pricing per §7: singles $2.99; the three-character monthly set is one card each, so a month's
+drop is one new paid beat per man, retired at month end.
+
 ## Delivery
 
 | Asset | Size | Format |

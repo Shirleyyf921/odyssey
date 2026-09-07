@@ -216,7 +216,7 @@ engaged user can spend lives in moments.
 | | Free | Plus · $9.99/mo · $59.99/yr | Premium (v2) · $19.99/mo · $119.99/yr |
 |---|---|---|---|
 | Primary boyfriend | ✅ | ✅ | ✅ |
-| Messages | 30 per day | Unmetered, soft ceiling 200/day | Unmetered, soft ceiling 400/day |
+| Messages | 15 per day | Unmetered, soft ceiling 200/day | Unmetered, soft ceiling 400/day |
 | Memory (§4) | Short + mid-term only | All four layers | All four layers, larger retrieval budget |
 | Pivotal turns (§6) | ❌ everyday model only | ✅ | ✅ |
 | Exploration characters | 1 slot, LIGHT | 3 slots, LIGHT | All, LIGHT |
@@ -255,8 +255,11 @@ the App Store review boring. Gacha is a v2 question if measured spend justifies 
 
 - Earned and bought moments are the same table; `momentUnlocks` records the source so the
   paywall A/B in §14 can read conversion by unlock kind.
-- Roughly a third of each character's moments are `PURCHASE`; the rest are earned. A gallery
-  that is mostly for sale reads as a shop, not a relationship.
+- Half of each character's moments are `PURCHASE`; the rest are earned (raised from a third on
+  2026-09-07). The split is also a content split: earned cards are what he shows you anyway,
+  paid cards are what he gives you because you asked, and they carry the charge. The hard
+  boundary that keeps the listing at 17+ is written into `docs/art-prompts.md`, "Paid moments":
+  bare torso yes, nothing below the waistband, one person in frame, face and hands carry it.
 - The monthly set is the cadence answer to the open question below: one drop per month, all
   three characters, retired at month end. Retired moments never return to sale in v1, because
   scarcity only works if it is true.
@@ -302,9 +305,9 @@ screen, and the store products and entitlements have not been created in Revenue
 **Tier gating (2026-09-06).** `apps/api/src/billing/rules.ts` holds the table above as code
 and the chat handler reads it once per turn, before anything is stored:
 
-- *Daily cap* (FREE, 30). Counted as USER messages across every relationship since the UTC
-  day start. The 30th message carries a one-turn directive so he closes the evening in
-  character; the 31st is refused with `QUOTA_EXCEEDED` before the row exists, costs no
+- *Daily cap* (FREE, 15; lowered from 30 on 2026-09-07). Counted as USER messages across every
+  relationship since the UTC day start. The 15th message carries a one-turn directive so he
+  closes the evening in character; the 16th is refused with `QUOTA_EXCEEDED` before the row exists, costs no
   generation, and the client drops the bubble. He never names a number.
 - *Soft ceiling* (PLUS 200, PREMIUM 400). Past it, pivotal routing is suspended for the day
   and every reply runs on EVERYDAY. Nothing is refused and nothing is shown.
