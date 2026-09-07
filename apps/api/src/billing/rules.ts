@@ -21,7 +21,7 @@ export interface TierRules {
 export const NEW_RELATIONSHIP_GRACE_DAYS = 7
 
 const BY_TIER: Record<Tier, TierRules> = {
-  FREE: { dailyMessages: 30, softCeiling: null, longTermMemory: false, retrieveK: 6, pivotal: false },
+  FREE: { dailyMessages: 15, softCeiling: null, longTermMemory: false, retrieveK: 6, pivotal: false },
   PLUS: { dailyMessages: null, softCeiling: 200, longTermMemory: true, retrieveK: 6, pivotal: true },
   PREMIUM: { dailyMessages: null, softCeiling: 400, longTermMemory: true, retrieveK: 12, pivotal: true },
 }
