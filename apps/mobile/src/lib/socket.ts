@@ -53,11 +53,16 @@ export class ChatSocket {
     }
   }
 
-  /** Returns the clientMsgId so the caller can render the optimistic bubble. */
-  sendMessage(content: string): string {
+  /** Returns the clientMsgId so the caller can render the optimistic bubble. `choice` is the option index in story mode. */
+  sendMessage(content: string, choice?: number): string {
     const clientMsgId = randomUUID()
-    this.send({ type: 'send_message', conversationId: this.conversationId, clientMsgId, content })
+    this.send({ type: 'send_message', conversationId: this.conversationId, clientMsgId, content, ...(choice !== undefined ? { choice } : {}) })
     return clientMsgId
+  }
+
+  /** Story mode: open or resume an episode in this conversation. */
+  startEpisode(episodeId: string) {
+    this.send({ type: 'start_episode', conversationId: this.conversationId, episodeId })
   }
 
   close() {

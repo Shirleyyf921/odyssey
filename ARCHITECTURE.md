@@ -594,6 +594,23 @@ the user has seen is never regenerated; if that also fails the turn goes out and
 the only option. END beats drop options. Options are not stored with the message; the raw
 text keeps narration and line only.
 
+**Step 3 (2026-09-09): the runtime.** `apps/api/src/story/runtime.ts`, called from the chat
+handler once auth, caps, crisis screening, progression and memory assembly have run, so a
+story turn obeys every rule a chat turn does. `start_episode` opens a run (his opener becomes
+a real CHARACTER message) or resumes one, and answers with `episode_started` and `choices`.
+A `send_message` with a `choice` index moves to the option's beat and credits its authored
+affinity; free text stays on the beat. The reply streams as section-tagged `message_delta`s,
+is stored as narration plus line, and is followed by `choices` (the model's phrasing of the
+next beat's intents) or `episode_ended`. A beat with a photo sends it locked through the
+offer path, once. When options are not stored (a resume, the first beat) the authored
+intents stand in as button text. The relationship went silent on the client in the same
+change: `relationship_updated` is no longer sent; stage shows through what opens.
+
+Client, minimal for dogfood (the stage is step 4): story turns render narration in muted
+italics above his line, two option chips sit above the composer, and the character page
+lists tonight's episodes. Model routing for story turns is the same as chat; DeepSeek as the
+everyday model is a `NOVITA_MODEL` setting, not code.
+
 ## 15. Relationship Progression
 
 `Relationship.affinity` (0–100, never shown as a number) and `Relationship.stage` are the

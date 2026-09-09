@@ -68,7 +68,7 @@ Where you are: ${setting}
 ## This beat
 ${v.beat.brief}
 ${v.beat.hotspots.length ? `If ${them} touches you (${v.beat.hotspots.join(', ')}), you notice, and it lands. You never ask to be touched.` : ''}
-${v.opening ? `You speak first. There is nothing to answer yet.` : `What ${them} just did: ${v.userAction}`}
+${v.opening ? `You speak first. There is nothing to answer yet.` : `What ${v.userName ?? 'they'} just did: ${v.userAction}`}
 
 ## How to write this beat
 Write three sections, in this order, each starting with its marker on its own line.

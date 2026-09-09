@@ -15,7 +15,7 @@ import { colors, radius, spacing } from '../../src/theme'
 type Row = { key: string; role: 'USER' | 'CHARACTER' | 'SYSTEM'; text: string; pending?: boolean; at: string; momentId?: string | null }
 
 export default function ChatScreen() {
-  const { conversationId, name, characterId } = useLocalSearchParams<{ conversationId: string; name?: string; characterId?: string }>()
+  const { conversationId, name, characterId, episodeId } = useLocalSearchParams<{ conversationId: string; name?: string; characterId?: string; episodeId?: string }>()
   const character = useQuery({
     queryKey: ['character', characterId],
     queryFn: () => api.character(characterId!),
@@ -57,10 +57,15 @@ export default function ChatScreen() {
     const socket = new ChatSocket(
       conversationId,
       {
-        onStatus: setStatus,
+        onStatus: (st) => {
+          setStatus(st)
+          // Opening an episode is idempotent on the server: a reconnect just resumes it.
+          if (st === 'open' && episodeId) socket.startEpisode(episodeId)
+        },
         onEvent: (e) => {
           apply(conversationId, e)
           if (e.type === 'moment_offer' || e.type === 'moment_unlocked') void qc.invalidateQueries({ queryKey: ['moments', characterId] })
+          if (e.type === 'episode_ended') void qc.invalidateQueries({ queryKey: ['episodes', characterId] })
         },
       },
       () => lastMessageId(conversationId)
@@ -68,7 +73,7 @@ export default function ChatScreen() {
     socketRef.current = socket
     void socket.connect()
     return () => socket.close()
-  }, [conversationId, characterId, qc, setStatus, apply, lastMessageId])
+  }, [conversationId, characterId, episodeId, qc, setStatus, apply, lastMessageId])
 
   // Inverted list: newest first in data, rendered bottom-up.
   const rows = useMemo<Row[]>(() => {
@@ -89,10 +94,16 @@ export default function ChatScreen() {
     addPending(conversationId, { clientMsgId, content })
     setDraft('')
   }
+  const choose = (index: number) => {
+    const option = conv?.choices?.options[index]
+    if (!option || !socketRef.current) return
+    const clientMsgId = socketRef.current.sendMessage(option, index)
+    addPending(conversationId, { clientMsgId, content: option })
+  }
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
-      <Stack.Screen options={{ title: name || 'Chat' }} />
+      <Stack.Screen options={{ title: conv?.episodeTitle ?? name ?? 'Chat' }} />
       {status !== 'open' && <Text style={styles.banner}>{status === 'connecting' ? 'Connecting…' : 'Reconnecting…'}</Text>}
 
       <FlatList
@@ -127,6 +138,16 @@ export default function ChatScreen() {
       )}
       {conv?.error && <Text style={styles.error}>{conv.error}</Text>}
 
+      {conv?.choices && conv.choices.options.length > 0 && !conv.streaming && (
+        <View style={styles.choices}>
+          {conv.choices.options.map((o, i) => (
+            <Pressable key={i} style={styles.choice} onPress={() => choose(i)} disabled={status !== 'open'}>
+              <Text style={styles.choiceText}>{o}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
       <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
         <TextInput
           style={styles.input}
@@ -160,4 +181,7 @@ const styles = StyleSheet.create({
   resource: { color: colors.accent, fontSize: 15, fontWeight: '600' },
   dismiss: { color: colors.textMuted, fontSize: 13, marginTop: spacing.xs },
   error: { color: colors.danger, fontSize: 13, textAlign: 'center', paddingVertical: 4 },
+  choices: { gap: spacing.sm, paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
+  choice: { borderWidth: 1, borderColor: colors.accent, borderRadius: radius.lg, paddingVertical: 12, paddingHorizontal: 14 },
+  choiceText: { color: colors.text, fontSize: 15 },
 })

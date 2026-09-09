@@ -18,13 +18,16 @@
  * missing options are repaired by a follow-up call, never by breaking the turn.
  */
 
+import { z } from 'zod'
+
 export const STORY_MARKERS = {
   narration: '[narration]',
   line: '[line]',
   options: '[options]',
 } as const
 
-export type StorySection = keyof typeof STORY_MARKERS
+export const StorySection = z.enum(['narration', 'line', 'options'])
+export type StorySection = z.infer<typeof StorySection>
 
 export interface StoryTurn {
   /** Paragraphs. Empty when the model gave none. */

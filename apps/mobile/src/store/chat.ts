@@ -9,7 +9,17 @@ export interface PendingMessage {
 
 export interface Streaming {
   messageId: string
+  /** Raw text for a chat turn; for a story turn, rebuilt from the sections so one renderer handles both. */
   text: string
+  narration: string
+  line: string
+}
+
+/** Story mode: what the user can do after his last line. */
+export interface Choices {
+  messageId: string
+  options: string[]
+  beat: { position: number; count: number; kind: 'STORY' | 'CALL' | 'END'; hotspots: string[] }
 }
 
 export interface Intervention {
@@ -32,6 +42,9 @@ interface ConversationState {
   streaming: Streaming | null
   intervention: Intervention | null
   error: string | null
+  choices: Choices | null
+  /** Title of the open episode, for the header; null outside story mode. */
+  episodeTitle: string | null
 }
 
 interface ChatStore {
@@ -57,6 +70,8 @@ const empty = (): ConversationState => ({
   streaming: null,
   intervention: null,
   error: null,
+  choices: null,
+  episodeTitle: null,
 })
 
 function merge(existing: Message[], incoming: Message[]): Message[] {
@@ -74,7 +89,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   addPending: (conversationId, pending) =>
     set((s) => {
       const c = s.conversations[conversationId] ?? empty()
-      return { conversations: { ...s.conversations, [conversationId]: { ...c, pending: [...c.pending, pending], error: null } } }
+      // Sending answers the last choices; the next ones arrive with his reply.
+      return { conversations: { ...s.conversations, [conversationId]: { ...c, pending: [...c.pending, pending], error: null, choices: null } } }
     }),
 
   dismissIntervention: (conversationId) =>
@@ -107,11 +123,20 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           }
           break
         case 'message_start':
-          next = { ...c, streaming: { messageId: event.messageId, text: '' } }
+          next = { ...c, streaming: { messageId: event.messageId, text: '', narration: '', line: '' } }
           break
         case 'message_delta':
           if (c.streaming?.messageId === event.messageId) {
-            next = { ...c, streaming: { ...c.streaming, text: c.streaming.text + event.delta } }
+            const st = c.streaming
+            if (event.section === 'narration') {
+              const narration = st.narration + event.delta
+              next = { ...c, streaming: { ...st, narration, text: `[narration]\n${narration}\n[line]\n${st.line}` } }
+            } else if (event.section === 'line') {
+              const line = st.line + event.delta
+              next = { ...c, streaming: { ...st, line, text: st.narration ? `[narration]\n${st.narration}\n[line]\n${line}` : line } }
+            } else {
+              next = { ...c, streaming: { ...st, text: st.text + event.delta } }
+            }
           }
           break
         case 'message_end':
@@ -136,6 +161,19 @@ export const useChatStore = create<ChatStore>((set, get) => ({
             const text = STAGE_TEXT[event.relationship.stage] ?? `Now ${event.relationship.stage.toLowerCase()}.`
             next = { ...c, notices: [...c.notices, { key: `stage-${event.relationship.stage}`, text, at: new Date().toISOString() }] }
           }
+          break
+        case 'choices':
+          next = { ...c, choices: { messageId: event.messageId, options: event.options, beat: event.beat } }
+          break
+        case 'episode_started':
+          next = {
+            ...c,
+            episodeTitle: event.episode.title,
+            messages: event.message ? merge(c.messages, [event.message]) : c.messages,
+          }
+          break
+        case 'episode_ended':
+          next = { ...c, choices: null, episodeTitle: null, notices: [...c.notices, { key: `end-${event.episodeId}`, text: 'End of tonight.', at: new Date().toISOString() }] }
           break
         case 'moment_unlocked':
           next = {

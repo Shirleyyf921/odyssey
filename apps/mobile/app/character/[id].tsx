@@ -11,8 +11,14 @@ export default function CharacterScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const qc = useQueryClient()
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['character', id], queryFn: () => api.character(id), enabled: !!id })
+  const episodes = useQuery({ queryKey: ['episodes', id], queryFn: () => api.episodes(id), enabled: !!id })
   // Stage and moments move while chatting; pick that up when the user comes back.
-  useFocusEffect(useCallback(() => void refetch(), [refetch]))
+  useFocusEffect(
+    useCallback(() => {
+      void refetch()
+      void episodes.refetch()
+    }, [refetch, episodes.refetch])
+  )
 
   const devStage = useMutation({
     mutationFn: (stage: 'STRANGER' | 'ACQUAINTED' | 'CLOSE' | 'INTIMATE') => api.devSetStage(id, { stage }),
@@ -31,6 +37,18 @@ export default function CharacterScreen() {
       router.push({
         pathname: '/chat/[conversationId]',
         params: { conversationId: relationship.conversationId, name: data?.name ?? '', characterId: id },
+      })
+    },
+  })
+  /** Story mode: start the relationship if needed, then open the chat with the episode. */
+  const play = useMutation({
+    mutationFn: async (episodeId: string) => ({ episodeId, ...(await api.start(id)) }),
+    onSuccess: ({ relationship, episodeId }) => {
+      qc.invalidateQueries({ queryKey: ['characters'] })
+      qc.invalidateQueries({ queryKey: ['character', id] })
+      router.push({
+        pathname: '/chat/[conversationId]',
+        params: { conversationId: relationship.conversationId, name: data?.name ?? '', characterId: id, episodeId },
       })
     },
   })
@@ -54,6 +72,29 @@ export default function CharacterScreen() {
       <Text style={styles.name}>{data.name}</Text>
       <Text style={styles.tagline}>{data.tagline}</Text>
       {rel && <Text style={styles.stage}>{rel.stage.toLowerCase()} · since {new Date(rel.startedAt).toLocaleDateString()}</Text>}
+
+      {episodes.data?.episodes.length ? (
+        <View style={styles.episodes}>
+          <Text style={styles.sectionLabel}>Tonight</Text>
+          {episodes.data.episodes.map((e) => {
+            const playable = e.status === 'AVAILABLE' || e.status === 'IN_PROGRESS'
+            return (
+              <Pressable
+                key={e.id}
+                style={[styles.episode, !playable && styles.episodeLocked]}
+                disabled={!playable || play.isPending}
+                onPress={() => play.mutate(e.id)}
+              >
+                <Text style={styles.episodeTitle}>{e.title}</Text>
+                <Text style={styles.episodePremise}>{e.premise}</Text>
+                <Text style={styles.episodeMeta}>
+                  {e.status === 'IN_PROGRESS' ? `Continue · ${e.currentBeat}/${e.beatCount}` : e.status === 'DONE' ? 'Played' : e.status === 'LOCKED' ? e.lockReason : 'Play'}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </View>
+      ) : null}
 
       <Pressable
         style={[styles.primaryButton, start.isPending && styles.disabled]}
@@ -100,6 +141,13 @@ export default function CharacterScreen() {
 }
 
 const styles = StyleSheet.create({
+  episodes: { gap: spacing.sm, marginTop: spacing.lg },
+  sectionLabel: { color: colors.textFaint, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  episode: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, gap: 4, borderWidth: 1, borderColor: colors.accent },
+  episodeLocked: { borderColor: colors.border, opacity: 0.7 },
+  episodeTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
+  episodePremise: { color: colors.textMuted, fontSize: 14, lineHeight: 19 },
+  episodeMeta: { color: colors.accent, fontSize: 13, fontWeight: '600', marginTop: 4 },
   devBox: { marginTop: spacing.xl, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.lg, gap: spacing.sm },
   devLabel: { color: colors.textFaint, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
   devRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },

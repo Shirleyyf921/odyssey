@@ -11,7 +11,7 @@ import { MemoryRepository } from '../repo/memory.js'
 import { NoopCrisisDetector, type CrisisDetector } from '../safety/crisis.js'
 import { handleClientEvent, type ChatDeps } from './handler.js'
 
-const silent = { info() {}, error() {} }
+const silent = { info() {}, warn() {}, error() {} }
 
 async function setup(opts: { crisis?: CrisisDetector; reply?: string; tier?: Tier } = {}) {
   const repo = new MemoryRepository()
@@ -46,10 +46,10 @@ test('send_message streams start, deltas, end and persists both sides', async ()
   assert.ok(startAt >= 0)
   assert.equal(sent[0]?.type, 'message_ack', 'the user message is acknowledged first')
   if (sent[0]?.type === 'message_ack') assert.equal(sent[0].message.clientMsgId, clientMsgId)
-  assert.ok(sent.slice(1, startAt).every((e) => e.type === 'relationship_updated' || e.type === 'moment_unlocked'))
-  const update = sent.find((e) => e.type === 'relationship_updated')
-  assert.ok(update && update.type === 'relationship_updated' && update.previousStage === null, 'affinity-only updates are announced too')
-  assert.equal(update.relationship.affinity, 21, 'seeded 20 plus one message')
+  assert.ok(sent.slice(1, startAt).every((e) => e.type === 'moment_unlocked'))
+  assert.ok(!sent.some((e) => e.type === 'relationship_updated'), 'the relationship is silent on the client')
+  const ctx = (await repo.getConversationContext(conversationId))!
+  assert.equal(ctx.relationship.affinity, 21, 'seeded 20 plus one message, credited quietly')
   const deltas = sent.filter((e) => e.type === 'message_delta')
   assert.ok(deltas.length > 1, 'reply arrives in more than one delta')
   const end = sent.at(-1)
@@ -125,19 +125,16 @@ test('a message moves affinity and a qualifying one announces the stage before t
 
   const types = sent.map((e) => e.type)
   assert.equal(types[0], 'message_ack')
-  assert.equal(types[1], 'relationship_updated', 'the update precedes message_start')
+  assert.ok(!types.includes('relationship_updated'), 'no notice: the stage shows through what unlocks')
   const startAt = types.indexOf('message_start')
-  const unlocked = sent.slice(2, startAt)
+  const unlocked = sent.slice(1, startAt)
   assert.ok(unlocked.length > 0 && unlocked.every((e) => e.type === 'moment_unlocked'), 'earned moments arrive before the reply')
   assert.ok(
     unlocked.some((e) => e.type === 'moment_unlocked' && e.moment.unlock.kind === 'STAGE' && e.moment.unlock.stage === 'CLOSE'),
     'the CLOSE moment unlocks on the same turn'
   )
-  const update = sent[1]
-  if (update?.type !== 'relationship_updated') return
-  assert.equal(update.previousStage, 'ACQUAINTED')
-  assert.equal(update.relationship.stage, 'CLOSE')
-  assert.ok(!('userId' in update.relationship), 'server-only fields do not reach the client')
+  const after = (await repo.getConversationContext(conversationId))!
+  assert.equal(after.relationship.stage, 'CLOSE')
   assert.ok(repo.relationshipEvents.length >= 2, 'return bonus and message gain are both logged')
 })
 

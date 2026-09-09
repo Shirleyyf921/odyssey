@@ -1,7 +1,7 @@
 import type { MomentCard, RelationshipStage } from '@odyssey/shared'
 import { evaluateUnlocks } from '../moments/unlocks.js'
 import type { AppRepository, ConversationContext, RelationshipRecord } from '../repo/types.js'
-import { applyFacts, applyUserMessage, type ProgressResult } from './rules.js'
+import { RULES, applyFacts, applyUserMessage, type ProgressResult } from './rules.js'
 
 interface Log {
   info(obj: Record<string, unknown>, msg: string): void
@@ -33,6 +33,16 @@ export class RelationshipService {
     }
     const newlyUnlocked = await this.unlockEarned(relationship)
     return { relationship, previousStage: result.previousStage, newlyUnlocked }
+  }
+
+  /** A story choice's authored affinity. Small and uncapped by the day: it is content, not grinding. */
+  async onChoice(relationship: RelationshipRecord, delta: number, reason: string): Promise<RelationshipRecord> {
+    if (!delta) return relationship
+    const affinity = Math.max(0, Math.min(RULES.maxAffinity, relationship.affinity + delta))
+    if (affinity === relationship.affinity) return relationship
+    const updated = await this.repo.updateRelationship(relationship.id, { affinity })
+    await this.repo.insertRelationshipEvents([{ relationshipId: relationship.id, delta: affinity - relationship.affinity, reason }])
+    return updated
   }
 
   /** Runs from the memory job after facts are stored. Affinity only. */
