@@ -580,6 +580,20 @@ from `GET /characters/:id/episodes` with a status and, when locked, a reason in 
 Elliot's first episode, "The second staircase", is seeded from the studio scene: five beats,
 two branches that rejoin, one photo, a quiet ending. Nothing plays it yet; that is step 3.
 
+**Step 2 (2026-09-09): the output contract.** A story turn is plain text in three marked
+sections, `[narration]`, `[line]`, `[options]`, in that order (`packages/shared/src/story.ts`).
+Plain text, not JSON, because it streams and a small model forgets a bracket far less often
+than it breaks JSON. The parser is tolerant by design: no markers means the whole text is his
+line; a forgotten `[narration]` keeps the preamble; the incremental `StoryStreamParser` tags
+deltas by section so the client can show narration and his line as they arrive, and never
+leaks a marker. `renderStoryTurn` in `packages/prompts` writes the prompt from the episode and
+beat briefs and the authored option intents, in order. `story/generate.ts` runs the turn
+through the gateway with a fixed recovery policy: missing options on a STORY beat are repaired
+by one small follow-up on EVERYDAY that continues from what was already written, so the text
+the user has seen is never regenerated; if that also fails the turn goes out and free text is
+the only option. END beats drop options. Options are not stored with the message; the raw
+text keeps narration and line only.
+
 ## 15. Relationship Progression
 
 `Relationship.affinity` (0–100, never shown as a number) and `Relationship.stage` are the
