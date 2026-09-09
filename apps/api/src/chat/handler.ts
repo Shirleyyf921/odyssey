@@ -10,6 +10,7 @@ import { toMomentCard } from '@odyssey/shared'
 import { INTERVENTION_BODY, resourcesFor, type CrisisDetector } from '../safety/crisis.js'
 import { buildCompletionRequest } from './prompt.js'
 import { chooseTier } from './tier.js'
+import { activeStory, choicesAfterResume, handleStartEpisode, runStoryTurn } from '../story/runtime.js'
 
 export interface ChatDeps {
   repo: AppRepository
@@ -21,7 +22,11 @@ export interface ChatDeps {
   billing: { tierOf(userId: string): Promise<Tier> }
   /** The authenticated user behind this socket. */
   user: UserRecord
-  log: { info(obj: Record<string, unknown>, msg: string): void; error(obj: Record<string, unknown>, msg: string): void }
+  log: {
+    info(obj: Record<string, unknown>, msg: string): void
+    warn(obj: Record<string, unknown>, msg: string): void
+    error(obj: Record<string, unknown>, msg: string): void
+  }
 }
 
 export type Send = (event: ServerEvent) => void
@@ -33,6 +38,11 @@ export async function handleClientEvent(deps: ChatDeps, event: ClientEvent, send
       return handleSendMessage(deps, event, send)
     case 'resume':
       return handleResume(deps, event, send)
+    case 'start_episode': {
+      const ctx = await authorize(deps, event.conversationId, send)
+      if (!ctx) return
+      return handleStartEpisode(deps, ctx, event, send)
+    }
   }
 }
 
@@ -118,16 +128,11 @@ async function handleSendMessage(
     })
   }
 
-  // Progression runs before generation so a stage change shapes the reply. The
-  // client hears about it before he speaks, and any moment it earned arrives with it.
-  const affinityBefore = ctx.relationship.affinity
+  // Progression runs before generation so a stage change shapes the reply. It is
+  // silent on the client (2026-09-09): the relationship shows through what opens,
+  // never as a notice. Earned moments are still announced.
   const progress = await relationship.onUserMessage(ctx)
   ctx = { ...ctx, relationship: progress.relationship }
-  if (progress.previousStage || progress.relationship.affinity !== affinityBefore) {
-    const { userId: _u, conversationId: _c, activeDays: _a, lastActiveDate: _l, messageGainsToday: _m, factGainsToday: _f, ...pub } =
-      progress.relationship
-    send({ type: 'relationship_updated', relationship: pub, previousStage: progress.previousStage })
-  }
   for (const moment of progress.newlyUnlocked) {
     send({ type: 'moment_unlocked', relationshipId: progress.relationship.id, moment })
   }
@@ -136,6 +141,32 @@ async function handleSendMessage(
     longTerm: rules.longTermMemory,
     retrieveK: rules.retrieveK,
   })
+
+  // An open episode takes the turn from here (docs/story-pipeline.md).
+  const story = await activeStory(deps, ctx)
+  if (story) {
+    const outcome = await runStoryTurn(
+      deps,
+      {
+        event,
+        ctx,
+        story,
+        assembled,
+        userMessageId: userMessage.id,
+        signals: { stageChanged: progress.previousStage !== null, pivotalAllowed: rules.pivotal && !pastCeiling },
+        turnDirective: lastOfDay ? LAST_MESSAGE_DIRECTIVE : null,
+      },
+      send
+    )
+    if (!outcome) return
+    log.info(
+      { conversationId: event.conversationId, plan: tier, sentToday: sentToday + 1, longTerm: rules.longTermMemory, model: outcome.model, story: story.episode.id, ...outcome.usage },
+      'turn complete'
+    )
+    const reply = await repo.findReplyTo(userMessage.id)
+    if (reply) memory.afterTurn(ctx, userMessage, reply)
+    return
+  }
   const request = buildCompletionRequest(ctx, assembled, {
     previousStage: progress.previousStage,
     turnDirective: lastOfDay ? LAST_MESSAGE_DIRECTIVE : null,
@@ -247,4 +278,5 @@ async function handleResume(
   if (!ctx) return
   const messages = await deps.repo.listMessagesAfter(event.conversationId, event.lastMessageId, 200)
   send({ type: 'history', conversationId: event.conversationId, messages })
+  await choicesAfterResume(deps, ctx, send)
 }

@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { Message, MomentCard, Relationship, RelationshipStage } from './domain.js'
+import { BeatKind, EpisodeCard, Hotspot, Message, MomentCard, Relationship, RelationshipStage } from './domain.js'
+import { StorySection } from './story.js'
 
 /**
  * WebSocket wire protocol.
@@ -17,6 +18,19 @@ export const SendMessage = z.object({
   /** Generated client-side so reconnect-and-retry never duplicates a message. */
   clientMsgId: z.string().uuid(),
   content: z.string().min(1).max(4000),
+  /**
+   * Story mode: the index of the option chosen from the last `choices` event.
+   * `content` is the option text; the server resolves where it leads. Absent
+   * means free text, which stays on the current beat.
+   */
+  choice: z.number().int().min(0).max(1).optional(),
+})
+
+/** Story mode: start or resume an episode in this conversation. Story pipeline, runtime. */
+export const StartEpisode = z.object({
+  type: z.literal('start_episode'),
+  conversationId: z.string().uuid(),
+  episodeId: z.string().uuid(),
 })
 
 export const Resume = z.object({
@@ -26,7 +40,7 @@ export const Resume = z.object({
   lastMessageId: z.string().uuid().nullable(),
 })
 
-export const ClientEvent = z.discriminatedUnion('type', [SendMessage, Resume])
+export const ClientEvent = z.discriminatedUnion('type', [SendMessage, Resume, StartEpisode])
 export type ClientEvent = z.infer<typeof ClientEvent>
 
 // ---------------------------------------------------------------- server → client
@@ -51,6 +65,8 @@ export const MessageDelta = z.object({
   type: z.literal('message_delta'),
   messageId: z.string().uuid(),
   delta: z.string(),
+  /** Story turns only: which section this delta belongs to. Markers never travel. */
+  section: StorySection.optional(),
 })
 
 export const MessageEnd = z.object({
@@ -71,9 +87,43 @@ export const History = z.object({
 })
 
 /**
- * The relationship moved. Sent before the reply on the turn it happens, so the
- * client can mark the moment before he speaks. previousStage is null when only
- * affinity changed. See ARCHITECTURE.md section 15.
+ * Story mode: after his line, what the user can do next. Two authored options;
+ * free text is always allowed too. `beat` is where they are, for the stage.
+ */
+export const Choices = z.object({
+  type: z.literal('choices'),
+  conversationId: z.string().uuid(),
+  /** The CHARACTER message these follow. */
+  messageId: z.string().uuid(),
+  options: z.array(z.string().min(1)).max(2),
+  beat: z.object({
+    /** 1-based. */
+    position: z.number().int().min(1),
+    count: z.number().int().min(1),
+    kind: BeatKind,
+    hotspots: z.array(Hotspot),
+  }),
+})
+
+/** Story mode: the episode is open in this conversation, with his opener already in the history. */
+export const EpisodeStarted = z.object({
+  type: z.literal('episode_started'),
+  conversationId: z.string().uuid(),
+  episode: EpisodeCard,
+  /** Resumed runs carry no message; the history already has it. */
+  message: Message.nullable(),
+})
+
+export const EpisodeEnded = z.object({
+  type: z.literal('episode_ended'),
+  conversationId: z.string().uuid(),
+  episodeId: z.string().uuid(),
+})
+
+/**
+ * The relationship moved. No longer sent (2026-09-09): the relationship runs
+ * behind the story and never surfaces as a number or a notice. Kept in the
+ * schema so older clients still parse.
  */
 export const RelationshipUpdated = z.object({
   type: z.literal('relationship_updated'),
@@ -149,6 +199,9 @@ export const ServerEvent = z.discriminatedUnion('type', [
   RelationshipUpdated,
   MomentUnlocked,
   MomentOffer,
+  Choices,
+  EpisodeStarted,
+  EpisodeEnded,
   ProactiveMessage,
   SafetyIntervention,
   ServerError,

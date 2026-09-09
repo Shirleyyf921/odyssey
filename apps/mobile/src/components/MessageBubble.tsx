@@ -1,5 +1,5 @@
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native'
-import { parseReply, type MomentCard } from '@odyssey/shared'
+import { STORY_MARKERS, parseReply, parseStoryOutput, type MomentCard } from '@odyssey/shared'
 import { colors, radius, spacing } from '../theme'
 
 interface Props {
@@ -28,6 +28,24 @@ export function MessageBubble({ role, text, pending, moment, onUnlock, unlocking
     )
   }
   const mine = role === 'USER'
+  const story = !mine && (text.includes(STORY_MARKERS.narration) || text.includes(STORY_MARKERS.line))
+  if (story) {
+    const turn = parseStoryOutput(text)
+    return (
+      <View style={styles.storyWrap}>
+        {turn.narration.map((p, i) => (
+          <Text key={i} style={styles.narration}>{p}</Text>
+        ))}
+        {turn.line ? (
+          <View style={[styles.row, styles.rowTheirs, styles.storyLine]}>
+            <View style={[styles.bubble, styles.theirs]}>
+              <CharacterText text={turn.line} />
+            </View>
+          </View>
+        ) : null}
+      </View>
+    )
+  }
   return (
     <View style={[styles.row, mine ? styles.rowMine : styles.rowTheirs]}>
       <View style={[styles.bubble, mine ? styles.mine : styles.theirs, pending && styles.pending]}>
@@ -128,6 +146,9 @@ const styles = StyleSheet.create({
   unlock: { backgroundColor: colors.accent, paddingVertical: 10, paddingHorizontal: 22, borderRadius: radius.pill, marginTop: spacing.xs },
   unlockText: { color: '#1a0a10', fontSize: 14, fontWeight: '700' },
   caption: { color: colors.textMuted, fontSize: 14, lineHeight: 19, paddingHorizontal: 4 },
+  storyWrap: { gap: spacing.sm, marginVertical: spacing.sm },
+  narration: { color: colors.textMuted, fontSize: 15, lineHeight: 22, fontStyle: 'italic', paddingHorizontal: spacing.xl },
+  storyLine: { marginTop: spacing.xs },
   systemWrap: { alignItems: 'center', paddingHorizontal: spacing.xl, marginVertical: spacing.sm },
   systemText: { color: colors.textMuted, fontSize: 13, textAlign: 'center' },
 })

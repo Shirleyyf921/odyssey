@@ -13,7 +13,7 @@ import type { RelationshipPatch } from '../repo/types.js'
 import { NoopCrisisDetector } from '../safety/crisis.js'
 import { handleClientEvent, type ChatDeps } from './handler.js'
 
-const silent = { info() {}, error() {} }
+const silent = { info() {}, warn() {}, error() {} }
 const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString()
 
 /** Two distinguishable providers, and every request captured so prompts can be inspected. */
@@ -107,20 +107,20 @@ test('a stage change routes to PIVOTAL on plus, EVERYDAY on free, and EVERYDAY p
   const plus = await setup('PLUS')
   await plus.repo.updateRelationship(plus.ctx.relationship.id, nearClose)
   await plus.say()
-  assert.ok(plus.sent.some((e) => e.type === 'relationship_updated' && e.previousStage === 'ACQUAINTED'))
+  assert.equal((await plus.repo.getConversationContext(plus.conversationId))!.relationship.stage, 'CLOSE')
   assert.equal(plus.requests()[0]!.tier, 'PIVOTAL')
 
   const free = await setup('FREE')
   await free.repo.updateRelationship(free.ctx.relationship.id, nearClose)
   await free.say()
-  assert.ok(free.sent.some((e) => e.type === 'relationship_updated' && e.previousStage === 'ACQUAINTED'))
+  assert.equal((await free.repo.getConversationContext(free.conversationId))!.relationship.stage, 'CLOSE')
   assert.equal(free.requests()[0]!.tier, 'EVERYDAY', 'free never pays for the strong model')
 
   const heavy = await setup('PLUS')
   await heavy.repo.updateRelationship(heavy.ctx.relationship.id, nearClose)
   await preload(heavy.repo, heavy.conversationId, 200)
   await heavy.say()
-  assert.ok(heavy.sent.some((e) => e.type === 'relationship_updated' && e.previousStage === 'ACQUAINTED'))
+  assert.equal((await heavy.repo.getConversationContext(heavy.conversationId))!.relationship.stage, 'CLOSE')
   assert.equal(heavy.requests()[0]!.tier, 'EVERYDAY', 'past the soft ceiling the strong model is suspended')
   assert.ok(heavy.sent.some((e) => e.type === 'message_end'), 'but the conversation is not interrupted')
 })

@@ -131,7 +131,7 @@ or `x-device-id: <uuid>`. The token wins; an expired token is a 401 rather than 
 | `POST /billing/revenuecat` | Public RevenueCat webhook, authenticated by `REVENUECAT_WEBHOOK_SECRET` in the Authorization header |
 | `POST /billing/dev/purchase` | Dogfood: `{sku}` records a one-time purchase for the caller, same gating as grant |
 | `POST /billing/dev/grant` | Dogfood: `{tier, days?}` grants the caller a tier as a PROMOTIONAL row. Open outside production; in production only with `BILLING_GRANT_SECRET` set and sent as `x-grant-secret` |
-| `ws://…/ws/chat?token=…` or `?deviceId=…` | Chat, see `packages/shared/src/protocol.ts` |
+| `ws://…/ws/chat?token=…` or `?deviceId=…` | Chat and story mode (`start_episode`, `send_message` with `choice`, `choices`, `episode_started`, `episode_ended`), see `packages/shared/src/protocol.ts` |
 
 `GET /me` also carries `billing`. Every paid-state write goes through one reconcile path that
 re-reads the subscriber from RevenueCat; webhook payloads are only a nudge to re-read, so
