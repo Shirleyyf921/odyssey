@@ -606,10 +606,18 @@ offer path, once. When options are not stored (a resume, the first beat) the aut
 intents stand in as button text. The relationship went silent on the client in the same
 change: `relationship_updated` is no longer sent; stage shows through what opens.
 
-Client, minimal for dogfood (the stage is step 4): story turns render narration in muted
-italics above his line, two option chips sit above the composer, and the character page
-lists tonight's episodes. Model routing for story turns is the same as chat; DeepSeek as the
-everyday model is a `NOVITA_MODEL` setting, not code.
+Model routing for story turns is the same as chat; DeepSeek as the everyday model is a
+`NOVITA_MODEL` setting, not code.
+
+**Step 4 (2026-09-09): the stage.** `apps/mobile/app/story/[conversationId].tsx`. The scene
+backdrop fills the screen, his hero portrait sits in the upper two thirds, and the lower
+third is the page: one narration paragraph or his line at a time, tap to advance. A message
+that streamed in has been read as it arrived; one found in history, including his opener,
+starts at page one. Under his last line: the two option chips and a "Say something" line that
+opens the free-text composer. A photo he sends takes the whole stage, locked under its
+teaser, until unlocked or set aside. The chat screen stays as the transcript, one tap away in
+the header. Play on the character page opens the stage. Touch hotspots and expression
+variants are step 4b; the portrait is the hero for now.
 
 ## 15. Relationship Progression
 

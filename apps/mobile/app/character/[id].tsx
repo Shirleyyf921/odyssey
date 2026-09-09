@@ -47,7 +47,7 @@ export default function CharacterScreen() {
       qc.invalidateQueries({ queryKey: ['characters'] })
       qc.invalidateQueries({ queryKey: ['character', id] })
       router.push({
-        pathname: '/chat/[conversationId]',
+        pathname: '/story/[conversationId]',
         params: { conversationId: relationship.conversationId, name: data?.name ?? '', characterId: id, episodeId },
       })
     },

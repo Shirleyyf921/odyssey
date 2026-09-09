@@ -36,6 +36,10 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ title: 'odyssey' }} />
         <Stack.Screen name="character/[id]" options={{ title: '' }} />
         <Stack.Screen name="chat/[conversationId]" options={{ title: '' }} />
+        <Stack.Screen
+          name="story/[conversationId]"
+          options={{ title: '', headerTransparent: true, headerStyle: { backgroundColor: 'transparent' } }}
+        />
         <Stack.Screen name="moments/[characterId]" options={{ title: 'Moments' }} />
         <Stack.Screen name="account" options={{ title: 'Account', presentation: 'modal' }} />
       </Stack>
