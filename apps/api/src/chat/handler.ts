@@ -11,6 +11,7 @@ import { INTERVENTION_BODY, resourcesFor, type CrisisDetector } from '../safety/
 import { buildCompletionRequest } from './prompt.js'
 import { chooseTier } from './tier.js'
 import { activeStory, choicesAfterResume, handleStartEpisode, runStoryTurn } from '../story/runtime.js'
+import { TOUCH_PHRASE } from '../story/touch.js'
 
 export interface ChatDeps {
   repo: AppRepository
@@ -94,10 +95,14 @@ async function handleSendMessage(
   const lastOfDay = rules.dailyMessages !== null && sentToday + 1 === rules.dailyMessages
   const pastCeiling = rules.softCeiling !== null && sentToday + 1 > rules.softCeiling
 
+  // An open episode changes what this turn is, so it is read before anything is stored.
+  const story = await activeStory(deps, ctx)
+  // A touch's text is written by the server (story/touch.ts), never by the client.
+  const touchPhrase = story && event.touch && story.beat.hotspots.includes(event.touch) ? TOUCH_PHRASE[event.touch] : null
   const userMessage = await repo.insertMessage({
     conversationId: event.conversationId,
     role: 'USER',
-    content: event.content,
+    content: touchPhrase ?? event.content,
     clientMsgId: event.clientMsgId,
     inReplyTo: null,
   })
@@ -108,9 +113,11 @@ async function handleSendMessage(
   // An authored choice is our own text, not the user's state, so it is not screened:
   // a classifier reading "stay until the rain stops" as distress would break the story
   // for nothing. Free text inside a story is screened like any message.
-  const story = await activeStory(deps, ctx)
-  const authoredChoice = !!story && event.choice !== undefined && story.beat.options[event.choice] !== undefined
-  const verdict = authoredChoice ? { crisis: false } : await crisis.screen(event.content, ctx.user.locale)
+  const ours =
+    !!story &&
+    ((event.choice !== undefined && story.beat.options[event.choice] !== undefined) ||
+      (event.touch !== undefined && story.beat.hotspots.includes(event.touch)))
+  const verdict = ours ? { crisis: false } : await crisis.screen(event.content, ctx.user.locale)
   if (verdict.crisis) {
     await repo.insertMessage({
       conversationId: event.conversationId,

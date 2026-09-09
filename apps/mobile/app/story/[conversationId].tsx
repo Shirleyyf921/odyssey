@@ -14,7 +14,7 @@ import {
   useWindowDimensions,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { parseReply, parseStoryOutput } from '@odyssey/shared'
+import { parseReply, parseStoryOutput, type Hotspot, type HotspotRect } from '@odyssey/shared'
 import { PhotoBubble } from '../../src/components/MessageBubble'
 import { api } from '../../src/lib/api'
 import { billing } from '../../src/lib/billing'
@@ -110,7 +110,13 @@ export default function StoryScreen() {
   const [typing, setTyping] = useState(false)
   const [draft, setDraft] = useState('')
 
-  const hero = character.data?.portraits[0]?.url ?? null
+  const heroPortrait = character.data?.portraits[0] ?? null
+  const hero = heroPortrait?.url ?? null
+  /** Geometry from the portrait, live set from the beat: both must agree for a spot to exist. */
+  const liveHotspots: HotspotRect[] = useMemo(() => {
+    const live = new Set(choices?.beat.hotspots ?? [])
+    return (heroPortrait?.hotspots ?? []).filter((h) => live.has(h.hotspot))
+  }, [heroPortrait, choices])
   const scene = character.data?.scenes.find((sc) => sc.id === character.data?.relationship?.sceneId) ?? character.data?.scenes[0] ?? null
 
   // ---------------------------------------------------------------- actions
@@ -123,6 +129,12 @@ export default function StoryScreen() {
     if (!option || !socketRef.current) return
     const clientMsgId = socketRef.current.sendMessage(option, index)
     addPending(conversationId, { clientMsgId, content: option })
+  }
+  const touch = (hotspot: Hotspot) => {
+    if (!socketRef.current || streaming || pending) return
+    const clientMsgId = socketRef.current.sendTouch(hotspot)
+    // The beat does not move, so the standing options are left alone.
+    addPending(conversationId, { clientMsgId, content: hotspot }, true)
   }
   const send = () => {
     const content = draft.trim()
@@ -170,7 +182,24 @@ export default function StoryScreen() {
       {scene?.backdropUrl ? <Image source={{ uri: scene.backdropUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={6} /> : null}
       <View style={[StyleSheet.absoluteFill, styles.dim]} />
       <View style={[styles.portraitWrap, { height: height * 0.62, paddingTop: insets.top + 44 }]}>
-        {hero ? <Image source={{ uri: hero }} style={styles.portrait} resizeMode="cover" /> : <View style={[styles.portrait, styles.portraitEmpty]} />}
+        <View style={styles.portrait}>
+          {hero ? <Image source={{ uri: hero }} style={styles.portraitImage} resizeMode="cover" /> : <View style={[styles.portraitImage, styles.portraitEmpty]} />}
+          {/* Touch: invisible, and only where the beat and the relationship both allow it. */}
+          {liveHotspots.map((h) => (
+            <Pressable
+              key={h.hotspot}
+              accessibilityLabel={h.hotspot}
+              onPress={() => touch(h.hotspot)}
+              style={{
+                position: 'absolute',
+                left: `${h.x * 100}%`,
+                top: `${h.y * 100}%`,
+                width: `${h.w * 100}%`,
+                height: `${h.h * 100}%`,
+              }}
+            />
+          ))}
+        </View>
         <View style={styles.portraitFade} />
       </View>
 
@@ -280,7 +309,8 @@ const styles = StyleSheet.create({
   headerLink: { color: colors.textMuted, fontSize: 15 },
   banner: { position: 'absolute', alignSelf: 'center', color: colors.textMuted, fontSize: 12, paddingVertical: 4, paddingHorizontal: 12, backgroundColor: 'rgba(22,22,31,0.8)', borderRadius: radius.pill },
   portraitWrap: { alignItems: 'center', justifyContent: 'flex-start' },
-  portrait: { width: '78%', height: '100%', borderRadius: radius.lg },
+  portrait: { width: '78%', height: '100%', borderRadius: radius.lg, overflow: 'hidden' },
+  portraitImage: { width: '100%', height: '100%' },
   portraitEmpty: { backgroundColor: colors.surfaceRaised },
   portraitFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 120, backgroundColor: 'rgba(13, 13, 18, 0.55)' },
   panelWrap: { flex: 1, justifyContent: 'flex-end', paddingHorizontal: spacing.lg, gap: spacing.sm },

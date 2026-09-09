@@ -24,6 +24,12 @@ export const SendMessage = z.object({
    * means free text, which stays on the current beat.
    */
   choice: z.number().int().min(0).max(1).optional(),
+  /**
+   * Story mode: the user touched him here. The server writes the message text
+   * itself, answers with one line, and stays on the beat. Only hotspots the
+   * last `choices` event listed are accepted.
+   */
+  touch: Hotspot.optional(),
 })
 
 /** Story mode: start or resume an episode in this conversation. Story pipeline, runtime. */

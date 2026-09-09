@@ -51,7 +51,7 @@ interface ChatStore {
   status: SocketStatus
   conversations: Record<string, ConversationState>
   setStatus(status: SocketStatus): void
-  addPending(conversationId: string, pending: PendingMessage): void
+  addPending(conversationId: string, pending: PendingMessage, keepChoices?: boolean): void
   dismissIntervention(conversationId: string): void
   apply(conversationId: string, event: ServerEvent): void
   lastMessageId(conversationId: string): string | null
@@ -86,11 +86,17 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   setStatus: (status) => set({ status }),
 
-  addPending: (conversationId, pending) =>
+  addPending: (conversationId, pending, keepChoices = false) =>
     set((s) => {
       const c = s.conversations[conversationId] ?? empty()
-      // Sending answers the last choices; the next ones arrive with his reply.
-      return { conversations: { ...s.conversations, [conversationId]: { ...c, pending: [...c.pending, pending], error: null, choices: null } } }
+      // Sending answers the last choices; the next ones arrive with his reply. A touch
+      // does not: the beat has not moved, so the same options are still standing.
+      return {
+        conversations: {
+          ...s.conversations,
+          [conversationId]: { ...c, pending: [...c.pending, pending], error: null, choices: keepChoices ? c.choices : null },
+        },
+      }
     }),
 
   dismissIntervention: (conversationId) =>

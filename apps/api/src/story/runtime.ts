@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { renderStoryTurn } from '@odyssey/prompts'
-import { toMomentCard, type Beat, type ClientEvent, type EpisodeRun, type ServerEvent } from '@odyssey/shared'
+import { toMomentCard, type Beat, type ClientEvent, type EpisodeRun, type RelationshipStage, type ServerEvent } from '@odyssey/shared'
 import { availability, toEpisodeCard } from '../episodes/availability.js'
+import { TOUCH_PHRASE, allowedHotspots } from './touch.js'
 import type { CompletionRequest } from '../llm/types.js'
 import type { AssembledMemory } from '../memory/service.js'
 import type { ConversationContext, EpisodeRecord } from '../repo/types.js'
@@ -41,7 +42,14 @@ function intentsOf(beat: Beat): string[] {
   return beat.options.map((o) => o.intent)
 }
 
-function choicesEvent(conversationId: string, messageId: string, episode: EpisodeRecord, beat: Beat, options: string[]): ServerEvent {
+function choicesEvent(
+  conversationId: string,
+  messageId: string,
+  episode: EpisodeRecord,
+  beat: Beat,
+  options: string[],
+  stage: RelationshipStage
+): ServerEvent {
   return {
     type: 'choices',
     conversationId,
@@ -51,7 +59,8 @@ function choicesEvent(conversationId: string, messageId: string, episode: Episod
       position: episode.beats.findIndex((b) => b.id === beat.id) + 1,
       count: episode.beats.length,
       kind: beat.kind,
-      hotspots: beat.hotspots,
+      // Filtered here, so the stage never has to be told what it has not earned.
+      hotspots: allowedHotspots(beat, stage),
     },
   }
 }
@@ -94,7 +103,7 @@ export async function handleStartEpisode(
   send({ type: 'episode_started', conversationId: ctx.conversation.id, episode: toEpisodeCard(episode, ctx.relationship, tier, runsNow, all), message })
   const beat = episode.beats.find((b) => b.id === run.currentBeatId)!
   const lastCharacter = message ?? (await repo.listRecentMessages(ctx.conversation.id, 20)).filter((m) => m.role === 'CHARACTER').at(-1)
-  if (lastCharacter) send(choicesEvent(ctx.conversation.id, lastCharacter.id, episode, beat, intentsOf(beat)))
+  if (lastCharacter) send(choicesEvent(ctx.conversation.id, lastCharacter.id, episode, beat, intentsOf(beat), ctx.relationship.stage))
 }
 
 /** After a resume, put the chips back if an episode is open. Intents, since options are not stored. */
@@ -102,7 +111,7 @@ export async function choicesAfterResume(deps: ChatDeps, ctx: ConversationContex
   const story = await activeStory(deps, ctx)
   if (!story) return
   const last = (await deps.repo.listRecentMessages(ctx.conversation.id, 20)).filter((m) => m.role === 'CHARACTER').at(-1)
-  if (last) send(choicesEvent(ctx.conversation.id, last.id, story.episode, story.beat, intentsOf(story.beat)))
+  if (last) send(choicesEvent(ctx.conversation.id, last.id, story.episode, story.beat, intentsOf(story.beat), ctx.relationship.stage))
 }
 
 export interface StoryTurnInput {
@@ -128,10 +137,12 @@ export async function runStoryTurn(deps: ChatDeps, input: StoryTurnInput, send: 
   let { ctx } = input
   const conversationId = ctx.conversation.id
 
-  // Where the choice leads. Free text stays on the beat; a choice moves and is credited.
-  const chosen = event.choice !== undefined ? (story.beat.options[event.choice] ?? null) : null
+  // Where the choice leads. Free text and touches stay on the beat; a choice moves
+  // and is credited.
+  const touch = event.touch && allowedHotspots(story.beat, ctx.relationship.stage).includes(event.touch) ? event.touch : null
+  const chosen = !touch && event.choice !== undefined ? (story.beat.options[event.choice] ?? null) : null
   let target: Beat | null = story.beat
-  let userAction = event.content
+  let userAction = touch ? TOUCH_PHRASE[touch] : event.content
   if (chosen) {
     userAction = `chose: ${event.content}`
     const rel = await relationship.onChoice(ctx.relationship, chosen.affinity, `story:${story.episode.id}:${story.beat.position}:${event.choice}`)
@@ -143,7 +154,7 @@ export async function runStoryTurn(deps: ChatDeps, input: StoryTurnInput, send: 
     }
   }
   const beat = target
-  const expectOptions = beat.kind === 'STORY'
+  const expectOptions = beat.kind === 'STORY' && !touch
 
   const system = renderStoryTurn({
     characterName: ctx.character.name,
@@ -163,6 +174,7 @@ export async function runStoryTurn(deps: ChatDeps, input: StoryTurnInput, send: 
     },
     userAction,
     opening: false,
+    reacting: !!touch,
   })
   const request: CompletionRequest = {
     system: input.turnDirective ? `${system}\n\n## Right now\n- ${input.turnDirective}` : system,
@@ -200,7 +212,7 @@ export async function runStoryTurn(deps: ChatDeps, input: StoryTurnInput, send: 
   })
   send({ type: 'message_end', messageId, message: reply })
 
-  // Advance the run, then tell the client what is next.
+  // Advance the run, then tell the client what is next. A touch never advances.
   const moved = beat.id !== story.beat.id
   const ended = beat.kind === 'END'
   await repo.updateRun(story.run.id, {
@@ -210,14 +222,14 @@ export async function runStoryTurn(deps: ChatDeps, input: StoryTurnInput, send: 
   if (ended) {
     log.info({ conversationId, episodeId: story.episode.id, path: [...story.run.path, ...(moved ? [beat.id] : [])] }, 'episode ended')
     send({ type: 'episode_ended', conversationId, episodeId: story.episode.id })
-  } else {
-    send(choicesEvent(conversationId, messageId, story.episode, beat, result.turn.options.length >= 2 ? result.turn.options : []))
+  } else if (!touch) {
+    send(choicesEvent(conversationId, messageId, story.episode, beat, result.turn.options.length >= 2 ? result.turn.options : [], ctx.relationship.stage))
   }
 
   // A photo written into this beat goes out locked, once.
   if (moved && beat.photoMomentId) await offerBeatPhoto(deps, ctx, beat.photoMomentId, send)
 
-  log.info({ conversationId, episodeId: story.episode.id, beat: beat.position, moved, repaired: result.repaired }, 'story turn')
+  log.info({ conversationId, episodeId: story.episode.id, beat: beat.position, moved, touch, repaired: result.repaired }, 'story turn')
   return { replyId: reply.id, model: result.model, usage: result.usage }
 }
 

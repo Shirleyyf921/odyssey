@@ -32,8 +32,8 @@ for (const seed of SEED_CHARACTERS) {
   for (const p of seed.portraits) {
     await db
       .insert(portraits)
-      .values({ id: p.id, characterId: p.characterId, url: p.url, position: p.position, label: p.label })
-      .onConflictDoUpdate({ target: portraits.id, set: { url: p.url, position: p.position, label: p.label } })
+      .values({ id: p.id, characterId: p.characterId, url: p.url, position: p.position, label: p.label, hotspots: p.hotspots ?? [] })
+      .onConflictDoUpdate({ target: portraits.id, set: { url: p.url, position: p.position, label: p.label, hotspots: p.hotspots ?? [] } })
   }
   for (const sc of seed.scenes) {
     await db

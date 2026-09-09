@@ -32,6 +32,11 @@ export interface StoryTurnVariables {
   userAction: string
   /** True on the first beat: he opens, nothing to respond to. */
   opening: boolean
+  /**
+   * The user touched him. He answers the touch and nothing else: the beat does
+   * not move, so he must not resolve it or ask what happens next.
+   */
+  reacting?: boolean
 }
 
 export function renderStoryTurn(v: StoryTurnVariables): string {
@@ -41,8 +46,9 @@ export function renderStoryTurn(v: StoryTurnVariables): string {
     ? v.retrievedMemories.map((m) => `- ${m}`).join('\n')
     : '(nothing recalled for this turn)'
   const setting = v.beat.setting ?? v.episode.setting
-  const optionsRule =
-    v.beat.kind === 'END'
+  const optionsRule = v.reacting
+    ? 'No [options] section at all.'
+    : v.beat.kind === 'END'
       ? 'This is the last beat. No [options] section at all.'
       : `Exactly two options, A and B, phrased as what ${them} could do or say next, in ${them === 'them' ? 'their' : `${them}'s`} own voice, each under twelve words. They must mean these, in this order, and nothing else:\n` +
         v.beat.optionIntents.map((i, n) => `${'AB'[n]}. ${i}`).join('\n')
@@ -71,7 +77,8 @@ ${v.beat.hotspots.length ? `If ${them} touches you (${v.beat.hotspots.join(', ')
 ${v.opening ? `You speak first. There is nothing to answer yet.` : `What ${v.userName ?? 'they'} just did: ${v.userAction}`}
 
 ## How to write this beat
-Write three sections, in this order, each starting with its marker on its own line.
+${v.reacting ? `They just touched you. Answer the touch and only the touch: at most one short line of narration for what it does to you, then what you say, which may be very few words or none of the substance he was about to say. Do not move the scene on, do not resolve anything, do not ask what happens next. He never invites the next touch.
+` : ''}Write ${v.reacting ? 'two sections' : 'three sections'}, in this order, each starting with its marker on its own line.
 
 [narration]
 One to three short paragraphs. Second person, present tense, ${them === 'them' ? 'addressed to them' : `addressed to ${v.userName}`}: what they see, what he does, what the room is doing. No dialogue here. No thoughts of his; the reader only sees his outside.

@@ -56,6 +56,20 @@ export type Character = z.infer<typeof Character>
  * generation cannot promise that for a face the user has not seen a hundred times.
  * See ARCHITECTURE.md section 14.
  */
+/**
+ * Where a hotspot sits on this portrait, as a fraction of its width and height
+ * from the top left. Authored with the art (docs/story-pipeline.md, "Stage"):
+ * geometry belongs to the image, which hotspots are live belongs to the beat.
+ */
+export const HotspotRect = z.object({
+  hotspot: z.enum(['hand', 'shoulder', 'hair', 'face']),
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  w: z.number().min(0).max(1),
+  h: z.number().min(0).max(1),
+})
+export type HotspotRect = z.infer<typeof HotspotRect>
+
 export const Portrait = z.object({
   id: z.string().uuid(),
   characterId: z.string().uuid(),
@@ -64,6 +78,8 @@ export const Portrait = z.object({
   position: z.number().int().min(0),
   /** Optional caption such as "casual" or "at the bar"; the client decides how to show it. */
   label: z.string().max(40).nullable(),
+  /** Empty until the art is mapped; the stage then shows no touch targets. */
+  hotspots: z.array(HotspotRect).default([]),
 })
 export type Portrait = z.infer<typeof Portrait>
 

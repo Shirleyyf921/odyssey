@@ -12,7 +12,7 @@ import {
   uuid,
   vector,
 } from 'drizzle-orm/pg-core'
-import type { BeatOption, EpisodeUnlockRule, Hotspot, MomentUnlockRule } from '@odyssey/shared'
+import type { BeatOption, EpisodeUnlockRule, Hotspot, HotspotRect, MomentUnlockRule } from '@odyssey/shared'
 
 /**
  * Postgres schema. Mirrors ARCHITECTURE.md section 5 plus the visual-asset tables
@@ -129,6 +129,8 @@ export const portraits = pgTable(
     url: text('url').notNull(),
     position: integer('position').notNull().default(0),
     label: text('label'),
+    /** Normalized rects, authored with the art. See @odyssey/shared HotspotRect. */
+    hotspots: jsonb('hotspots').$type<HotspotRect[]>().notNull().default([]),
   },
   (t) => [index('portraits_character_idx').on(t.characterId, t.position)]
 )

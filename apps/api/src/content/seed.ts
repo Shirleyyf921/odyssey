@@ -1,4 +1,4 @@
-import type { Moment, Portrait, Scene } from '@odyssey/shared'
+import type { HotspotRect, Moment, Portrait, Scene } from '@odyssey/shared'
 import type { CharacterRecord, EpisodeRecord } from '../repo/types.js'
 
 /**
@@ -133,6 +133,17 @@ const ELLIOT_EPISODE_1: EpisodeRecord = {
   ],
 }
 
+/**
+ * A first pass over the hero framing (chest-up, centred). Authored per portrait
+ * once the scene portraits exist; until then all three heroes share it.
+ */
+const HERO_HOTSPOTS: HotspotRect[] = [
+  { hotspot: 'hair', x: 0.34, y: 0.02, w: 0.34, h: 0.14 },
+  { hotspot: 'face', x: 0.36, y: 0.16, w: 0.3, h: 0.22 },
+  { hotspot: 'shoulder', x: 0.12, y: 0.4, w: 0.28, h: 0.16 },
+  { hotspot: 'hand', x: 0.06, y: 0.66, w: 0.3, h: 0.26 },
+]
+
 const placeholder = (label: string) =>
   `https://placehold.co/900x1200/1a1a24/8a8a98.png?text=${encodeURIComponent(label)}`
 
@@ -158,6 +169,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         url: 'https://a.lovart.ai/artifacts/agent/4IpDNdM0bfE4KyE6.png',
         position: 0,
         label: 'hero',
+        hotspots: HERO_HOTSPOTS,
       },
     ],
     scenes: [
@@ -289,6 +301,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         url: 'https://a.lovart.ai/artifacts/agent/majhT1g6C6HPU5FI.png',
         position: 0,
         label: 'hero',
+        hotspots: HERO_HOTSPOTS,
       },
     ],
     scenes: [
@@ -351,6 +364,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         url: 'https://a.lovart.ai/artifacts/agent/TKYimakxuV8OdCJT.png',
         position: 0,
         label: 'hero',
+        hotspots: HERO_HOTSPOTS,
       },
     ],
     scenes: [

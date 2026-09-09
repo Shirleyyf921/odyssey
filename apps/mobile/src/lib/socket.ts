@@ -1,4 +1,4 @@
-import { ClientEvent, ServerEvent, type Message } from '@odyssey/shared'
+import { ClientEvent, ServerEvent, type Hotspot, type Message } from '@odyssey/shared'
 import { randomUUID } from 'expo-crypto'
 import { WS_URL } from './config'
 import { getDeviceId } from './device'
@@ -57,6 +57,13 @@ export class ChatSocket {
   sendMessage(content: string, choice?: number): string {
     const clientMsgId = randomUUID()
     this.send({ type: 'send_message', conversationId: this.conversationId, clientMsgId, content, ...(choice !== undefined ? { choice } : {}) })
+    return clientMsgId
+  }
+
+  /** Story mode: touch him. The server writes the message text, so nothing is sent but the spot. */
+  sendTouch(hotspot: Hotspot): string {
+    const clientMsgId = randomUUID()
+    this.send({ type: 'send_message', conversationId: this.conversationId, clientMsgId, content: hotspot, touch: hotspot })
     return clientMsgId
   }
 
