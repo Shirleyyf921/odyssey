@@ -105,7 +105,12 @@ async function handleSendMessage(
 
   // Crisis screening runs before generation and short-circuits it. The persona never
   // gets a chance to answer; the client renders the intervention outside his voice.
-  const verdict = await crisis.screen(event.content, ctx.user.locale)
+  // An authored choice is our own text, not the user's state, so it is not screened:
+  // a classifier reading "stay until the rain stops" as distress would break the story
+  // for nothing. Free text inside a story is screened like any message.
+  const story = await activeStory(deps, ctx)
+  const authoredChoice = !!story && event.choice !== undefined && story.beat.options[event.choice] !== undefined
+  const verdict = authoredChoice ? { crisis: false } : await crisis.screen(event.content, ctx.user.locale)
   if (verdict.crisis) {
     await repo.insertMessage({
       conversationId: event.conversationId,
@@ -143,7 +148,6 @@ async function handleSendMessage(
   })
 
   // An open episode takes the turn from here (docs/story-pipeline.md).
-  const story = await activeStory(deps, ctx)
   if (story) {
     const outcome = await runStoryTurn(
       deps,

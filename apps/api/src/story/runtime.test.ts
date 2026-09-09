@@ -136,3 +136,14 @@ test('resume puts the chips back while an episode is open', async () => {
   assert.equal(sent[0]?.type, 'history')
   assert.ok(last('choices'))
 })
+
+test('an authored choice is not crisis-screened; free text inside the story still is', async () => {
+  const t = await setup()
+  let screened: string[] = []
+  t.deps.crisis = { async screen(text: string) { screened.push(text); return { crisis: false } } }
+  await t.start()
+  await t.say(t.episode.beats[0]!.options[0]!.intent, 0)
+  assert.deepEqual(screened, [], 'our own option text never reaches the classifier')
+  await t.say('honestly I feel awful tonight')
+  assert.deepEqual(screened, ['honestly I feel awful tonight'])
+})

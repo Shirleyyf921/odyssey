@@ -60,7 +60,7 @@ export function MessageBubble({ role, text, pending, moment, onUnlock, unlocking
  * and a dark layer, with the unlock control; the real asset is not on the device.
  * Unlocked: the image and his caption.
  */
-function PhotoBubble({
+export function PhotoBubble({
   card,
   caption,
   onUnlock,
