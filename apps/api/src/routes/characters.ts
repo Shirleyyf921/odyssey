@@ -4,20 +4,24 @@ import {
   DevSetStageRequest,
   type CharacterDetail,
   type CharactersResponse,
+  type EpisodesResponse,
+  type Tier,
   type MomentsResponse,
   type StartRelationshipResponse,
 } from '@odyssey/shared'
 import { RULES } from '../relationship/rules.js'
 import { evaluateUnlocks } from '../moments/unlocks.js'
+import { toEpisodeCard } from '../episodes/availability.js'
 import type { AppRepository } from '../repo/types.js'
 
 const Params = z.object({ id: z.string().uuid() })
 
 export async function characterRoutes(
   app: FastifyInstance,
-  opts: { repo: AppRepository; devTools?: boolean }
+  opts: { repo: AppRepository; devTools?: boolean; billing?: { tierOf(userId: string): Promise<Tier> } }
 ) {
   const { repo } = opts
+  const tierOf = (userId: string) => opts.billing?.tierOf(userId) ?? Promise.resolve<Tier>('FREE')
 
   app.get('/characters', async (req): Promise<CharactersResponse> => {
     const [chars, rels] = await Promise.all([repo.listCharacters(), repo.listRelationships(req.user.id)])
@@ -102,6 +106,20 @@ export async function characterRoutes(
       return { relationship: updated }
     })
   }
+
+  /**
+   * The "tonight" list for one character. Cards only: briefs and beats stay on
+   * the server. MATURE episodes are not served yet (story pipeline, step 6).
+   */
+  app.get('/characters/:id/episodes', async (req, reply): Promise<EpisodesResponse | void> => {
+    const { id } = Params.parse(req.params)
+    const character = await repo.getCharacter(id)
+    if (!character) return reply.code(404).send({ error: 'character not found' })
+    const [all, relationship, tier] = await Promise.all([repo.listEpisodes(id), repo.findRelationship(req.user.id, id), tierOf(req.user.id)])
+    const runs = relationship ? await repo.listRuns(relationship.id) : []
+    const episodes = all.filter((e) => e.rating === 'SFW').map((e) => toEpisodeCard(e, relationship, tier, runs, all))
+    return { characterId: id, relationship, episodes }
+  })
 
   app.get('/characters/:id/moments', async (req, reply): Promise<MomentsResponse | void> => {
     const { id } = Params.parse(req.params)

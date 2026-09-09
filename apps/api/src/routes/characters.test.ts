@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import Fastify from 'fastify'
-import { CharacterDetail, CharactersResponse, MomentsResponse, StartRelationshipResponse } from '@odyssey/shared'
+import { CharacterDetail, CharactersResponse, EpisodesResponse, MomentsResponse, StartRelationshipResponse } from '@odyssey/shared'
 import { requireIdentity } from '../auth/identity.js'
 import { MemoryRepository } from '../repo/memory.js'
 import { characterRoutes } from './characters.js'
@@ -154,4 +154,29 @@ test('starting a relationship opens in the first scene with his opener as the fi
   // Idempotent: a second start neither creates a second opener nor moves the scene.
   await app.inject({ method: 'POST', url: `/characters/${primary.id}/start`, headers: { 'x-device-id': device } })
   assert.equal((await repo.listRecentMessages(started.relationship.conversationId, 5)).length, 1)
+})
+
+test('episodes: cards only, status follows the run, briefs stay on the server', async () => {
+  const { app, repo } = await build()
+  const device = randomUUID()
+  const roster = CharactersResponse.parse((await app.inject({ method: 'GET', url: '/characters', headers: { 'x-device-id': device } })).json())
+  const elliot = roster.characters.find((c) => c.kind === 'PRIMARY')!
+
+  const before = EpisodesResponse.parse((await app.inject({ method: 'GET', url: `/characters/${elliot.id}/episodes`, headers: { 'x-device-id': device } })).json())
+  assert.equal(before.relationship, null)
+  assert.equal(before.episodes.length, 1)
+  assert.equal(before.episodes[0]!.status, 'AVAILABLE')
+  const raw = (await app.inject({ method: 'GET', url: `/characters/${elliot.id}/episodes`, headers: { 'x-device-id': device } })).body
+  assert.ok(!raw.includes('brief'), 'the brief is not in the payload')
+
+  const started = StartRelationshipResponse.parse((await app.inject({ method: 'POST', url: `/characters/${elliot.id}/start`, headers: { 'x-device-id': device } })).json())
+  const [episode] = await repo.listEpisodes(elliot.id)
+  await repo.createRun({ relationshipId: started.relationship.id, episodeId: episode!.id, currentBeatId: episode!.firstBeatId })
+  const during = EpisodesResponse.parse((await app.inject({ method: 'GET', url: `/characters/${elliot.id}/episodes`, headers: { 'x-device-id': device } })).json())
+  assert.equal(during.episodes[0]!.status, 'IN_PROGRESS')
+  assert.equal(during.episodes[0]!.currentBeat, 1)
+
+  const explore = roster.characters.find((c) => c.kind === 'EXPLORE')!
+  const none = EpisodesResponse.parse((await app.inject({ method: 'GET', url: `/characters/${explore.id}/episodes`, headers: { 'x-device-id': device } })).json())
+  assert.deepEqual(none.episodes, [])
 })
