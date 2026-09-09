@@ -326,10 +326,17 @@ export class MemoryRepository implements AppRepository {
       content: input.content,
       clientMsgId: input.clientMsgId,
       inReplyTo: input.inReplyTo,
+      momentId: input.momentId ?? null,
       createdAt: new Date().toISOString(),
     }
     list.push(message)
     return message
+  }
+
+  async listOfferedMoments(conversationId: string) {
+    return (this.messages.get(conversationId) ?? [])
+      .filter((m) => m.momentId)
+      .map((m) => ({ momentId: m.momentId!, createdAt: m.createdAt }))
   }
 
   async listRecentMessages(conversationId: string, limit: number) {

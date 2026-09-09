@@ -120,6 +120,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         case 'proactive_message':
           next = { ...c, messages: merge(c.messages, [event.message]) }
           break
+        case 'moment_offer':
+          // The photo bubble reads its card from the moments query; the screen refetches on this event.
+          next = { ...c, messages: merge(c.messages, [event.message]) }
+          break
         case 'safety_intervention':
           next = { ...c, streaming: null, pending: [], intervention: { body: event.body, resources: event.resources } }
           break

@@ -22,7 +22,7 @@ test('history and moment_unlocked are valid server events', () => {
       relationshipId: uuid,
       moment: {
         id: uuid, characterId: uuid, title: 't', position: 0,
-        unlock: { kind: 'FREE' }, status: 'LOCKED', imageUrl: null, caption: null, unlockedAt: null,
+        unlock: { kind: 'FREE' }, status: 'LOCKED', imageUrl: null, teaserUrl: null, caption: null, unlockedAt: null,
       },
     }).success
   )

@@ -175,6 +175,23 @@ export class BillingService {
     return status
   }
 
+  /** Manual one-time purchase, for dogfooding: a PROMOTIONAL row keyed so it is idempotent per (user, sku). */
+  async grantPurchase(userId: string, sku: string, now = new Date()): Promise<BillingStatus> {
+    await this.repo.upsertPurchase({
+      userId,
+      productId: sku,
+      store: 'PROMOTIONAL',
+      environment: 'SANDBOX',
+      storeTransactionId: `grant:${userId}:${sku}`,
+      purchasedAt: now,
+      refundedAt: null,
+      rcAppUserId: userId,
+    })
+    const status = await this.status(userId, now)
+    this.log.info({ userId, sku }, 'billing: manual purchase')
+    return status
+  }
+
   /** The tier alone, for the chat path. */
   async tierOf(userId: string, now = new Date()): Promise<Tier> {
     return (await this.status(userId, now)).tier

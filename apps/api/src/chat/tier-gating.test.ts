@@ -79,7 +79,7 @@ test('free: the 15th message of the day closes the evening in character, the 16t
   await preload(repo, conversationId, 14)
 
   await say('one more')
-  assert.equal(sent.at(-1)?.type, 'message_end')
+  assert.ok(sent.some((e) => e.type === 'message_end'))
   assert.ok(requests().at(-1)!.req.system.includes(LAST_MESSAGE_DIRECTIVE), 'his last message of the day carries the sign-off directive')
   const storedBefore = (await repo.listRecentMessages(conversationId, 100)).length
 
@@ -97,7 +97,7 @@ test('plus: no daily cap and no sign-off directive', async () => {
   const { repo, sent, say, requests, conversationId } = await setup('PLUS')
   await preload(repo, conversationId, 40)
   await say()
-  assert.equal(sent.at(-1)?.type, 'message_end')
+  assert.ok(sent.some((e) => e.type === 'message_end'))
   assert.ok(!requests()[0]!.req.system.includes(LAST_MESSAGE_DIRECTIVE))
 })
 
@@ -122,7 +122,7 @@ test('a stage change routes to PIVOTAL on plus, EVERYDAY on free, and EVERYDAY p
   await heavy.say()
   assert.ok(heavy.sent.some((e) => e.type === 'relationship_updated' && e.previousStage === 'ACQUAINTED'))
   assert.equal(heavy.requests()[0]!.tier, 'EVERYDAY', 'past the soft ceiling the strong model is suspended')
-  assert.equal(heavy.sent.at(-1)?.type, 'message_end', 'but the conversation is not interrupted')
+  assert.ok(heavy.sent.some((e) => e.type === 'message_end'), 'but the conversation is not interrupted')
 })
 
 test('long-term memory: free recalls during the first week, then stops; plus always recalls', async () => {
@@ -141,4 +141,27 @@ test('long-term memory: free recalls during the first week, then stops; plus alw
     const system = t.requests()[0]!.req.system
     assert.equal(system.includes(fact), c.recalls, `${c.tier} at ${c.ageDays} days: recalls=${c.recalls}`)
   }
+})
+
+test('after three messages he sends a locked photo: teaser only, and it stays in history', async () => {
+  const { repo, sent, say, conversationId } = await setup('PLUS')
+  await say('one')
+  await say('two')
+  assert.ok(!sent.some((e) => e.type === 'moment_offer'), 'too early')
+  await say('three')
+  const offer = sent.find((e) => e.type === 'moment_offer')
+  assert.ok(offer && offer.type === 'moment_offer')
+  assert.equal(offer.moment.status, 'LOCKED')
+  assert.equal(offer.moment.imageUrl, null, 'the asset never leaves the server while locked')
+  assert.ok(offer.moment.teaserUrl?.startsWith('data:image/jpeg'), 'the teaser does')
+  assert.equal(offer.moment.unlock.kind, 'PURCHASE')
+  assert.equal(offer.message.momentId, offer.moment.id)
+  assert.equal(offer.message.role, 'CHARACTER')
+
+  const history = await repo.listRecentMessages(conversationId, 50)
+  assert.ok(history.some((m) => m.momentId === offer.moment.id), 'the photo is a real message')
+
+  sent.length = 0
+  await say('four')
+  assert.ok(!sent.some((e) => e.type === 'moment_offer'), 'one a day')
 })

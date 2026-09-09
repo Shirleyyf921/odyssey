@@ -41,6 +41,7 @@ export function toMomentCard(
     title: moment.title,
     position: moment.position,
     unlock: moment.unlock,
+    teaserUrl: moment.teaserUrl ?? null,
   }
   if (!unlock) {
     return { ...base, status: 'LOCKED', imageUrl: null, caption: null, unlockedAt: null }

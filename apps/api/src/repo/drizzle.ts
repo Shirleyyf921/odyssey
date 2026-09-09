@@ -59,6 +59,7 @@ function toMessage(row: MessageRow): Message {
     content: row.content,
     clientMsgId: row.clientMsgId,
     inReplyTo: row.inReplyTo,
+    momentId: row.momentId,
     createdAt: row.createdAt.toISOString(),
   }
 }
@@ -313,6 +314,7 @@ export class DrizzleRepository implements AppRepository {
       title: r.title,
       caption: r.caption,
       imageUrl: r.imageUrl,
+      teaserUrl: r.teaserUrl,
       position: r.position,
       unlock: r.unlockRule,
     }))
@@ -469,6 +471,7 @@ export class DrizzleRepository implements AppRepository {
         content: input.content,
         clientMsgId: input.clientMsgId,
         inReplyTo: input.inReplyTo,
+        momentId: input.momentId ?? null,
         model: input.model ?? null,
         inputTokens: input.inputTokens ?? null,
         outputTokens: input.outputTokens ?? null,
@@ -519,6 +522,15 @@ export class DrizzleRepository implements AppRepository {
       .innerJoin(relationships, eq(relationships.id, conversations.relationshipId))
       .where(and(eq(relationships.userId, userId), eq(messages.role, 'USER'), gte(messages.createdAt, since)))
     return row?.n ?? 0
+  }
+
+  async listOfferedMoments(conversationId: string) {
+    const rows = await this.db
+      .select({ momentId: messages.momentId, createdAt: messages.createdAt })
+      .from(messages)
+      .where(and(eq(messages.conversationId, conversationId), isNotNull(messages.momentId)))
+      .orderBy(asc(messages.createdAt))
+    return rows.flatMap((r) => (r.momentId ? [{ momentId: r.momentId, createdAt: r.createdAt.toISOString() }] : []))
   }
 
   // ---------------------------------------------------------------- memory

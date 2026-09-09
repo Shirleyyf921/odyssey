@@ -186,6 +186,16 @@ What the paid round taught us:
   refused, switch model (`--prefer-models`, Seedream or Midjourney) before softening the brief.
 - **Say "trousers on" explicitly** for open-shirt beats or the model drops the waistline out of frame.
 
+**Teasers.** Every paid card ships with a 24×32 JPEG copy embedded in the seed as a data URI
+(about 1.4 KB). Make it from the final image:
+
+```bash
+sips -s format jpeg -s formatOptions 60 -z 32 24 card.png --out card-teaser.jpg
+```
+
+then base64 it into `teaserUrl`. The client blurs and darkens it; nothing at that size is
+recoverable, which is the point.
+
 Pricing per §7: singles $2.99; the three-character monthly set is one card each, so a month's
 drop is one new paid beat per man, retired at month end.
 

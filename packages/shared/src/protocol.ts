@@ -88,6 +88,17 @@ export const MomentUnlocked = z.object({
   moment: MomentCard,
 })
 
+/**
+ * He sent a photo. The message is already in the conversation (content is his
+ * caption); the card says whether it is his to give or theirs to unlock. Sent
+ * after the reply on the turn it happens. See ARCHITECTURE.md section 14.
+ */
+export const MomentOffer = z.object({
+  type: z.literal('moment_offer'),
+  message: Message,
+  moment: MomentCard,
+})
+
 /** Delivered outside a request/response turn — see ARCHITECTURE.md section 8. */
 export const ProactiveMessage = z.object({
   type: z.literal('proactive_message'),
@@ -137,6 +148,7 @@ export const ServerEvent = z.discriminatedUnion('type', [
   History,
   RelationshipUpdated,
   MomentUnlocked,
+  MomentOffer,
   ProactiveMessage,
   SafetyIntervention,
   ServerError,

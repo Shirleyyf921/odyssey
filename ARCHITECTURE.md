@@ -524,6 +524,24 @@ round: the first image a user sees of him should be him *there*.
 v1 ships one or two curated scenes per character with placeholder backdrops. Changing scenes
 mid-relationship, and scene-specific portraits, come with the art.
 
+### He sends the photo (2026-09-07)
+
+Paid moments are delivered in the conversation, not discovered in a gallery. After the
+reply, once the day's conversation has some warmth in it (three user messages, or a stage
+change), he sends the next locked `PURCHASE` moment as a photo message: a CHARACTER message
+whose content is the card's caption and whose `momentId` points at the moment. One a day,
+never one already bought or already sent, only ones that have art.
+
+The card goes out locked. The enforcement point does not move: a locked card still carries
+no `imageUrl`. What it does carry is a **teaser**, a 24×32 copy of the image stored as a data
+URI on the moment, which the client scales up under a blur and a dark layer. It reads as "a
+photo of him" and shows nothing. Unlock is the purchase; on success the client re-reads the
+gallery and the same bubble reveals the image. The gallery shows the same teaser under the
+lock, so the two surfaces agree.
+
+`POST /billing/dev/purchase` records a SKU for the caller without the store, under the same
+gating as the tier grant, so the flow can be walked end to end before RevenueCat products exist.
+
 ### Runtime generation: v2, gated on a measurement
 
 Generated images are only worth shipping if they look like *him* every time. A selfie that does

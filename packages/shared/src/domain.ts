@@ -92,6 +92,12 @@ export const Message = z.object({
   clientMsgId: z.string().uuid().nullable(),
   /** For CHARACTER messages: the USER message this answers. Lets a retried send replay its reply. */
   inReplyTo: z.string().uuid().nullable(),
+  /**
+   * A photo message: he sent this moment in the conversation. The content is the
+   * caption in his voice; the card itself (locked or not) comes from the moments
+   * endpoint or the `moment_offer` event. See ARCHITECTURE.md section 14.
+   */
+  momentId: z.string().uuid().nullable().default(null),
   createdAt: z.string().datetime(),
 })
 export type Message = z.infer<typeof Message>
@@ -155,6 +161,12 @@ export const Moment = z.object({
   /** Written in the character's voice, revealed with the image. */
   caption: z.string().max(280),
   imageUrl: z.string().url(),
+  /**
+   * A tiny, heavily downsampled copy (about 24×32) that is safe to show while the
+   * card is locked: enough to read as "a photo of him", not enough to see it. The
+   * client scales it up under a blur and a dark layer. Null when there is no art.
+   */
+  teaserUrl: z.string().nullable().optional(),
   position: z.number().int().min(0),
   unlock: MomentUnlockRule,
 })
@@ -174,6 +186,8 @@ export const MomentCard = z.object({
   unlock: MomentUnlockRule,
   status: z.enum(['LOCKED', 'UNLOCKED']),
   imageUrl: z.string().url().nullable(),
+  /** Sent in both states. Never the real image. */
+  teaserUrl: z.string().nullable().default(null),
   caption: z.string().nullable(),
   unlockedAt: z.string().datetime().nullable(),
 })
