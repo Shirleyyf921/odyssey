@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BillingStatus, Character, Tier, CharacterProfile, MomentCard, Relationship, RelationshipStage, Scene } from './domain.js'
+import { BillingStatus, Character, Tier, CharacterProfile, EpisodeCard, MomentCard, Relationship, RelationshipStage, Scene } from './domain.js'
 
 /**
  * REST shapes. The client validates every response against these, so a server
@@ -45,6 +45,14 @@ export const MomentsResponse = z.object({
   moments: z.array(MomentCard),
 })
 export type MomentsResponse = z.infer<typeof MomentsResponse>
+
+/** The episodes one character offers, with the caller's status on each. Story pipeline, section 3 step 1. */
+export const EpisodesResponse = z.object({
+  characterId: z.string().uuid(),
+  relationship: RelationshipSummary.nullable(),
+  episodes: z.array(EpisodeCard),
+})
+export type EpisodesResponse = z.infer<typeof EpisodesResponse>
 
 /** Development only: jump a relationship to a stage without waiting the days out. */
 export const DevSetStageRequest = z.object({

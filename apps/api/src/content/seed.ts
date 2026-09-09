@@ -1,5 +1,5 @@
 import type { Moment, Portrait, Scene } from '@odyssey/shared'
-import type { CharacterRecord } from '../repo/types.js'
+import type { CharacterRecord, EpisodeRecord } from '../repo/types.js'
 
 /**
  * Launch roster. Fixed ids so the in-memory store, the Postgres seed, and any
@@ -13,6 +13,124 @@ export interface SeedCharacter {
   portraits: Portrait[]
   scenes: Scene[]
   moments: Moment[]
+  episodes: EpisodeRecord[]
+}
+
+const ELLIOT = 'a1000000-0000-4000-8000-000000000001'
+const ELLIOT_STUDIO_SCENE = 'c1000000-0000-4000-8000-000000000001'
+const ELLIOT_STUDIO_MOMENT = 'b1000000-0000-4000-8000-000000000003'
+const EP1 = 'e1000000-0000-4000-8000-000000000001'
+const B = (n: number) => `f1000000-0000-4000-8000-00000000000${n}`
+
+/**
+ * Elliot, episode 1. Built from the studio scene so the backdrop and opener already
+ * exist. Five beats, two branches that rejoin, one photo, a quiet ending. Briefs are
+ * written to the model; option intents are written to the model too, which phrases
+ * them for the button. See docs/story-pipeline.md.
+ */
+const ELLIOT_EPISODE_1: EpisodeRecord = {
+  id: EP1,
+  characterId: ELLIOT,
+  position: 0,
+  title: 'The second staircase',
+  premise: 'You found his studio at two in the morning. He was not expecting anyone. He is not sending you home.',
+  setting:
+    "His studio, past two in the morning. The last mix of the night just finished and the room is quiet for the first time in hours. One lamp, a couch that's seen better days, rain on the window.",
+  opener:
+    "*looks up from the desk when the door opens, and doesn't look back down* you found it. most people get lost at the second staircase. come here, it's warmer by the lamp.",
+  sceneId: ELLIOT_STUDIO_SCENE,
+  rating: 'SFW',
+  unlock: { kind: 'FREE' },
+  firstBeatId: B(1),
+  beats: [
+    {
+      id: B(1),
+      episodeId: EP1,
+      position: 0,
+      kind: 'STORY',
+      brief:
+        'She has just walked in. He is tired in the good way, the mix is done, and he is more pleased to see her than he lets on. He does not get up yet. He wants to see what she does with the room: whether she comes to him or makes him come to her. Keep the distance; the whole beat is about who closes it.',
+      setting: null,
+      options: [
+        { intent: 'Cross the room and sit close, by the lamp', next: B(2), affinity: 1 },
+        { intent: 'Stay by the door and let him come to you', next: B(3), affinity: 1 },
+      ],
+      next: B(2),
+      photoMomentId: null,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: ['hand'],
+    },
+    {
+      id: B(2),
+      episodeId: EP1,
+      position: 1,
+      kind: 'STORY',
+      brief:
+        'She sat down next to him. He hands her one side of his headphones and plays the last thirty seconds of the mix without explaining it. He watches her face, not the screen. He will not say what the song is about unless she asks, and if she asks he tells her something true and small.',
+      setting: null,
+      options: [
+        { intent: 'Ask him what the song is about', next: B(4), affinity: 1 },
+        { intent: "Say it's late, you should go", next: B(5), affinity: 0 },
+      ],
+      next: B(4),
+      photoMomentId: null,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: ['hand', 'shoulder'],
+    },
+    {
+      id: B(3),
+      episodeId: EP1,
+      position: 2,
+      kind: 'STORY',
+      brief:
+        'She stayed by the door, so he gets up and crosses the room to her, slower than he needs to. He takes her coat if she lets him. He is amused that she made him come to her and does not hide it. Whatever she says, he ends up standing closer than the conversation requires.',
+      setting: null,
+      options: [
+        { intent: 'Let him take your coat', next: B(4), affinity: 1 },
+        { intent: "Ask him why he's still here at two in the morning", next: B(4), affinity: 0 },
+      ],
+      next: B(4),
+      photoMomentId: null,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: ['hand'],
+    },
+    {
+      id: B(4),
+      episodeId: EP1,
+      position: 3,
+      kind: 'STORY',
+      brief:
+        'The quiet part. The rain is still going. He tells her one true thing about why he works nights, then turns it back on her with a question he actually wants answered. If she gives him something real, he goes quiet before he responds, the way he does. This is where he sends her the studio photo: him at the desk, eyes closed, the mix finally right.',
+      setting: null,
+      options: [
+        { intent: 'Stay until the rain stops', next: B(5), affinity: 2 },
+        { intent: 'Kiss his cheek and tell him you are leaving', next: B(5), affinity: 2 },
+      ],
+      next: B(5),
+      photoMomentId: ELLIOT_STUDIO_MOMENT,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: ['hand', 'shoulder', 'hair'],
+    },
+    {
+      id: B(5),
+      episodeId: EP1,
+      position: 4,
+      kind: 'END',
+      brief:
+        'He walks her down to the second staircase, the one people get lost at. One line at the door, no speech. It should sound like a man who has decided he wants her back here and is not going to say it tonight. No question.',
+      setting: 'The second staircase, the one people get lost at. Rain sound from the street door below.',
+      options: [],
+      next: null,
+      photoMomentId: null,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: [],
+    },
+  ],
 }
 
 const placeholder = (label: string) =>
@@ -148,6 +266,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         unlock: { kind: 'PURCHASE', sku: 'moment_elliot_08' },
       },
     ],
+    episodes: [ELLIOT_EPISODE_1],
   },
   {
     character: {
@@ -207,6 +326,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         unlock: { kind: 'PURCHASE', sku: 'moment_theo_02' },
       },
     ],
+    episodes: [],
   },
   {
     character: {
@@ -268,5 +388,6 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         unlock: { kind: 'PURCHASE', sku: 'moment_jun_02' },
       },
     ],
+    episodes: [],
   },
 ]

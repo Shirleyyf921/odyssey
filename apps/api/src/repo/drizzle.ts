@@ -1,6 +1,8 @@
 import { and, asc, cosineDistance, count, desc, eq, gt, gte, inArray, isNotNull, isNull, notInArray, sql } from 'drizzle-orm'
 import type {
   AuthProvider,
+  Beat,
+  EpisodeRun,
   Message,
   Moment,
   MomentUnlock,
@@ -12,8 +14,11 @@ import type {
 import type { Db } from '../db/client.js'
 import {
   authIdentities,
+  beats,
   characters,
   conversations,
+  episodeRuns,
+  episodes,
   memories,
   messages,
   momentUnlocks,
@@ -32,6 +37,8 @@ import type {
   CharacterRecord,
   ConversationContext,
   ConversationSummary,
+  EpisodeRecord,
+  EpisodeRunPatch,
   IdentityRecord,
   MemoryRecord,
   NewMemory,
@@ -50,6 +57,55 @@ const userColumns = { id: users.id, displayName: users.displayName, locale: user
 type MessageRow = typeof messages.$inferSelect
 type RelationshipRow = typeof relationships.$inferSelect
 type MemoryRow = typeof memories.$inferSelect
+type EpisodeRow = typeof episodes.$inferSelect
+type BeatRow = typeof beats.$inferSelect
+type RunRow = typeof episodeRuns.$inferSelect
+
+function toBeat(r: BeatRow): Beat {
+  return {
+    id: r.id,
+    episodeId: r.episodeId,
+    position: r.position,
+    kind: r.kind,
+    brief: r.brief,
+    setting: r.setting,
+    options: r.options,
+    next: r.nextBeatId,
+    photoMomentId: r.photoMomentId,
+    callUrl: r.callUrl,
+    callSeconds: r.callSeconds,
+    hotspots: r.hotspots,
+  }
+}
+
+function toEpisode(r: EpisodeRow, beatRows: BeatRow[]): EpisodeRecord {
+  return {
+    id: r.id,
+    characterId: r.characterId,
+    position: r.position,
+    title: r.title,
+    premise: r.premise,
+    setting: r.setting,
+    opener: r.opener,
+    sceneId: r.sceneId,
+    rating: r.rating,
+    unlock: r.unlockRule,
+    firstBeatId: r.firstBeatId,
+    beats: beatRows.sort((a, b) => a.position - b.position).map(toBeat),
+  }
+}
+
+function toRun(r: RunRow): EpisodeRun {
+  return {
+    id: r.id,
+    relationshipId: r.relationshipId,
+    episodeId: r.episodeId,
+    currentBeatId: r.currentBeatId,
+    path: r.path,
+    startedAt: r.startedAt.toISOString(),
+    endedAt: r.endedAt?.toISOString() ?? null,
+  }
+}
 
 function toMessage(row: MessageRow): Message {
   return {
@@ -341,6 +397,54 @@ export class DrizzleRepository implements AppRepository {
       .returning()
     if (!row) throw new Error('unlock upsert returned no row')
     return { relationshipId: row.relationshipId, momentId: row.momentId, source: row.source, unlockedAt: row.unlockedAt.toISOString() }
+  }
+
+  // ---------------------------------------------------------------- episodes
+
+  async listEpisodes(characterId: string): Promise<EpisodeRecord[]> {
+    const rows = await this.db.select().from(episodes).where(eq(episodes.characterId, characterId)).orderBy(asc(episodes.position))
+    if (!rows.length) return []
+    const beatRows = await this.db
+      .select()
+      .from(beats)
+      .where(inArray(beats.episodeId, rows.map((r) => r.id)))
+    return rows.map((r) => toEpisode(r, beatRows.filter((b) => b.episodeId === r.id)))
+  }
+
+  async getEpisode(id: string) {
+    const [row] = await this.db.select().from(episodes).where(eq(episodes.id, id)).limit(1)
+    if (!row) return null
+    const beatRows = await this.db.select().from(beats).where(eq(beats.episodeId, id))
+    return toEpisode(row, beatRows)
+  }
+
+  async listRuns(relationshipId: string) {
+    const rows = await this.db.select().from(episodeRuns).where(eq(episodeRuns.relationshipId, relationshipId))
+    return rows.map(toRun)
+  }
+
+  async findRun(relationshipId: string, episodeId: string) {
+    const [row] = await this.db
+      .select()
+      .from(episodeRuns)
+      .where(and(eq(episodeRuns.relationshipId, relationshipId), eq(episodeRuns.episodeId, episodeId)))
+      .limit(1)
+    return row ? toRun(row) : null
+  }
+
+  async createRun(input: { relationshipId: string; episodeId: string; currentBeatId: string }) {
+    const [row] = await this.db
+      .insert(episodeRuns)
+      .values({ ...input, path: [input.currentBeatId] })
+      .returning()
+    if (!row) throw new Error('run insert returned no row')
+    return toRun(row)
+  }
+
+  async updateRun(id: string, patch: EpisodeRunPatch) {
+    const [row] = await this.db.update(episodeRuns).set(patch).where(eq(episodeRuns.id, id)).returning()
+    if (!row) throw new Error(`unknown run ${id}`)
+    return toRun(row)
   }
 
   // ---------------------------------------------------------------- billing

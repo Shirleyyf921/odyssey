@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type {
   AuthProvider,
+  EpisodeRun,
   Message,
   Moment,
   MomentUnlock,
@@ -15,6 +16,8 @@ import type {
   CharacterRecord,
   ConversationContext,
   ConversationSummary,
+  EpisodeRecord,
+  EpisodeRunPatch,
   IdentityRecord,
   MemoryRecord,
   NewMemory,
@@ -43,6 +46,8 @@ export class MemoryRepository implements AppRepository {
   private portraits = new Map<string, Portrait[]>()
   private scenes = new Map<string, Scene[]>()
   private moments = new Map<string, Moment[]>()
+  private episodes = new Map<string, EpisodeRecord[]>()
+  private runs = new Map<string, EpisodeRun>()
   private relationships = new Map<string, RelationshipRecord>()
   private conversations = new Map<
     string,
@@ -63,6 +68,7 @@ export class MemoryRepository implements AppRepository {
       this.portraits.set(s.character.id, [...s.portraits])
       this.scenes.set(s.character.id, [...s.scenes])
       this.moments.set(s.character.id, [...s.moments])
+      this.episodes.set(s.character.id, s.episodes.map((e) => ({ ...e, beats: [...e.beats].sort((a, b) => a.position - b.position) })))
     }
   }
 
@@ -172,6 +178,44 @@ export class MemoryRepository implements AppRepository {
     this.purchases = this.purchases.map((p) => (p.userId === fromUserId ? { ...p, userId: intoUserId } : p))
     this.users.delete(fromUserId)
     return { moved }
+  }
+
+  // ---------------------------------------------------------------- episodes
+
+  async listEpisodes(characterId: string) {
+    return [...(this.episodes.get(characterId) ?? [])].sort((a, b) => a.position - b.position)
+  }
+  async getEpisode(id: string) {
+    for (const list of this.episodes.values()) {
+      const hit = list.find((e) => e.id === id)
+      if (hit) return hit
+    }
+    return null
+  }
+  async listRuns(relationshipId: string) {
+    return [...this.runs.values()].filter((r) => r.relationshipId === relationshipId).map((r) => ({ ...r }))
+  }
+  async findRun(relationshipId: string, episodeId: string) {
+    const hit = [...this.runs.values()].find((r) => r.relationshipId === relationshipId && r.episodeId === episodeId)
+    return hit ? { ...hit } : null
+  }
+  async createRun(input: { relationshipId: string; episodeId: string; currentBeatId: string }) {
+    if (await this.findRun(input.relationshipId, input.episodeId)) throw new Error('run already exists')
+    const run: EpisodeRun = { id: randomUUID(), ...input, path: [input.currentBeatId], startedAt: new Date().toISOString(), endedAt: null }
+    this.runs.set(run.id, run)
+    return { ...run }
+  }
+  async updateRun(id: string, patch: EpisodeRunPatch) {
+    const current = this.runs.get(id)
+    if (!current) throw new Error(`unknown run ${id}`)
+    const updated: EpisodeRun = {
+      ...current,
+      ...(patch.currentBeatId ? { currentBeatId: patch.currentBeatId } : {}),
+      ...(patch.path ? { path: patch.path } : {}),
+      ...(patch.endedAt !== undefined ? { endedAt: patch.endedAt?.toISOString() ?? null } : {}),
+    }
+    this.runs.set(id, updated)
+    return { ...updated }
   }
 
   // ---------------------------------------------------------------- billing
