@@ -98,7 +98,7 @@ if (billing.enabled && env.REVENUECAT_WEBHOOK_SECRET) {
 }
 await app.register(async (scoped) => {
   requireIdentity(scoped, repo)
-  await scoped.register(characterRoutes, { repo, devTools: env.NODE_ENV !== 'production' })
+  await scoped.register(characterRoutes, { repo, devTools: env.NODE_ENV !== 'production', billing })
   await scoped.register(billingRoutes, {
     billing,
     grant: env.NODE_ENV !== 'production' ? 'open' : (env.BILLING_GRANT_SECRET ?? null),

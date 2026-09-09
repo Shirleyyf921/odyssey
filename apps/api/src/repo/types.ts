@@ -1,7 +1,10 @@
 import type {
   AuthProvider,
+  Beat,
   Character,
   CharacterKind,
+  Episode,
+  EpisodeRun,
   Message,
   MessageRole,
   Moment,
@@ -119,6 +122,17 @@ export interface PurchaseRecord {
   rcAppUserId: string
 }
 
+/** An episode with its beats, in position order. Server-only: briefs never reach the client. */
+export interface EpisodeRecord extends Episode {
+  beats: Beat[]
+}
+
+export interface EpisodeRunPatch {
+  currentBeatId?: string
+  path?: string[]
+  endedAt?: Date | null
+}
+
 export interface NewMessage {
   /** Supplied by the caller for CHARACTER messages so the id can be streamed before the row exists. */
   id?: string
@@ -202,6 +216,14 @@ export interface AppRepository extends ChatRepository {
   listMoments(characterId: string): Promise<Moment[]>
   listUnlocks(relationshipId: string): Promise<MomentUnlock[]>
   insertUnlock(input: { relationshipId: string; momentId: string; source: MomentUnlockSource }): Promise<MomentUnlock>
+
+  // episodes (docs/story-pipeline.md)
+  listEpisodes(characterId: string): Promise<EpisodeRecord[]>
+  getEpisode(id: string): Promise<EpisodeRecord | null>
+  listRuns(relationshipId: string): Promise<EpisodeRun[]>
+  findRun(relationshipId: string, episodeId: string): Promise<EpisodeRun | null>
+  createRun(input: { relationshipId: string; episodeId: string; currentBeatId: string }): Promise<EpisodeRun>
+  updateRun(id: string, patch: EpisodeRunPatch): Promise<EpisodeRun>
 
   // billing — written only by the RevenueCat reconcile path
   /** Upsert on (userId, entitlement). */

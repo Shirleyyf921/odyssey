@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { SEED_CHARACTERS } from '../content/seed.js'
-import { characters, moments, portraits, scenes } from './schema.js'
+import { beats, characters, episodes, moments, portraits, scenes } from './schema.js'
 
 /** Upserts the launch roster. Safe to re-run: ids are fixed. */
 const url = process.env.DATABASE_URL
@@ -61,6 +61,53 @@ for (const seed of SEED_CHARACTERS) {
         target: moments.id,
         set: { title: m.title, caption: m.caption, imageUrl: m.imageUrl, teaserUrl: m.teaserUrl ?? null, position: m.position, unlockRule: m.unlock },
       })
+  }
+  for (const e of seed.episodes) {
+    await db
+      .insert(episodes)
+      .values({
+        id: e.id,
+        characterId: e.characterId,
+        position: e.position,
+        title: e.title,
+        premise: e.premise,
+        setting: e.setting,
+        opener: e.opener,
+        sceneId: e.sceneId,
+        rating: e.rating,
+        unlockRule: e.unlock,
+        firstBeatId: e.firstBeatId,
+      })
+      .onConflictDoUpdate({
+        target: episodes.id,
+        set: {
+          position: e.position,
+          title: e.title,
+          premise: e.premise,
+          setting: e.setting,
+          opener: e.opener,
+          sceneId: e.sceneId,
+          rating: e.rating,
+          unlockRule: e.unlock,
+          firstBeatId: e.firstBeatId,
+        },
+      })
+    for (const b of e.beats) {
+      const row = {
+        episodeId: b.episodeId,
+        position: b.position,
+        kind: b.kind,
+        brief: b.brief,
+        setting: b.setting,
+        options: b.options,
+        nextBeatId: b.next,
+        photoMomentId: b.photoMomentId,
+        callUrl: b.callUrl,
+        callSeconds: b.callSeconds,
+        hotspots: b.hotspots,
+      }
+      await db.insert(beats).values({ id: b.id, ...row }).onConflictDoUpdate({ target: beats.id, set: row })
+    }
   }
 }
 await sql.end()

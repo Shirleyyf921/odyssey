@@ -240,3 +240,127 @@ export const BillingStatus = z.object({
   enabled: z.boolean(),
 })
 export type BillingStatus = z.infer<typeof BillingStatus>
+
+// ---------------------------------------------------------------- episodes (docs/story-pipeline.md)
+
+/** SFW ships to the store build; MATURE only to the web build. A property of the episode, not the character. */
+export const ContentRating = z.enum(['SFW', 'MATURE'])
+export type ContentRating = z.infer<typeof ContentRating>
+
+/**
+ * When an episode becomes playable. STAGE and EPISODE are the hidden relationship
+ * showing through: the user never sees a number, they see what is open tonight.
+ */
+export const EpisodeUnlockRule = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('FREE') }),
+  z.object({ kind: z.literal('STAGE'), stage: RelationshipStage }),
+  z.object({ kind: z.literal('PLUS') }),
+  /** After finishing another episode. */
+  z.object({ kind: z.literal('EPISODE'), episodeId: z.string().uuid() }),
+])
+export type EpisodeUnlockRule = z.infer<typeof EpisodeUnlockRule>
+
+export const BeatKind = z.enum([
+  /** Narration, his line, two authored options plus free text. */
+  'STORY',
+  /** He calls. A pre-rendered clip; answer or decline. */
+  'CALL',
+  /** Closing beat. His last line, no options. */
+  'END',
+])
+export type BeatKind = z.infer<typeof BeatKind>
+
+/** What the user can touch on the portrait at this beat. Geometry lives with the portrait. */
+export const Hotspot = z.enum(['hand', 'shoulder', 'hair', 'face'])
+export type Hotspot = z.infer<typeof Hotspot>
+
+/**
+ * An authored option. The writer sets what it means and where it leads; the
+ * model phrases the button text in the moment. The third option, free text, is
+ * implicit on every STORY beat.
+ */
+export const BeatOption = z.object({
+  intent: z.string().min(1).max(200),
+  /** Beat to go to. Null ends the episode from here. */
+  next: z.string().uuid().nullable(),
+  /** Credited when chosen. Small on purpose; the daily caps in the relationship rules still apply. */
+  affinity: z.number().int().min(-3).max(3).default(0),
+})
+export type BeatOption = z.infer<typeof BeatOption>
+
+export const Beat = z.object({
+  id: z.string().uuid(),
+  episodeId: z.string().uuid(),
+  position: z.number().int().min(0),
+  kind: BeatKind,
+  /** For the model: what happens here, what he wants, what he must not do yet. Never shown. */
+  brief: z.string().min(1).max(1200),
+  /** Overrides the episode setting when the scene moves. */
+  setting: z.string().max(400).nullable(),
+  /** Up to two. Empty on CALL and END. */
+  options: z.array(BeatOption).max(2),
+  /** Where a spent beat goes when the user typed instead of choosing. Null ends the episode. */
+  next: z.string().uuid().nullable(),
+  /** A photo he sends at this beat, through the offer path, locked. */
+  photoMomentId: z.string().uuid().nullable(),
+  /** CALL only. Null until the clip is rendered; the beat then plays as text. */
+  callUrl: z.string().url().nullable(),
+  callSeconds: z.number().int().positive().nullable(),
+  hotspots: z.array(Hotspot).default([]),
+})
+export type Beat = z.infer<typeof Beat>
+
+export const Episode = z.object({
+  id: z.string().uuid(),
+  characterId: z.string().uuid(),
+  position: z.number().int().min(0),
+  title: z.string().min(1).max(80),
+  /** One or two sentences on the card. */
+  premise: z.string().min(1).max(280),
+  /** Where the episode opens. Beats may override. */
+  setting: z.string().min(1).max(400),
+  /** His first line, in the beat-plus-speech shape. Inserted as a real message when the run starts. */
+  opener: z.string().min(1).max(600),
+  /** Backdrop and portraits come from this scene when set. */
+  sceneId: z.string().uuid().nullable(),
+  rating: ContentRating,
+  unlock: EpisodeUnlockRule,
+  firstBeatId: z.string().uuid(),
+})
+export type Episode = z.infer<typeof Episode>
+
+/** One playthrough: where the user is and the path they took. One per relationship per episode. */
+export const EpisodeRun = z.object({
+  id: z.string().uuid(),
+  relationshipId: z.string().uuid(),
+  episodeId: z.string().uuid(),
+  currentBeatId: z.string().uuid(),
+  /** Beat ids in the order visited, current one last. */
+  path: z.array(z.string().uuid()),
+  startedAt: z.string().datetime(),
+  endedAt: z.string().datetime().nullable(),
+})
+export type EpisodeRun = z.infer<typeof EpisodeRun>
+
+export const EpisodeStatus = z.enum(['LOCKED', 'AVAILABLE', 'IN_PROGRESS', 'DONE'])
+export type EpisodeStatus = z.infer<typeof EpisodeStatus>
+
+/** What the client sees on the "tonight" screen. Briefs and beats never leave the server. */
+export const EpisodeCard = Episode.pick({
+  id: true,
+  characterId: true,
+  position: true,
+  title: true,
+  premise: true,
+  sceneId: true,
+  rating: true,
+  unlock: true,
+}).extend({
+  status: EpisodeStatus,
+  /** Copy for a locked card, in plain words. Null unless LOCKED. */
+  lockReason: z.string().nullable(),
+  beatCount: z.number().int().min(0),
+  /** 1-based position of the current beat while IN_PROGRESS; null otherwise. */
+  currentBeat: z.number().int().min(1).nullable(),
+})
+export type EpisodeCard = z.infer<typeof EpisodeCard>

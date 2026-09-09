@@ -12,7 +12,7 @@ import {
   uuid,
   vector,
 } from 'drizzle-orm/pg-core'
-import type { MomentUnlockRule } from '@odyssey/shared'
+import type { BeatOption, EpisodeUnlockRule, Hotspot, MomentUnlockRule } from '@odyssey/shared'
 
 /**
  * Postgres schema. Mirrors ARCHITECTURE.md section 5 plus the visual-asset tables
@@ -49,6 +49,8 @@ export const store = pgEnum('store', [
   'UNKNOWN',
 ])
 export const billingEnvironment = pgEnum('billing_environment', ['SANDBOX', 'PRODUCTION'])
+export const contentRating = pgEnum('content_rating', ['SFW', 'MATURE'])
+export const beatKind = pgEnum('beat_kind', ['STORY', 'CALL', 'END'])
 
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' })
 
@@ -342,4 +344,70 @@ export const purchases = pgTable(
     createdAt: timestamptz('created_at').notNull().defaultNow(),
   },
   (t) => [uniqueIndex('purchases_store_transaction_uq').on(t.storeTransactionId), index('purchases_user_idx').on(t.userId)]
+)
+
+// ---------------------------------------------------------------- episodes (docs/story-pipeline.md)
+
+/** Authored content, produced offline like moments. Briefs are for the model and never leave the server. */
+export const episodes = pgTable(
+  'episodes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    characterId: uuid('character_id')
+      .notNull()
+      .references(() => characters.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull().default(0),
+    title: text('title').notNull(),
+    premise: text('premise').notNull(),
+    setting: text('setting').notNull(),
+    opener: text('opener').notNull(),
+    sceneId: uuid('scene_id').references(() => scenes.id, { onDelete: 'set null' }),
+    rating: contentRating('rating').notNull().default('SFW'),
+    unlockRule: jsonb('unlock_rule').$type<EpisodeUnlockRule>().notNull(),
+    /** No FK: beats reference episodes, so this would be circular. Validated by the seed test. */
+    firstBeatId: uuid('first_beat_id').notNull(),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('episodes_character_idx').on(t.characterId, t.position)]
+)
+
+export const beats = pgTable(
+  'beats',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    episodeId: uuid('episode_id')
+      .notNull()
+      .references(() => episodes.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull().default(0),
+    kind: beatKind('kind').notNull(),
+    brief: text('brief').notNull(),
+    setting: text('setting'),
+    options: jsonb('options').$type<BeatOption[]>().notNull().default([]),
+    /** Beat ids are resolved in the app; a self-referencing FK adds nothing but insert-order pain. */
+    nextBeatId: uuid('next_beat_id'),
+    photoMomentId: uuid('photo_moment_id').references(() => moments.id, { onDelete: 'set null' }),
+    callUrl: text('call_url'),
+    callSeconds: integer('call_seconds'),
+    hotspots: jsonb('hotspots').$type<Hotspot[]>().notNull().default([]),
+  },
+  (t) => [index('beats_episode_idx').on(t.episodeId, t.position)]
+)
+
+/** One playthrough per relationship per episode. Replay in v1 means resetting the row. */
+export const episodeRuns = pgTable(
+  'episode_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    relationshipId: uuid('relationship_id')
+      .notNull()
+      .references(() => relationships.id, { onDelete: 'cascade' }),
+    episodeId: uuid('episode_id')
+      .notNull()
+      .references(() => episodes.id, { onDelete: 'cascade' }),
+    currentBeatId: uuid('current_beat_id').notNull(),
+    path: jsonb('path').$type<string[]>().notNull().default([]),
+    startedAt: timestamptz('started_at').notNull().defaultNow(),
+    endedAt: timestamptz('ended_at'),
+  },
+  (t) => [uniqueIndex('episode_runs_relationship_episode_uq').on(t.relationshipId, t.episodeId)]
 )

@@ -3,6 +3,7 @@ import {
   CharacterDetail,
   CharactersResponse,
   DEVICE_ID_HEADER,
+  EpisodesResponse,
   GRANT_SECRET_HEADER,
   MeResponse,
   MomentsResponse,
@@ -68,6 +69,7 @@ export const api = {
   character: (id: string) => request('GET', `/characters/${id}`, CharacterDetail),
   start: (id: string) => request('POST', `/characters/${id}/start`, StartRelationshipResponse),
   moments: (id: string) => request('GET', `/characters/${id}/moments`, MomentsResponse),
+  episodes: (id: string) => request('GET', `/characters/${id}/episodes`, EpisodesResponse),
   me: () => request('GET', '/me', MeResponse),
   /** Server re-reads RevenueCat for the caller. After a purchase, a restore, or a sign-in. */
   restore: () => request('POST', '/billing/restore', RestoreResponse),

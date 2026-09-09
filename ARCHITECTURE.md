@@ -117,6 +117,9 @@ messages           role, content, client_msg_id, token usage
 memories           user × character, fact text, embedding(pgvector), confidence
 subscriptions      user × entitlement, synced from RevenueCat; tier is derived from unexpired rows
 purchases          one-time SKUs (moments), keyed by store transaction id
+episodes           authored story per character: premise, setting, opener, rating, unlock rule, first beat
+beats              episode × position: brief for the model, two authored options, next, optional photo or call
+episode_runs       relationship × episode: current beat, path taken, ended_at
 proactive_jobs     proactive message scheduling and rate limiting
 ```
 
@@ -559,6 +562,23 @@ runtime generation is not the next investment either.
 Generated imagery of people draws extra review attention. Under an SFW positioning, prompts and
 outputs both need a filter in front of them before v2, or "him, in bed" requests will move the
 rating and possibly the listing. Offline assets sidestep all of this in v1.
+
+## 14b. Story Mode
+
+Decided 2026-09-09 after founder feedback: the story is the front of the product, the
+relationship runs behind it. The full design is in `docs/story-pipeline.md`; this section only
+records what is in code.
+
+**Status (2026-09-09, step 1 of the build order).** Tables `episodes`, `beats`, `episode_runs`
+(migration 0007) and their shared types. An episode is authored content: a premise, a setting,
+his opener, a rating (`SFW` to the store build, `MATURE` to the web build), an unlock rule
+(`FREE`, `STAGE`, `PLUS`, or after another `EPISODE`), and a first beat. A beat carries a brief
+written to the model, up to two authored option intents (free text is always the third), where
+each leads, an optional photo sent through the existing offer path, and, for `CALL` beats, a
+pre-rendered clip. Briefs and beats never leave the server; the client gets `EpisodeCard`s
+from `GET /characters/:id/episodes` with a status and, when locked, a reason in plain words.
+Elliot's first episode, "The second staircase", is seeded from the studio scene: five beats,
+two branches that rejoin, one photo, a quiet ending. Nothing plays it yet; that is step 3.
 
 ## 15. Relationship Progression
 
