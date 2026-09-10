@@ -4,6 +4,7 @@ import type {
   Beat,
   DraftBeat,
   EpisodeDraft,
+  ReviewReport,
   EpisodeRun,
   Message,
   Moment,
@@ -541,6 +542,25 @@ export class DrizzleRepository implements AppRepository {
       .where(inArray(episodeRuns.episodeId, episodeIds))
       .groupBy(episodeRuns.episodeId)
     return new Map(rows.map((r) => [r.episodeId, { started: Number(r.started), finished: Number(r.finished) }]))
+  }
+
+  async listEpisodesForReview(): Promise<EpisodeRecord[]> {
+    const rows = await this.db
+      .select()
+      .from(episodes)
+      .where(inArray(episodes.status, ['SUBMITTED', 'UNLISTED']))
+      .orderBy(asc(episodes.createdAt))
+    if (!rows.length) return []
+    const beatRows = await this.db
+      .select()
+      .from(beats)
+      .where(inArray(beats.episodeId, rows.map((r) => r.id)))
+    return rows.map((r) => toEpisode(r, beatRows.filter((b) => b.episodeId === r.id)))
+  }
+
+  async listReports(episodeId: string): Promise<ReviewReport[]> {
+    const rows = await this.db.select().from(episodeReports).where(eq(episodeReports.episodeId, episodeId)).orderBy(asc(episodeReports.createdAt))
+    return rows.map((r) => ({ reason: r.reason as ReportReason, createdAt: r.createdAt.toISOString() }))
   }
 
   async reportEpisode(input: { episodeId: string; reporterId: string; reason: ReportReason }) {

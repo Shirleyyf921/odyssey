@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import Fastify from 'fastify'
-import { AuthoredEpisodeResponse, EpisodesResponse, MyEpisodesResponse, ReportEpisodeResponse, TonightResponse, type EpisodeDraft } from '@odyssey/shared'
+import { AuthoredEpisodeResponse, EpisodesResponse, MyEpisodesResponse, ReportEpisodeResponse, ReviewDecisionResponse, ReviewQueueResponse, TonightResponse, type EpisodeDraft } from '@odyssey/shared'
 import { requireIdentity } from '../auth/identity.js'
 import { SEED_CHARACTERS } from '../content/seed.js'
 import { MemoryRepository } from '../repo/memory.js'
@@ -15,6 +15,8 @@ const STORY_REPLY = `[narration]\nThe lamp is the only light left.\n[line]\n*doe
 const storyGateway = (provider: LlmProvider = new ScriptedProvider(STORY_REPLY)) => new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider, STORY: provider })
 import { characterRoutes } from './characters.js'
 import { authorRoutes } from './episodes.js'
+import { reviewRoutes } from './review.js'
+import type { ReviewNotifier, SubmissionNotice } from '../review/notify.js'
 
 const ash = SEED_CHARACTERS[0]!
 const rafe = SEED_CHARACTERS[1]!
@@ -24,13 +26,16 @@ assert.equal(rafe.character.kind, 'EXPLORE')
 async function build(screener: EpisodeScreener = new FloorOnlyEpisodeScreener(), gateway = storyGateway()) {
   const repo = new MemoryRepository()
   const app = Fastify()
+  const notices: SubmissionNotice[] = []
+  const notifier: ReviewNotifier = { async submitted(n) { notices.push(n) } }
   await app.register(async (scoped) => {
     requireIdentity(scoped, repo)
     await scoped.register(characterRoutes, { repo, devTools: false })
-    await scoped.register(authorRoutes, { repo, screener, gateway })
+    await scoped.register(authorRoutes, { repo, screener, gateway, notifier })
+    await scoped.register(reviewRoutes, { repo, secret: 'open' })
   })
   await app.ready()
-  return { app, repo }
+  return { app, repo, notices }
 }
 
 /** Rafe's own first episode as a creator would send it: fresh beat ids, no episode id. */
@@ -389,4 +394,86 @@ test('when he is not answering, the submission is held, not decided', async () =
   assert.equal((await app.inject({ method: 'POST', url: `/me/episodes/${e.id}/dry-run`, headers: me })).statusCode, 503)
   const after = AuthoredEpisodeResponse.parse((await app.inject({ method: 'GET', url: `/me/episodes/${e.id}`, headers: me })).json())
   assert.deepEqual([after.episode.status, after.episode.dryRun], ['DRAFT', null])
+})
+
+test('a first submission waits for a person and a notice goes out; the fourth clean one is fast', async () => {
+  const { app, repo, notices } = await build()
+  const me = randomUUID()
+  const submit = async (title: string) => {
+    const { episode } = AuthoredEpisodeResponse.parse((await app.inject({ method: 'POST', url: '/me/episodes', headers: as(me), payload: draft({ title }) })).json())
+    const res = await app.inject({ method: 'POST', url: `/me/episodes/${episode.id}/submit`, headers: as(me) })
+    assert.equal(res.statusCode, 200, res.body)
+    return AuthoredEpisodeResponse.parse({ episode: res.json().episode }).episode
+  }
+  const first = await submit('One')
+  assert.equal(first.status, 'SUBMITTED')
+  assert.equal(notices.length, 1)
+  assert.match(notices[0]!.why, /episode 1 of 3/)
+
+  // Three LIVE ones by hand (a reviewer's work), then the fourth goes straight to the shelf.
+  await repo.updateEpisode(first.id, { status: 'LIVE' })
+  for (const t of ['Two', 'Three']) await repo.updateEpisode((await submit(t)).id, { status: 'LIVE' })
+  assert.equal(notices.length, 3)
+  const fourth = await submit('Four')
+  assert.equal(fourth.status, 'LIVE', 'the fast lane')
+  assert.equal(notices.length, 3, 'nothing to read, nothing sent')
+
+  // MATURE never takes the fast lane.
+  const user = await repo.getOrCreateUserByDevice(me)
+  await repo.updateUser(user.id, { ageVerifiedAt: new Date() })
+  const mature = await submit('Five')
+  await repo.updateEpisode(mature.id, { rating: 'MATURE', status: 'DRAFT' })
+  const again = await app.inject({ method: 'POST', url: `/me/episodes/${mature.id}/submit`, headers: as(me) })
+  assert.equal(again.json().episode.status, 'SUBMITTED')
+  assert.equal(notices.at(-1)?.why, 'MATURE')
+})
+
+test('the review queue lists what a person has to read, and a decision moves it; reasons are attached', async () => {
+  const { app } = await build()
+  const author = randomUUID()
+  const { episode } = AuthoredEpisodeResponse.parse((await app.inject({ method: 'POST', url: '/me/episodes', headers: as(author), payload: draft() })).json())
+  await app.inject({ method: 'POST', url: `/me/episodes/${episode.id}/submit`, headers: as(author) })
+  const reviewer = as(randomUUID())
+
+  let queue = ReviewQueueResponse.parse((await app.inject({ method: 'GET', url: '/review/episodes', headers: reviewer })).json())
+  const waiting = queue.items.find((i) => i.id === episode.id)
+  assert.ok(waiting)
+  assert.equal(waiting.characterName, rafe.character.name)
+  assert.ok(waiting.beats.length > 0 && waiting.beats[0]!.brief, 'the reviewer reads the briefs')
+  assert.equal(waiting.authorLiveCount, 0)
+
+  assert.equal((await app.inject({ method: 'POST', url: `/review/episodes/${episode.id}`, headers: reviewer, payload: { decision: 'REJECTED' } })).statusCode, 400, 'a no needs a note')
+  assert.equal((await app.inject({ method: 'POST', url: `/review/episodes/${episode.id}`, headers: reviewer, payload: { decision: 'REMOVED', note: 'x' } })).statusCode, 409, 'SUBMITTED cannot be REMOVED')
+  const live = ReviewDecisionResponse.parse((await app.inject({ method: 'POST', url: `/review/episodes/${episode.id}`, headers: reviewer, payload: { decision: 'LIVE' } })).json())
+  assert.equal(live.episode.status, 'LIVE')
+  queue = ReviewQueueResponse.parse((await app.inject({ method: 'GET', url: '/review/episodes', headers: reviewer })).json())
+  assert.ok(!queue.items.some((i) => i.id === episode.id))
+
+  // Three reports unlist it; the queue shows the reasons; putting it back clears the count.
+  for (const reason of ['BROKEN', 'HATE', 'OTHER']) {
+    await app.inject({ method: 'POST', url: `/episodes/${episode.id}/report`, headers: as(randomUUID()), payload: { reason } })
+  }
+  queue = ReviewQueueResponse.parse((await app.inject({ method: 'GET', url: '/review/episodes', headers: reviewer })).json())
+  const flagged = queue.items.find((i) => i.id === episode.id)
+  assert.equal(flagged?.status, 'UNLISTED')
+  assert.deepEqual(flagged?.reports.map((r) => r.reason), ['BROKEN', 'HATE', 'OTHER'])
+  const back = ReviewDecisionResponse.parse((await app.inject({ method: 'POST', url: `/review/episodes/${episode.id}`, headers: reviewer, payload: { decision: 'LIVE' } })).json())
+  assert.equal(back.episode.status, 'LIVE')
+  const one = ReportEpisodeResponse.parse((await app.inject({ method: 'POST', url: `/episodes/${episode.id}/report`, headers: as(randomUUID()), payload: { reason: 'OTHER' } })).json())
+  assert.deepEqual(one, { counted: true, status: 'LIVE' }, 'the count started over')
+
+  const gone = ReviewDecisionResponse.parse((await app.inject({ method: 'POST', url: `/review/episodes/${episode.id}`, headers: reviewer, payload: { decision: 'REMOVED', note: 'named a real person' } })).json())
+  assert.deepEqual([gone.episode.status, gone.episode.reviewNote], ['REMOVED', 'named a real person'])
+})
+
+test('the review route is shut without the secret', async () => {
+  const repo = new MemoryRepository()
+  const app = Fastify()
+  await app.register(async (scoped) => {
+    requireIdentity(scoped, repo)
+    await scoped.register(reviewRoutes, { repo, secret: 'a-secret-of-some-length' })
+  })
+  await app.ready()
+  assert.equal((await app.inject({ method: 'GET', url: '/review/episodes', headers: as(randomUUID()) })).statusCode, 403)
+  assert.equal((await app.inject({ method: 'GET', url: '/review/episodes', headers: { ...as(randomUUID()), 'x-review-secret': 'a-secret-of-some-length' } })).statusCode, 200)
 })

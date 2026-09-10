@@ -5,6 +5,8 @@ import { env } from './env.js'
 import { healthRoutes } from './routes/health.js'
 import { characterRoutes } from './routes/characters.js'
 import { authorRoutes } from './routes/episodes.js'
+import { reviewRoutes } from './routes/review.js'
+import { LogNotifier, ResendNotifier, type ReviewNotifier } from './review/notify.js'
 import { chatWebsocket } from './ws/chat.js'
 import { requireIdentity } from './auth/identity.js'
 import { appleVerifier, devVerifier, googleVerifier, type TokenVerifier } from './auth/providers.js'
@@ -74,6 +76,17 @@ if (inference.screenProvider) {
   screener = new FloorOnlyEpisodeScreener()
 }
 
+// The review queue (docs/ugc-pipeline.md, step 6): a mail per submission when there is a key, else the log.
+let notifier: ReviewNotifier
+if (env.RESEND_API_KEY && env.REVIEW_NOTIFY_EMAIL) {
+  notifier = new ResendNotifier({ apiKey: env.RESEND_API_KEY, to: env.REVIEW_NOTIFY_EMAIL, from: env.REVIEW_NOTIFY_FROM, reviewUrl: null }, app.log)
+  app.log.info({ to: env.REVIEW_NOTIFY_EMAIL }, 'review notices by mail')
+} else {
+  notifier = new LogNotifier(app.log)
+  if (env.NODE_ENV === 'production') app.log.warn('no RESEND_API_KEY / REVIEW_NOTIFY_EMAIL: review notices are log lines only')
+}
+if (env.NODE_ENV === 'production' && !env.REVIEW_SECRET) app.log.warn('no REVIEW_SECRET: /review is closed in production')
+
 const relationship = new RelationshipService(repo, app.log)
 const memory = new MemoryService(repo, gateway, embeddings, app.log, { tier: env.MEMORY_TIER }, (ctx, n) =>
   relationship.onFactsShared(ctx, n)
@@ -110,7 +123,9 @@ if (billing.enabled && env.REVENUECAT_WEBHOOK_SECRET) {
 await app.register(async (scoped) => {
   requireIdentity(scoped, repo)
   await scoped.register(characterRoutes, { repo, devTools: env.NODE_ENV !== 'production', billing })
-  await scoped.register(authorRoutes, { repo, screener, gateway })
+  await scoped.register(authorRoutes, { repo, screener, gateway, notifier })
+  const reviewSecret = env.NODE_ENV !== 'production' ? 'open' : (env.REVIEW_SECRET ?? null)
+  if (reviewSecret !== null) await scoped.register(reviewRoutes, { repo, secret: reviewSecret })
   await scoped.register(billingRoutes, {
     billing,
     grant: env.NODE_ENV !== 'production' ? 'open' : (env.BILLING_GRANT_SECRET ?? null),

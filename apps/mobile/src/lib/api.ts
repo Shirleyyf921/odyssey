@@ -9,8 +9,11 @@ import {
   GRANT_SECRET_HEADER,
   MeResponse,
   MomentsResponse,
+  REVIEW_SECRET_HEADER,
   ReportEpisodeResponse,
   RestoreResponse,
+  ReviewDecisionResponse,
+  ReviewQueueResponse,
   SignInResponse,
   StartRelationshipResponse,
   type AgeGateRequest,
@@ -18,6 +21,7 @@ import {
   type DevPurchaseRequest,
   type DevSetStageRequest,
   type ReportEpisodeRequest,
+  type ReviewDecisionRequest,
   type SignInRequest,
 } from '@odyssey/shared'
 import { Platform } from 'react-native'
@@ -35,6 +39,8 @@ export class ApiError extends Error {
 }
 
 const GRANT_SECRET = process.env.EXPO_PUBLIC_BILLING_GRANT_SECRET
+/** Admits the web build to /review in production. Only a reviewer's build carries it. */
+const REVIEW_SECRET = process.env.EXPO_PUBLIC_REVIEW_SECRET
 /**
  * Which build this is. The native binary is the one that ships to the stores,
  * so it says `store` and never sees MATURE; the web build says `web`. Compiled
@@ -50,6 +56,7 @@ async function headers(): Promise<Record<string, string>> {
     accept: 'application/json',
     ...(token ? { authorization: `Bearer ${token}` } : {}),
     ...(GRANT_SECRET ? { [GRANT_SECRET_HEADER]: GRANT_SECRET } : {}),
+    ...(REVIEW_SECRET ? { [REVIEW_SECRET_HEADER]: REVIEW_SECRET } : {}),
   }
 }
 
@@ -97,6 +104,9 @@ export const api = {
   devGrant: (body: DevGrantRequest) => request('POST', '/billing/dev/grant', RestoreResponse, body),
   /** Dogfood: record a SKU purchase without the store. Same gating as devGrant. */
   devPurchase: (body: DevPurchaseRequest) => request('POST', '/billing/dev/purchase', RestoreResponse, body),
+  /** The review queue (docs/ugc-pipeline.md, step 6). Needs EXPO_PUBLIC_REVIEW_SECRET against production. */
+  reviewQueue: () => request('GET', '/review/episodes', ReviewQueueResponse),
+  reviewDecide: (id: string, body: ReviewDecisionRequest) => request('POST', `/review/episodes/${id}`, ReviewDecisionResponse, body),
   /** Development builds only; the server refuses it in production. */
   devSetStage: (id: string, body: DevSetStageRequest) =>
     request('POST', `/characters/${id}/dev/stage`, StartRelationshipResponse, body),

@@ -8,6 +8,7 @@ import type {
   Episode,
   EpisodeDraft,
   EpisodeLifecycle,
+  ReviewReport,
   EpisodeRun,
   ReportReason,
   Message,
@@ -145,6 +146,8 @@ export interface CreateRunInput {
 
 export interface EpisodePatch {
   status?: EpisodeLifecycle
+  /** Reset when a reviewer puts an unlisted episode back; the old reports are read, not forgotten. */
+  reportCount?: number
   version?: number
   rating?: ContentRating
   reviewNote?: string | null
@@ -272,6 +275,10 @@ export interface AppRepository extends ChatRepository {
    * move `reportCount`. Returns the count after this call either way.
    */
   reportEpisode(input: { episodeId: string; reporterId: string; reason: ReportReason }): Promise<{ counted: boolean; reportCount: number }>
+  // review queue (docs/ugc-pipeline.md, "Moderation")
+  /** SUBMITTED and UNLISTED, oldest first: what a person still has to read. */
+  listEpisodesForReview(): Promise<EpisodeRecord[]>
+  listReports(episodeId: string): Promise<ReviewReport[]>
 
   // billing — written only by the RevenueCat reconcile path
   /** Upsert on (userId, entitlement). */

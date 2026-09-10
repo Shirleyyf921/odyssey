@@ -5,6 +5,10 @@ import type { AppRepository, EpisodeRecord } from '../repo/types.js'
 import type { LlmGateway } from '../llm/gateway.js'
 import { ScreenerUnavailable, unitsOf, type EpisodeScreener } from '../safety/episode-screen.js'
 import { DryRunUnavailable, dryRun } from '../story/dry-run.js'
+import type { ReviewNotifier } from '../review/notify.js'
+
+/** After this many LIVE episodes a clean SFW submission goes straight to the shelf. The first three are read. */
+export const FAST_LANE_AFTER = 3
 
 const Params = z.object({ id: z.string().uuid() })
 
@@ -21,10 +25,11 @@ export interface AuthorRouteDeps {
   repo: AppRepository
   screener: EpisodeScreener
   gateway: LlmGateway
+  notifier: ReviewNotifier
 }
 
 export async function authorRoutes(app: FastifyInstance, opts: AuthorRouteDeps) {
-  const { repo, screener, gateway } = opts
+  const { repo, screener, gateway, notifier } = opts
   const play = (episode: EpisodeRecord) =>
     repo.getCharacter(episode.characterId).then((c) => dryRun({ gateway, screener, log: app.log }, c!, episode))
 
@@ -135,8 +140,22 @@ export async function authorRoutes(app: FastifyInstance, opts: AuthorRouteDeps) 
       }
     }
 
-    const episode = await repo.updateEpisode(current.id, { status: outcome, rating, reviewNote: notes.length ? notes.join('\n') : null, dryRun: run })
-    req.log.info({ userId: req.user.id, episodeId: episode.id, outcome, rating, worst: report.worst }, 'episode submitted')
+    // Who has to read it (docs/ugc-pipeline.md, "Human queue"): MATURE always, a creator's first
+    // three, anything the screen was unsure about. A creator's fourth clean SFW episode is fast.
+    let why: string | null = null
+    if (outcome === 'SUBMITTED') {
+      const live = (await repo.listEpisodesByAuthor(req.user.id)).filter((e) => e.status === 'LIVE').length
+      if (rating === 'MATURE') why = 'MATURE'
+      else if (report.units.some((u) => u.label === 'UNSURE')) why = 'the screen was unsure'
+      else if (live < FAST_LANE_AFTER) why = `the author's episode ${live + 1} of ${FAST_LANE_AFTER} read by a person`
+    }
+    const status = outcome === 'SUBMITTED' && why === null ? 'LIVE' : outcome
+    const episode = await repo.updateEpisode(current.id, { status, rating, reviewNote: notes.length ? notes.join('\n') : null, dryRun: run })
+    req.log.info({ userId: req.user.id, episodeId: episode.id, outcome, status, rating, worst: report.worst }, status === 'LIVE' ? 'episode live (fast lane)' : 'episode submitted')
+    if (why !== null) {
+      const character = await repo.getCharacter(episode.characterId)
+      await notifier.submitted({ episode, characterName: character?.name ?? '?', authorName: req.user.displayName, why })
+    }
     return { episode, outcome, notes }
   })
 

@@ -694,7 +694,11 @@ Submit screens every brief on the crisis-detector shape, then plays the whole ep
 a sandbox that writes nothing, and rejects with the beat named. What passes lands on his page
 under ours as `community`, ranked by how often it is finished, never on the home screen. A
 player can report a user-made episode once; three reports take it off the shelf until someone
-has read it. The review queue, the editor, and the Plus-day credits are steps 6–8.
+has read it. The review queue (step 6) is `/review/episodes` behind `REVIEW_SECRET` and a web
+page that shows the whole draft with the dry-run transcript and the report reasons; MATURE, a
+creator's first three, and anything the screen was unsure about wait for a person, and a mail
+goes out for each; a creator's fourth clean SFW episode goes LIVE at submit. The editor and the
+Plus-day credits are steps 7–8.
 
 ## 15. Relationship Progression
 

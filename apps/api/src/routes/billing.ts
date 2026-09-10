@@ -1,16 +1,8 @@
 import type { FastifyInstance } from 'fastify'
+import { secretMatches } from '../auth/secret.js'
 import { DevGrantRequest, DevPurchaseRequest, GRANT_SECRET_HEADER, type RestoreResponse } from '@odyssey/shared'
-import { timingSafeEqual } from 'node:crypto'
 import { RcWebhook } from '../billing/revenuecat.js'
 import type { BillingService } from '../billing/service.js'
-
-function secretMatches(header: unknown, secret: string): boolean {
-  if (typeof header !== 'string') return false
-  const given = header.startsWith('Bearer ') ? header.slice(7) : header
-  const a = Buffer.from(given)
-  const b = Buffer.from(secret)
-  return a.length === b.length && timingSafeEqual(a, b)
-}
 
 /**
  * Public: the RevenueCat webhook. RevenueCat sends the value configured in its
