@@ -183,11 +183,23 @@ const ASH_EPISODE_1: EpisodeRecord = {
  * A first pass over the hero framing (chest-up, centred). Authored per portrait
  * once the scene portraits exist; until then all three heroes share it.
  */
-const HERO_HOTSPOTS: HotspotRect[] = [
-  { hotspot: 'hair', x: 0.34, y: 0.02, w: 0.34, h: 0.14 },
-  { hotspot: 'face', x: 0.36, y: 0.16, w: 0.3, h: 0.22 },
-  { hotspot: 'shoulder', x: 0.12, y: 0.4, w: 0.28, h: 0.16 },
-  { hotspot: 'hand', x: 0.06, y: 0.66, w: 0.3, h: 0.26 },
+const ASH_HOTSPOTS: HotspotRect[] = [
+  { hotspot: 'hair', x: 0.22, y: 0.03, w: 0.5, h: 0.22 },
+  { hotspot: 'face', x: 0.36, y: 0.24, w: 0.3, h: 0.22 },
+  { hotspot: 'shoulder', x: 0.62, y: 0.5, w: 0.34, h: 0.16 },
+  { hotspot: 'hand', x: 0.56, y: 0.7, w: 0.3, h: 0.24 },
+]
+const RAFE_HOTSPOTS: HotspotRect[] = [
+  { hotspot: 'hair', x: 0.36, y: 0.06, w: 0.42, h: 0.2 },
+  { hotspot: 'face', x: 0.42, y: 0.18, w: 0.3, h: 0.24 },
+  { hotspot: 'shoulder', x: 0.55, y: 0.42, w: 0.38, h: 0.18 },
+  { hotspot: 'hand', x: 0.02, y: 0.5, w: 0.28, h: 0.26 },
+]
+/** No hand in his hero framing; the coat is the only thing to touch below the face. */
+const JUN_HOTSPOTS: HotspotRect[] = [
+  { hotspot: 'hair', x: 0.26, y: 0.04, w: 0.5, h: 0.24 },
+  { hotspot: 'face', x: 0.36, y: 0.3, w: 0.32, h: 0.28 },
+  { hotspot: 'shoulder', x: 0.08, y: 0.62, w: 0.36, h: 0.22 },
 ]
 
 const placeholder = (label: string) =>
@@ -549,10 +561,10 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       {
         id: 'd1000000-0000-4000-8000-000000000001',
         characterId: 'a1000000-0000-4000-8000-000000000001',
-        url: 'https://a.lovart.ai/artifacts/agent/BeMEa4P89ODWfwPR.png',
+        url: 'https://a.lovart.ai/artifacts/agent/pJCNXKZvCxFPnTEb.png',
         position: 0,
         label: 'hero',
-        hotspots: HERO_HOTSPOTS,
+        hotspots: ASH_HOTSPOTS,
       },
     ],
     scenes: [
@@ -660,6 +672,18 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         position: 7,
         unlock: { kind: 'PURCHASE', sku: 'moment_ash_08' },
       },
+      {
+        // He reaches for you. Earned, never sold: this is the one the relationship gives.
+        id: 'b1000000-0000-4000-8000-000000000009',
+        characterId: ASH,
+        title: 'Come here',
+        caption: "Stop standing in the doorway. I already know you are going to.",
+        imageUrl: 'https://a.lovart.ai/artifacts/agent/9ZBMKpRuES3F0P3K.png',
+        teaserUrl:
+          'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAIAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAIAAYAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMABAQEBAQEBgQEBgkGBgYJDAkJCQkMDwwMDAwMDxIPDw8PDw8SEhISEhISEhUVFRUVFRkZGRkZHBwcHBwcHBwcHP/bAEMBBAUFBwcHDAcHDB0UEBQdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHf/dAAQAAv/aAAwDAQACEQMRAD8A+d9Htn1O9WyLkIwLv64X/wDXXd/8IjaS2bKxEMm1mVgT/CM/Nk9D0rlNO8ReHbLXLODQbQyR/blXzH5d4GAQoR05PJx9K6nXNd0zSpda06/hminjjf7MX+YGKcYRozwMfMBz0PrzWVeLjLli7l4efPDmkrep5RcaXcXLGYoyxgKQSDhuCCB+HNU/7Kh9D+R/wrT0DV9Oe1XSdYMgiceWHXHy9w3OOhrf/srwb/0E7n/vqP8AxrXnto0Q6blqmf/Q+WdDjhuPFdhCFEaNJGCAOhHzcfiOtfQHxU8C6hqnhmLVNMcTHSxmSNcmRkkAEiDGc7HUHb7kjmvDvB93aWPimz1G8dYo7cMWZunTjOfxr1DQPHtlq2jTw3N46XdqtwxX7jyKWLh427Oo6Z9cHjry1VLmUo9DqpcvK4y6nh/iDSDoE8NhLLvufJSSdAMeU787CcnJUdTxzXP+aPWtzXrvRbi+Nxp8l06SjdI1yVMhcnk5XAIPXpWHvsPV/wAq647anLK19D//2Q==',
+        position: 8,
+        unlock: { kind: 'STAGE', stage: 'ACQUAINTED' },
+      },
     ],
     episodes: [ASH_EPISODE_1, ASH_EPISODE_2],
   },
@@ -685,10 +709,10 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       {
         id: 'd1000000-0000-4000-8000-000000000002',
         characterId: 'a1000000-0000-4000-8000-000000000002',
-        url: 'https://a.lovart.ai/artifacts/agent/pDhIrF47k77rahB1.png',
+        url: 'https://a.lovart.ai/artifacts/agent/8e38GgdGXI3Q4sqx.png',
         position: 0,
         label: 'hero',
-        hotspots: HERO_HOTSPOTS,
+        hotspots: RAFE_HOTSPOTS,
       },
     ],
     scenes: [
@@ -725,6 +749,18 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         position: 1,
         unlock: { kind: 'PURCHASE', sku: 'moment_rafe_02' },
       },
+      {
+        // He reaches for you. Earned, never sold: this is the one the relationship gives.
+        id: 'b1000000-0000-4000-8000-000000000013',
+        characterId: RAFE,
+        title: 'Sit',
+        caption: "There is a whole couch. I am asking for the part next to me.",
+        imageUrl: 'https://a.lovart.ai/artifacts/agent/RqiYiaiRkRJMTp5g.png',
+        teaserUrl:
+          'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAIAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAIAAYAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMABAQEBAQEBgQEBgkGBgYJDAkJCQkMDwwMDAwMDxIPDw8PDw8SEhISEhISEhUVFRUVFRkZGRkZHBwcHBwcHBwcHP/bAEMBBAUFBwcHDAcHDB0UEBQdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHf/dAAQAAv/aAAwDAQACEQMRAD8ALvxtYz/GzR/EkybYzpQinXH8RWQNtHoG6Vx3xBtNO1zUNR1W3LwxzXMs0RKnAMoVSOOCBsGfrSWOqeGbS806wn0+DzZLdTISGLJMy+YVMjEvt2k4O4jgg1e1qWO8SGwiBgN4zQW68sD1cAN1CYB57V5trNNHobpo+bLaGQS4lTYwdhk98Kw4zWh5J9K2/FGgX3h+eE3ar5bFgrxvu+YdQ2QMcdK5j7UfX9RXemnqcTVtD//Q+afDyarrusWwtpN8NrjeXIBEWNpA7nI4r2M3E0/jeyRtpTSbEzHPA3yvtHA+mK+XVuJ7Z1uIGaORCGV1PzAive/BfipLgtfTXUH9oSQobqVImXbFGckSMx2kgdAgHzHJ4Fc1WLSujopyWzNX4k3+lrDC+saY0pkfdGFmaNskHkjOCMe1eQf2j4a/6A0v/gS1dB4/1yDXrLTLsP5jtLdSKe6xGTCA++BXmuU9f0qqUPd1JqS97Q//2Q==',
+        position: 2,
+        unlock: { kind: 'STAGE', stage: 'ACQUAINTED' },
+      },
     ],
     episodes: [RAFE_EPISODE_1],
   },
@@ -751,10 +787,10 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       {
         id: 'd1000000-0000-4000-8000-000000000003',
         characterId: 'a1000000-0000-4000-8000-000000000003',
-        url: 'https://a.lovart.ai/artifacts/agent/TKYimakxuV8OdCJT.png',
+        url: 'https://a.lovart.ai/artifacts/agent/La7TUUMcXE1GHcCh.png',
         position: 0,
         label: 'hero',
-        hotspots: HERO_HOTSPOTS,
+        hotspots: JUN_HOTSPOTS,
       },
     ],
     scenes: [
@@ -790,6 +826,18 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
           'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAIAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAIAAYAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMABAQEBAQEBgQEBgkGBgYJDAkJCQkMDwwMDAwMDxIPDw8PDw8SEhISEhISEhUVFRUVFRkZGRkZHBwcHBwcHBwcHP/bAEMBBAUFBwcHDAcHDB0UEBQdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHf/dAAQAAv/aAAwDAQACEQMRAD8A+I4VYupjXHHTrmtKxfVlCXCqNkjbcHHHrx14rKd5LPdGhw24DI9MZrvtAvTcaRbmL93fWsrL5wx8yHkZGPvDJGe4xRUqOFmgpUlO6Zyl7HcgtJNjH0rM/D9K7bxVqEUkkMQjjSRwS7IACxB6kDAHI7CuU81fetozUldHPKLi+Vn/0Ph6RZLqRpolZkGNzY6ZwOamttSfTZ5ktyShztx2NbFtDatavb292iNKyljJlRgZ4zz3qvJ4WveZIri2lDH+GVe9N2ejErxd0YW+a5lWV8szEjJ5q39nm/umtddPvLbSXgmIUxymQYOQQBzgjisfzm/vGi/QHG+p/9k=',
         position: 1,
         unlock: { kind: 'PURCHASE', sku: 'moment_jun_02' },
+      },
+      {
+        // He reaches for you. Earned, never sold: this is the one the relationship gives.
+        id: 'b1000000-0000-4000-8000-000000000023',
+        characterId: JUN,
+        title: 'Closer',
+        caption: "Sixty floors up. You are standing too near the edge, and it is not the drop I mean.",
+        imageUrl: 'https://a.lovart.ai/artifacts/agent/giVvn31cg5DlwRPf.png',
+        teaserUrl:
+          'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAIAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAIAAYAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMABAQEBAQEBgQEBgkGBgYJDAkJCQkMDwwMDAwMDxIPDw8PDw8SEhISEhISEhUVFRUVFRkZGRkZHBwcHBwcHBwcHP/bAEMBBAUFBwcHDAcHDB0UEBQdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHf/dAAQAAv/aAAwDAQACEQMRAD8A+H1h2oXPRRk1DELy4Ja3jaQKNzBFLBR74rp7eW0lQxyuGLL0VenOMNxxxzXZaVpmn6FrNxoSXkjRXSxvkYXcpzxkcjBBB56GplKxcY3PMHtmcxFFOZVyBjPJxUv9k6h/z7t/3ya9JisdCPibU21J7iNbOItarbhS3mFAYyd38Kv9/qcfjVj7cP8An9u/++F/+JrnniHF25WdEaF1e5//0PmTwP4ahuLaTWNQGYoiViQgHewHX3x296o+Ir62h8R2lzCrD7OqCUNxuDEtn8jWzo/ijR9N0jQbCSYM5mdrkD/lnncBuz7sPwo8Xadp0E093PcQ/bHtsQpKSFZOfnXggtjIAzjNc93z6nTZcuhxl3fSyavf31mww83DHnIGRn8ad/a+pf34/wDvgVzsc+yFkXq5/QCmbj6t+ZrflMeY/9k=',
+        position: 2,
+        unlock: { kind: 'STAGE', stage: 'ACQUAINTED' },
       },
     ],
     episodes: [JUN_EPISODE_1],
