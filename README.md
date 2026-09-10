@@ -126,6 +126,7 @@ or `x-device-id: <uuid>`. The token wins; an expired token is a 401 rather than 
 | `GET /characters/:id` | Portraits, relationship, moment count |
 | `POST /characters/:id/start` | Idempotent; creates the relationship and its conversation |
 | `GET /characters/:id/moments` | Cards; locked ones carry no asset URL. A PURCHASE card unlocks once its SKU is among the caller's purchases |
+| `POST /me/age` | Age declaration: `{bornOn}`; 403 under eighteen. Gates MATURE episodes |
 | `GET /tonight` | Home screen: one card per character with the single episode to show for him now |
 | `GET /characters/:id/episodes` | Story cards with the caller's status on each (available, in progress, done, or locked with a reason). Briefs and beats never leave the server |
 | `POST /billing/restore` | Server re-reads the caller from RevenueCat and returns `billing` (tier, expiry, purchased SKUs) |
@@ -133,6 +134,11 @@ or `x-device-id: <uuid>`. The token wins; an expired token is a 401 rather than 
 | `POST /billing/dev/purchase` | Dogfood: `{sku}` records a one-time purchase for the caller, same gating as grant |
 | `POST /billing/dev/grant` | Dogfood: `{tier, days?}` grants the caller a tier as a PROMOTIONAL row. Open outside production; in production only with `BILLING_GRANT_SECRET` set and sent as `x-grant-secret` |
 | `ws://…/ws/chat?token=…` or `?deviceId=…` | Chat and story mode (`start_episode`, `send_message` with `choice`, `choices`, `episode_started`, `episode_ended`), see `packages/shared/src/protocol.ts` |
+
+Every request carries `x-odyssey-channel: store | web` (the socket uses `?channel=`). The
+native build is compiled to say `store` and never receives MATURE episodes; an absent or
+unknown value is read as `store`. MATURE also needs the age gate above. See
+`apps/api/src/episodes/rating.ts`.
 
 `GET /me` also carries `billing`. Every paid-state write goes through one reconcile path that
 re-reads the subscriber from RevenueCat; webhook payloads are only a nudge to re-read, so

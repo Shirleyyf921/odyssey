@@ -644,6 +644,25 @@ card starts the relationship if it does not exist and opens the stage; anything 
 the character page. The roster of names and stages is gone from the home screen: the
 relationship shows through which story is there tonight and what a shut card says.
 
+**Step 6 (2026-09-10): the rating rail.** `episodes/rating.ts` is the only place that decides
+who sees MATURE, and it takes two gates of deliberately different kinds. The **channel** is a
+client assertion (`x-odyssey-channel`, or `?channel=` on the socket): the native binary is
+compiled to say `store`, the web build says `web`, and anything else — including an absent
+header — is read as `store`, because the wrong default here is a delisting rather than an
+inconvenience. The **age gate** is server-side (`users.age_verified_at`, set by `POST /me/age`)
+and is the one that matters legally. Both must pass, on `/tonight`, on the episodes list, and
+on `start_episode`, where an episode this build may not show is answered as unknown rather
+than as forbidden.
+
+The age route takes a date of birth, stores only whether it cleared eighteen and when, and
+refuses under-age with a 403. A typed date is a declaration, not assurance; section 11 still
+owes a real check, and this is what the rail reads until then. Only the web build asks: the
+store build never mentions adult content at all.
+
+Content: Elliot's second episode, "The long way home", is MATURE and unlocks after the first,
+so the rail has something real to hide. It stays inside the line in `docs/art-prompts.md`:
+charged, one person, nothing explicit.
+
 ## 15. Relationship Progression
 
 `Relationship.affinity` (0–100, never shown as a number) and `Relationship.stage` are the

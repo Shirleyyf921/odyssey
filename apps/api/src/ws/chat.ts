@@ -8,12 +8,12 @@ import { handleClientEvent, type ChatDeps } from '../chat/handler.js'
  * Expects to be registered inside the scope where requireDevice() ran, so
  * req.user is populated before the upgrade.
  */
-export async function chatWebsocket(app: FastifyInstance, deps: Omit<ChatDeps, 'log' | 'user'>) {
+export async function chatWebsocket(app: FastifyInstance, deps: Omit<ChatDeps, 'log' | 'user' | 'channel'>) {
   app.get('/ws/chat', { websocket: true }, (socket, req) => {
     const send = (event: ServerEvent) => {
       if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(event))
     }
-    const handlerDeps: ChatDeps = { ...deps, user: req.user, log: req.log }
+    const handlerDeps: ChatDeps = { ...deps, user: req.user, channel: req.channel, log: req.log }
 
     // Events on one socket are processed in order. A client that sends twice before
     // the first reply finishes still gets two replies, one after the other.

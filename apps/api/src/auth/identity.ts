@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
-import { DEVICE_ID_HEADER } from '@odyssey/shared'
+import { CHANNEL_HEADER, Channel, DEVICE_ID_HEADER } from '@odyssey/shared'
 import { z } from 'zod'
 import type { AppRepository, UserRecord } from '../repo/types.js'
 import { hashToken } from './service.js'
@@ -9,6 +9,8 @@ declare module 'fastify' {
     user: UserRecord
     /** How the caller was identified. */
     authVia: 'session' | 'device'
+    /** Which build is asking. See episodes/rating.ts: absent means `store`. */
+    channel: Channel
   }
 }
 
@@ -20,6 +22,14 @@ export function deviceIdFrom(req: FastifyRequest): string | null {
   const candidate = typeof header === 'string' ? header : typeof query === 'string' ? query : null
   const parsed = DeviceId.safeParse(candidate)
   return parsed.success ? parsed.data : null
+}
+
+/** The asking build. Anything but an explicit `web` is read as `store`, so the default never leaks MATURE. */
+export function channelFrom(req: FastifyRequest): Channel {
+  const header = req.headers[CHANNEL_HEADER]
+  const query = (req.query as Record<string, unknown> | undefined)?.channel
+  const candidate = typeof header === 'string' ? header : typeof query === 'string' ? query : null
+  return Channel.safeParse(candidate).data ?? 'store'
 }
 
 export function sessionTokenFrom(req: FastifyRequest): string | null {
@@ -56,5 +66,6 @@ export function requireIdentity(app: FastifyInstance, repo: AppRepository) {
     if ('error' in resolved) return reply.code(401).send({ error: resolved.error })
     req.user = resolved.user
     req.authVia = resolved.via
+    req.channel = channelFrom(req)
   })
 }

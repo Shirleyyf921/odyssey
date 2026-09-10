@@ -2,14 +2,26 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import Fastify from 'fastify'
-import { CharacterDetail, CharactersResponse, EpisodesResponse, MomentsResponse, StartRelationshipResponse, TonightResponse } from '@odyssey/shared'
+import { CharacterDetail, CharactersResponse, EpisodesResponse, MeResponse, MomentsResponse, StartRelationshipResponse, TonightResponse } from '@odyssey/shared'
 import { requireIdentity } from '../auth/identity.js'
+import { devVerifier } from '../auth/providers.js'
+import { AuthService } from '../auth/service.js'
+import { BillingService } from '../billing/service.js'
+import { authRoutes } from './auth.js'
 import { MemoryRepository } from '../repo/memory.js'
 import { characterRoutes } from './characters.js'
+
+const silent = { info() {}, warn() {} }
 
 async function build(devTools = false) {
   const repo = new MemoryRepository()
   const app = Fastify()
+  // authRoutes comes along for /me/age, which the rating rail reads.
+  await app.register(authRoutes, {
+    repo,
+    auth: new AuthService(repo, [devVerifier()], silent),
+    billing: new BillingService(repo, null, silent),
+  })
   await app.register(async (scoped) => {
     requireIdentity(scoped, repo)
     await scoped.register(characterRoutes, { repo, devTools })
@@ -200,4 +212,35 @@ test('tonight gives one card per character, the open one for Elliot and nothing 
   assert.equal(now.episode?.status, 'IN_PROGRESS')
   assert.equal(now.episode?.currentBeat, 1)
   assert.ok(now.character.relationship, 'the card carries the relationship for the client to route with')
+})
+
+test('the rating rail: a store build never sees MATURE, and the web build only after the age gate', async () => {
+  const { app, repo } = await build()
+  const device = randomUUID()
+  const elliot = (await repo.listCharacters()).find((c) => c.kind === 'PRIMARY')!
+  const url = `/characters/${elliot.id}/episodes`
+  const titles = async (headers: Record<string, string>) =>
+    EpisodesResponse.parse((await app.inject({ method: 'GET', url, headers })).json()).episodes.map((e) => e.title)
+
+  const asDevice = { 'x-device-id': device }
+  const asWeb = { ...asDevice, 'x-odyssey-channel': 'web' }
+  const all = (await repo.listEpisodes(elliot.id)).map((e) => e.title)
+  assert.equal(all.length, 2, 'the seed has one of each rating')
+
+  assert.deepEqual(await titles(asDevice), [all[0]], 'no channel header is read as store')
+  assert.deepEqual(await titles({ ...asDevice, 'x-odyssey-channel': 'store' }), [all[0]])
+  assert.deepEqual(await titles(asWeb), [all[0]], 'the web build still needs the age gate')
+
+  const under = await app.inject({ method: 'POST', url: '/me/age', headers: asWeb, payload: { bornOn: '2015-01-01' } })
+  assert.equal(under.statusCode, 403)
+  assert.deepEqual(await titles(asWeb), [all[0]], 'a refused declaration changes nothing')
+
+  const ok = await app.inject({ method: 'POST', url: '/me/age', headers: asWeb, payload: { bornOn: '1992-01-05' } })
+  assert.equal(ok.statusCode, 200)
+  assert.equal(MeResponse.parse(ok.json()).user.ageVerified, true)
+  assert.deepEqual(await titles(asWeb), all, 'web plus age sees both')
+  assert.deepEqual(await titles(asDevice), [all[0]], 'the store build is unaffected by the same user being verified')
+
+  const tonight = TonightResponse.parse((await app.inject({ method: 'GET', url: '/tonight', headers: asDevice })).json())
+  assert.equal(tonight.items.find((i) => i.character.kind === 'PRIMARY')?.episode?.title, all[0], 'tonight rides the same rail')
 })

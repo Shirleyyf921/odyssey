@@ -1,5 +1,6 @@
 import type { z } from 'zod'
 import {
+  CHANNEL_HEADER,
   CharacterDetail,
   CharactersResponse,
   DEVICE_ID_HEADER,
@@ -11,11 +12,13 @@ import {
   RestoreResponse,
   SignInResponse,
   StartRelationshipResponse,
+  type AgeGateRequest,
   type DevGrantRequest,
   type DevPurchaseRequest,
   type DevSetStageRequest,
   type SignInRequest,
 } from '@odyssey/shared'
+import { Platform } from 'react-native'
 import { API_URL } from './config'
 import { getDeviceId } from './device'
 import { getSessionToken, setSessionToken } from './session'
@@ -30,11 +33,18 @@ export class ApiError extends Error {
 }
 
 const GRANT_SECRET = process.env.EXPO_PUBLIC_BILLING_GRANT_SECRET
+/**
+ * Which build this is. The native binary is the one that ships to the stores,
+ * so it says `store` and never sees MATURE; the web build says `web`. Compiled
+ * in, not configured, so a store build cannot be talked into the other value.
+ */
+const CHANNEL = Platform.OS === 'web' ? 'web' : 'store'
 
 async function headers(): Promise<Record<string, string>> {
   const [deviceId, token] = await Promise.all([getDeviceId(), getSessionToken()])
   return {
     [DEVICE_ID_HEADER]: deviceId,
+    [CHANNEL_HEADER]: CHANNEL,
     accept: 'application/json',
     ...(token ? { authorization: `Bearer ${token}` } : {}),
     ...(GRANT_SECRET ? { [GRANT_SECRET_HEADER]: GRANT_SECRET } : {}),
@@ -73,6 +83,8 @@ export const api = {
   episodes: (id: string) => request('GET', `/characters/${id}/episodes`, EpisodesResponse),
   tonight: () => request('GET', '/tonight', TonightResponse),
   me: () => request('GET', '/me', MeResponse),
+  /** Age declaration; MATURE episodes stay hidden until it passes. */
+  declareAge: (body: AgeGateRequest) => request('POST', '/me/age', MeResponse, body),
   /** Server re-reads RevenueCat for the caller. After a purchase, a restore, or a sign-in. */
   restore: () => request('POST', '/billing/restore', RestoreResponse),
   signIn: (body: SignInRequest) => request('POST', '/auth/sign-in', SignInResponse, body),

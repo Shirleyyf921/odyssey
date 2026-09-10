@@ -21,6 +21,8 @@ export interface UserRecord {
   id: string
   displayName: string | null
   locale: string
+  /** Null until the age declaration is made. Gates MATURE episodes (docs/story-pipeline.md, step 6). */
+  ageVerifiedAt: Date | null
 }
 
 export interface IdentityRecord {
@@ -91,7 +93,7 @@ export interface ConversationContext {
   conversation: { id: string; relationshipId: string; scene: Scene | null }
   relationship: RelationshipRecord
   character: { id: string; kind: CharacterKind; name: string; personaNotes: string }
-  user: { id: string; displayName: string | null; locale: string }
+  user: { id: string; displayName: string | null; locale: string; ageVerifiedAt: Date | null }
 }
 
 export type BillingEnvironment = 'SANDBOX' | 'PRODUCTION'
@@ -179,7 +181,7 @@ export interface AppRepository extends ChatRepository {
   getOrCreateUserByDevice(deviceId: string): Promise<UserRecord>
   getUser(id: string): Promise<UserRecord | null>
   createUser(input: { displayName: string | null }): Promise<UserRecord>
-  updateUser(id: string, patch: { displayName?: string | null }): Promise<UserRecord>
+  updateUser(id: string, patch: { displayName?: string | null; ageVerifiedAt?: Date | null }): Promise<UserRecord>
 
   // auth
   findIdentity(provider: AuthProvider, subject: string): Promise<IdentityRecord | null>

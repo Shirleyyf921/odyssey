@@ -3,6 +3,7 @@ import { renderStoryTurn } from '@odyssey/prompts'
 import { toMomentCard, type Beat, type ClientEvent, type EpisodeRun, type RelationshipStage, type ServerEvent } from '@odyssey/shared'
 import { availability, toEpisodeCard } from '../episodes/availability.js'
 import { TOUCH_PHRASE, allowedHotspots } from './touch.js'
+import { canSee } from '../episodes/rating.js'
 import type { CompletionRequest } from '../llm/types.js'
 import type { AssembledMemory } from '../memory/service.js'
 import type { ConversationContext, EpisodeRecord } from '../repo/types.js'
@@ -74,7 +75,8 @@ export async function handleStartEpisode(
 ): Promise<void> {
   const { repo, billing, log } = deps
   const episode = await repo.getEpisode(event.episodeId)
-  if (!episode || episode.characterId !== ctx.character.id) {
+  // An episode this build may not show does not exist as far as it is concerned.
+  if (!episode || episode.characterId !== ctx.character.id || !canSee(episode.rating, deps.channel, ctx.user.ageVerifiedAt !== null)) {
     return send({ type: 'error', code: 'INVALID_PAYLOAD', message: 'Unknown episode' })
   }
   const [all, runs, tier] = await Promise.all([repo.listEpisodes(ctx.character.id), repo.listRuns(ctx.relationship.id), billing.tierOf(ctx.user.id)])

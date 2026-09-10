@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import type { ClientEvent, ServerEvent, Tier } from '@odyssey/shared'
+import type { Channel, ClientEvent, ServerEvent, Tier } from '@odyssey/shared'
 import { DAILY_CAP_MESSAGE, LAST_MESSAGE_DIRECTIVE, rulesFor, utcDayStart } from '../billing/rules.js'
 import type { LlmGateway } from '../llm/gateway.js'
 import type { MemoryService } from '../memory/service.js'
@@ -21,6 +21,8 @@ export interface ChatDeps {
   crisis: CrisisDetector
   /** Paid state, read once per turn. */
   billing: { tierOf(userId: string): Promise<Tier> }
+  /** Which build opened this socket. See episodes/rating.ts. */
+  channel: Channel
   /** The authenticated user behind this socket. */
   user: UserRecord
   log: {

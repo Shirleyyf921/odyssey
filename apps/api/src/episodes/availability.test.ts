@@ -44,7 +44,7 @@ test('the seeded episode is well formed: first beat exists, every next resolves,
       assert.ok(e.beats.some((b) => b.kind === 'END'), `${e.title}: has an ending`)
     }
   }
-  assert.equal(elliot.episodes.length, 1)
+  assert.equal(elliot.episodes.length, 2, 'one SFW, one MATURE')
 })
 
 test('FREE is available without a relationship; a run makes it in progress or done', () => {
