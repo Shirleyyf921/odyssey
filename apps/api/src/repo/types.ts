@@ -4,6 +4,8 @@ import type {
   Character,
   CharacterKind,
   Episode,
+  EpisodeDraft,
+  EpisodeLifecycle,
   EpisodeRun,
   Message,
   MessageRole,
@@ -137,6 +139,11 @@ export interface CreateRunInput {
   episodeVersion: number
 }
 
+export interface EpisodePatch {
+  status?: EpisodeLifecycle
+  version?: number
+}
+
 export interface EpisodeRunPatch {
   currentBeatId?: string
   path?: string[]
@@ -228,8 +235,18 @@ export interface AppRepository extends ChatRepository {
   insertUnlock(input: { relationshipId: string; momentId: string; source: MomentUnlockSource }): Promise<MomentUnlock>
 
   // episodes (docs/story-pipeline.md)
+  /** What players may see: LIVE only, in position order. */
   listEpisodes(characterId: string): Promise<EpisodeRecord[]>
+  /** Any status. Callers that serve players must check `status` themselves. */
   getEpisode(id: string): Promise<EpisodeRecord | null>
+  // authoring (docs/ugc-pipeline.md, section 2)
+  listEpisodesByAuthor(userId: string): Promise<EpisodeRecord[]>
+  /** A new UGC row in DRAFT, version 1, unlock FREE, with the draft's beats. */
+  createEpisode(authorId: string, draft: EpisodeDraft): Promise<EpisodeRecord>
+  /** Rewrites the fields and beats of an existing row; status and version are untouched. */
+  replaceEpisode(id: string, draft: EpisodeDraft): Promise<EpisodeRecord>
+  updateEpisode(id: string, patch: EpisodePatch): Promise<EpisodeRecord>
+  deleteEpisode(id: string): Promise<void>
   listRuns(relationshipId: string): Promise<EpisodeRun[]>
   findRun(relationshipId: string, episodeId: string): Promise<EpisodeRun | null>
   createRun(input: CreateRunInput): Promise<EpisodeRun>

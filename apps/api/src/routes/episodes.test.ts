@@ -1,0 +1,143 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { randomUUID } from 'node:crypto'
+import Fastify from 'fastify'
+import { AuthoredEpisodeResponse, EpisodesResponse, MyEpisodesResponse, type EpisodeDraft } from '@odyssey/shared'
+import { requireIdentity } from '../auth/identity.js'
+import { SEED_CHARACTERS } from '../content/seed.js'
+import { MemoryRepository } from '../repo/memory.js'
+import { characterRoutes } from './characters.js'
+import { authorRoutes } from './episodes.js'
+
+const ash = SEED_CHARACTERS[0]!
+const rafe = SEED_CHARACTERS[1]!
+assert.equal(ash.character.kind, 'PRIMARY')
+assert.equal(rafe.character.kind, 'EXPLORE')
+
+async function build() {
+  const repo = new MemoryRepository()
+  const app = Fastify()
+  await app.register(async (scoped) => {
+    requireIdentity(scoped, repo)
+    await scoped.register(characterRoutes, { repo, devTools: false })
+    await scoped.register(authorRoutes, { repo })
+  })
+  await app.ready()
+  return { app, repo }
+}
+
+/** Rafe's own first episode as a creator would send it: fresh beat ids, no episode id. */
+function draft(overrides: Partial<EpisodeDraft> = {}): EpisodeDraft {
+  const source = rafe.episodes[0]!
+  const ids = new Map(source.beats.map((b) => [b.id, randomUUID()] as const))
+  const map = (id: string | null) => (id ? ids.get(id)! : null)
+  return {
+    characterId: source.characterId,
+    title: 'The other staircase',
+    premise: source.premise,
+    setting: source.setting,
+    opener: source.opener,
+    sceneId: source.sceneId,
+    rating: 'SFW',
+    firstBeatId: map(source.firstBeatId)!,
+    beats: source.beats.map(({ episodeId: _e, ...b }) => ({
+      ...b,
+      id: map(b.id)!,
+      next: map(b.next),
+      options: b.options.map((o) => ({ ...o, next: map(o.next) })),
+    })),
+    ...overrides,
+  }
+}
+
+const as = (device: string) => ({ 'x-device-id': device })
+
+test('an author creates a draft and sees it whole, briefs included; nobody else does', async () => {
+  const { app, repo } = await build()
+  const me = randomUUID()
+  const created = await app.inject({ method: 'POST', url: '/me/episodes', headers: as(me), payload: draft() })
+  assert.equal(created.statusCode, 201, created.body)
+  const { episode } = AuthoredEpisodeResponse.parse(created.json())
+  const user = await repo.getOrCreateUserByDevice(me)
+  assert.equal(episode.authorId, user.id)
+  assert.deepEqual([episode.origin, episode.status, episode.version, episode.unlock], ['UGC', 'DRAFT', 1, { kind: 'FREE' }])
+  assert.equal(episode.beats.length, rafe.episodes[0]!.beats.length)
+  assert.ok(episode.beats.every((b) => b.episodeId === episode.id && b.brief.length > 0))
+
+  const mine = MyEpisodesResponse.parse((await app.inject({ method: 'GET', url: '/me/episodes', headers: as(me) })).json())
+  assert.deepEqual(mine.episodes.map((e) => e.id), [episode.id])
+
+  const stranger = randomUUID()
+  assert.equal((await app.inject({ method: 'GET', url: `/me/episodes/${episode.id}`, headers: as(stranger) })).statusCode, 404)
+  const theirs = MyEpisodesResponse.parse((await app.inject({ method: 'GET', url: '/me/episodes', headers: as(stranger) })).json())
+  assert.equal(theirs.episodes.length, 0)
+})
+
+test('a draft is not on the shelf; a LIVE one is', async () => {
+  const { app, repo } = await build()
+  const me = randomUUID()
+  const { episode } = AuthoredEpisodeResponse.parse(
+    (await app.inject({ method: 'POST', url: '/me/episodes', headers: as(me), payload: draft() })).json()
+  )
+  const shelf = async () =>
+    EpisodesResponse.parse((await app.inject({ method: 'GET', url: `/characters/${rafe.character.id}/episodes`, headers: as(me) })).json()).episodes
+  assert.ok(!(await shelf()).some((e) => e.id === episode.id), 'players never see a draft')
+  await repo.updateEpisode(episode.id, { status: 'LIVE' })
+  assert.ok((await shelf()).some((e) => e.id === episode.id))
+})
+
+test('the integrity rule refuses a broken draft and names the beat', async () => {
+  const { app } = await build()
+  const d = draft()
+  d.beats[1]!.next = randomUUID()
+  const res = await app.inject({ method: 'POST', url: '/me/episodes', headers: as(randomUUID()), payload: d })
+  assert.equal(res.statusCode, 400)
+  assert.match(res.json().error, /beat 1: next points at a beat that does not exist/)
+})
+
+test('creators write for the explore men, with his own scenes and his own photos', async () => {
+  const { app } = await build()
+  const me = as(randomUUID())
+  const primary = await app.inject({ method: 'POST', url: '/me/episodes', headers: me, payload: draft({ characterId: ash.character.id }) })
+  assert.equal(primary.statusCode, 403)
+  assert.match(primary.json().error, /not open to authors/)
+
+  const scene = await app.inject({ method: 'POST', url: '/me/episodes', headers: me, payload: draft({ sceneId: ash.scenes[0]!.id }) })
+  assert.equal(scene.statusCode, 400)
+  assert.match(scene.json().error, /scene is not one of Rafe's/)
+
+  const d = draft()
+  d.beats[0]!.photoMomentId = ash.moments[0]!.id
+  const photo = await app.inject({ method: 'POST', url: '/me/episodes', headers: me, payload: d })
+  assert.equal(photo.statusCode, 400)
+  assert.match(photo.json().error, /beat 0: photo is not one of Rafe's/)
+})
+
+test("a draft can be rewritten and withdrawn; once out of the author's hands it cannot", async () => {
+  const { app, repo } = await build()
+  const me = as(randomUUID())
+  const { episode } = AuthoredEpisodeResponse.parse(
+    (await app.inject({ method: 'POST', url: '/me/episodes', headers: me, payload: draft() })).json()
+  )
+  const url = `/me/episodes/${episode.id}`
+
+  const moved = await app.inject({ method: 'PUT', url, headers: me, payload: draft({ characterId: ash.character.id }) })
+  assert.equal(moved.statusCode, 400)
+
+  const rewritten = AuthoredEpisodeResponse.parse((await app.inject({ method: 'PUT', url, headers: me, payload: draft({ title: 'Again' }) })).json())
+  assert.equal(rewritten.episode.title, 'Again')
+  assert.equal(rewritten.episode.version, 1, 'version moves only after LIVE')
+  assert.notDeepEqual(rewritten.episode.beats.map((b) => b.id), episode.beats.map((b) => b.id), 'beats are replaced, not merged')
+
+  await repo.updateEpisode(episode.id, { status: 'REJECTED' })
+  const again = AuthoredEpisodeResponse.parse((await app.inject({ method: 'PUT', url, headers: me, payload: draft() })).json())
+  assert.equal(again.episode.status, 'DRAFT', 'a rewrite of a rejected episode is a fresh draft')
+
+  await repo.updateEpisode(episode.id, { status: 'SUBMITTED' })
+  assert.equal((await app.inject({ method: 'PUT', url, headers: me, payload: draft() })).statusCode, 409)
+  assert.equal((await app.inject({ method: 'DELETE', url, headers: me })).statusCode, 409)
+
+  await repo.updateEpisode(episode.id, { status: 'DRAFT' })
+  assert.equal((await app.inject({ method: 'DELETE', url, headers: me })).statusCode, 204)
+  assert.equal((await app.inject({ method: 'GET', url, headers: me })).statusCode, 404)
+})
