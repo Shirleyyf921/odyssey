@@ -26,7 +26,7 @@ async function setup(tier: Tier) {
       requests.push({ tier: name, req })
       return reply
     })
-  const gateway = new LlmGateway({ EVERYDAY: record('EVERYDAY', 'everyday reply'), PIVOTAL: record('PIVOTAL', 'pivotal reply') })
+  const gateway = new LlmGateway({ EVERYDAY: record('EVERYDAY', 'everyday reply'), PIVOTAL: record('PIVOTAL', 'pivotal reply'), STORY: record('STORY', 'story reply') })
   // No embeddings: retrieval falls back to listMemories, so a stored fact is enough to test the gate.
   const memory = new MemoryService(repo, gateway, null, silent)
   const deps: ChatDeps = {

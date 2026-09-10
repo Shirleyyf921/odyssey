@@ -22,7 +22,7 @@ client ─ send_message | choose(option) ─▶ ws/chat
    │      decide if this beat is a checkpoint (cliffhanger / paywall / photo)
    ├─ 7 memory assemble ................................ existing, policy from step 3
    ├─ 8 prompt = persona + episode brief + beat brief + history ..... new template
-   ├─ 9 generate (DeepSeek EVERYDAY / Claude PIVOTAL) .... existing gateway, new routing rule
+   ├─ 9 generate (DeepSeek STORY / Claude PIVOTAL) ...... existing gateway, STORY tier + chooseStoryTier
    │      output contract: narration, his line, 3 options (C is always "say something")
    ├─ 10 parse + validate output; on failure regenerate once, then fall back to line-only ... new
    ├─ 11 stream: message_start/delta/end for the line; then `choices` event ............ new event
@@ -138,7 +138,7 @@ Each line is one PR. Nothing below depends on RevenueCat products existing.
 2. **Output contract + parser**: prompt template for narration / line / options; strict parser
    with one retry; tests on malformed output.
 3. **Runtime**: episode state in the handler, `choices` event in the protocol, silent
-   progression, DeepSeek as the EVERYDAY route for story turns.
+   progression, DeepSeek as the STORY route for story turns (built 2026-09-10: `STORY_MODEL`).
 4. **Client**: story screen replaces chat as the default entry: full-bleed portrait in the
    scene, narration and his line in the lower third, tap to advance, option chips under his
    line, free text as option C. Photo bubbles become full-screen reveals on the stage.

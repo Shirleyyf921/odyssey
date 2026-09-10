@@ -609,8 +609,12 @@ offer path, once. When options are not stored (a resume, the first beat) the aut
 intents stand in as button text. The relationship went silent on the client in the same
 change: `relationship_updated` is no longer sent; stage shows through what opens.
 
-Model routing for story turns is the same as chat; DeepSeek as the everyday model is a
-`NOVITA_MODEL` setting, not code.
+Story turns have their own route. A turn is narration, his line, and two options in one
+pass, and the chat model writes that flat, so `STORY` is a third tier in the gateway
+(`STORY_MODEL`, DeepSeek on the everyday host by default, `chooseStoryTier`) with the same
+pivotal rule as chat: the turn after a stage change goes to the strong model when the tier
+allows it. The options repair and ordinary chat stay on EVERYDAY. The author's dry-run plays
+on STORY too, so what they read is what a player gets.
 
 **Step 4 (2026-09-09): the stage.** `apps/mobile/app/story/[conversationId].tsx`. The scene
 backdrop fills the screen, his hero portrait sits in the upper two thirds, and the lower

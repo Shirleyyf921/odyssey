@@ -18,14 +18,20 @@ async function drain(it: AsyncIterable<CompletionEvent>) {
 }
 
 test('a PIVOTAL refusal with no output falls back to EVERYDAY', async () => {
-  const gw = new LlmGateway({ EVERYDAY: new ScriptedProvider('fine.'), PIVOTAL: refusing })
+  const gw = new LlmGateway({ EVERYDAY: new ScriptedProvider('fine.'), PIVOTAL: refusing, STORY: refusing })
   const events = await drain(gw.stream('PIVOTAL', { system: '', messages: [] }))
   assert.equal(events.filter((e) => e.type === 'refusal').length, 0)
   assert.equal(events.map((e) => (e.type === 'delta' ? e.text : '')).join(''), 'fine.')
 })
 
+test('a STORY refusal falls back to EVERYDAY the same way', async () => {
+  const gw = new LlmGateway({ EVERYDAY: new ScriptedProvider('fine.'), PIVOTAL: refusing, STORY: refusing })
+  const events = await drain(gw.stream('STORY', { system: '', messages: [] }))
+  assert.equal(events.map((e) => (e.type === 'delta' ? e.text : '')).join(''), 'fine.')
+})
+
 test('an EVERYDAY refusal is surfaced, there is nothing cheaper to try', async () => {
-  const gw = new LlmGateway({ EVERYDAY: refusing, PIVOTAL: new ScriptedProvider('x') })
+  const gw = new LlmGateway({ EVERYDAY: refusing, PIVOTAL: new ScriptedProvider('x'), STORY: new ScriptedProvider('x') })
   const events = await drain(gw.stream('EVERYDAY', { system: '', messages: [] }))
   assert.deepEqual(events, [{ type: 'refusal', model: 'strict-model' }])
 })

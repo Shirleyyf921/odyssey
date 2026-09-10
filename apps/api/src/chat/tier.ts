@@ -19,3 +19,12 @@ export interface TurnSignals {
 export function chooseTier(_ctx: ConversationContext, _content: string, signals: TurnSignals): ModelTier {
   return signals.stageChanged && signals.pivotalAllowed ? 'PIVOTAL' : 'EVERYDAY'
 }
+
+/**
+ * A story turn is long text in a fixed shape, so its everyday is the STORY
+ * route (DeepSeek), not the chat model. The pivotal rule is the same: the turn
+ * after a stage change goes to the strong model when the tier allows it.
+ */
+export function chooseStoryTier(signals: TurnSignals): ModelTier {
+  return signals.stageChanged && signals.pivotalAllowed ? 'PIVOTAL' : 'STORY'
+}

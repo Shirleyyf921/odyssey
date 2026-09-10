@@ -25,7 +25,7 @@ async function setup() {
   const repo = new MemoryRepository()
   const demo = await repo.seedDemo()
   const provider = new ScriptedProvider(brain)
-  const gateway = new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider })
+  const gateway = new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider, STORY: provider })
   const memory = new MemoryService(repo, gateway, new HashEmbeddings(128), silent, { shortTermTurns: 4, summaryBatch: 2 })
   const ctx = (await repo.getConversationContext(demo.conversationId))!
   return { repo, memory, ctx, demo }

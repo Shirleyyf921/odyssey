@@ -17,7 +17,7 @@ async function setup(opts: { crisis?: CrisisDetector; reply?: string; tier?: Tie
   const repo = new MemoryRepository()
   const demo = await repo.seedDemo()
   const provider = new ScriptedProvider(opts.reply ?? 'Hey, you. Long day?')
-  const gateway = new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider })
+  const gateway = new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider, STORY: provider })
   const memory = new MemoryService(repo, gateway, new HashEmbeddings(64), silent)
   const relationship = new RelationshipService(repo, silent)
   const deps: ChatDeps = {

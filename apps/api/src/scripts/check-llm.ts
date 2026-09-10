@@ -67,5 +67,5 @@ if (stack.embeddings.name !== 'hash') {
   console.log('- embeddings: no NOVITA_API_KEY, long-term memory would use hash embeddings')
 }
 
-console.log(`\nroutes: EVERYDAY=${stack.routes.EVERYDAY.name}  PIVOTAL=${stack.routes.PIVOTAL.name}  memory=${env.MEMORY_TIER}`)
+console.log(`\nroutes: EVERYDAY=${stack.routes.EVERYDAY.name}  PIVOTAL=${stack.routes.PIVOTAL.name}  STORY=${stack.routes.STORY.name} (${env.STORY_MODEL})  memory=${env.MEMORY_TIER}`)
 process.exit(failed ? 1 : 0)

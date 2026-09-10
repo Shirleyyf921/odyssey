@@ -35,5 +35,8 @@ export interface LlmProvider {
  * EVERYDAY carries the bulk of conversation on a cheap open-weight model.
  * PIVOTAL is reserved for moments that decide whether the relationship feels real,
  * and for memory extraction, on a stronger model.
+ * STORY is the long-text route: a story turn is narration plus his line plus two
+ * options in one pass, which the everyday chat model writes flat. DeepSeek by
+ * default (docs/story-pipeline.md, step 9); falls back to EVERYDAY without a key.
  */
-export type ModelTier = 'EVERYDAY' | 'PIVOTAL'
+export type ModelTier = 'EVERYDAY' | 'PIVOTAL' | 'STORY'
