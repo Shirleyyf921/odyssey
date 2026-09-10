@@ -9,6 +9,7 @@ import {
   GRANT_SECRET_HEADER,
   MeResponse,
   MomentsResponse,
+  ReportEpisodeResponse,
   RestoreResponse,
   SignInResponse,
   StartRelationshipResponse,
@@ -16,6 +17,7 @@ import {
   type DevGrantRequest,
   type DevPurchaseRequest,
   type DevSetStageRequest,
+  type ReportEpisodeRequest,
   type SignInRequest,
 } from '@odyssey/shared'
 import { Platform } from 'react-native'
@@ -82,6 +84,8 @@ export const api = {
   moments: (id: string) => request('GET', `/characters/${id}/moments`, MomentsResponse),
   episodes: (id: string) => request('GET', `/characters/${id}/episodes`, EpisodesResponse),
   tonight: () => request('GET', '/tonight', TonightResponse),
+  /** Flag a user-made episode. One per player; enough of them take it down pending review. */
+  reportEpisode: (id: string, body: ReportEpisodeRequest) => request('POST', `/episodes/${id}/report`, ReportEpisodeResponse, body),
   me: () => request('GET', '/me', MeResponse),
   /** Age declaration; MATURE episodes stay hidden until it passes. */
   declareAge: (body: AgeGateRequest) => request('POST', '/me/age', MeResponse, body),

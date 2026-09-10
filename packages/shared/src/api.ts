@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Beat, BillingStatus, Character, Tier, CharacterProfile, DryRun, Episode, EpisodeCard, MomentCard, Relationship, RelationshipStage, Scene } from './domain.js'
+import { Beat, BillingStatus, Character, Tier, CharacterProfile, DryRun, Episode, EpisodeCard, EpisodeLifecycle, MomentCard, Relationship, RelationshipStage, ReportReason, Scene } from './domain.js'
 
 /**
  * REST shapes. The client validates every response against these, so a server
@@ -61,13 +61,31 @@ export type TonightItem = z.infer<typeof TonightItem>
 export const TonightResponse = z.object({ items: z.array(TonightItem) })
 export type TonightResponse = z.infer<typeof TonightResponse>
 
-/** The episodes one character offers, with the caller's status on each. Story pipeline, section 3 step 1. */
+/**
+ * The episodes one character offers, with the caller's status on each. Story
+ * pipeline, section 3 step 1. `episodes` is ours, in order; `community` is what
+ * readers wrote for him and we let through, best-finished first
+ * (docs/ugc-pipeline.md, "Serving rules").
+ */
 export const EpisodesResponse = z.object({
   characterId: z.string().uuid(),
   relationship: RelationshipSummary.nullable(),
   episodes: z.array(EpisodeCard),
+  community: z.array(EpisodeCard),
 })
 export type EpisodesResponse = z.infer<typeof EpisodesResponse>
+
+/** A player flags a user-made episode. One per player per episode; a second one is answered, not counted. */
+export const ReportEpisodeRequest = z.object({ reason: ReportReason })
+export type ReportEpisodeRequest = z.infer<typeof ReportEpisodeRequest>
+
+export const ReportEpisodeResponse = z.object({
+  /** False when this player had already reported it. */
+  counted: z.boolean(),
+  /** LIVE, or UNLISTED once enough players have said so. */
+  status: EpisodeLifecycle,
+})
+export type ReportEpisodeResponse = z.infer<typeof ReportEpisodeResponse>
 
 /**
  * An author's own episode, beats and briefs included: this is the one place

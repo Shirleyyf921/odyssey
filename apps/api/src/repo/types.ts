@@ -9,6 +9,7 @@ import type {
   EpisodeDraft,
   EpisodeLifecycle,
   EpisodeRun,
+  ReportReason,
   Message,
   MessageRole,
   Moment,
@@ -151,6 +152,11 @@ export interface EpisodePatch {
   dryRun?: DryRun | null
 }
 
+export interface RunCounts {
+  started: number
+  finished: number
+}
+
 export interface EpisodeRunPatch {
   currentBeatId?: string
   path?: string[]
@@ -258,6 +264,14 @@ export interface AppRepository extends ChatRepository {
   findRun(relationshipId: string, episodeId: string): Promise<EpisodeRun | null>
   createRun(input: CreateRunInput): Promise<EpisodeRun>
   updateRun(id: string, patch: EpisodeRunPatch): Promise<EpisodeRun>
+  // serving and reports (docs/ugc-pipeline.md, section 1, "Serving rules")
+  /** Runs started and runs that reached an END, per episode. Episodes nobody has played are absent. */
+  countRuns(episodeIds: string[]): Promise<Map<string, RunCounts>>
+  /**
+   * One report per player per episode. A repeat is not counted and does not
+   * move `reportCount`. Returns the count after this call either way.
+   */
+  reportEpisode(input: { episodeId: string; reporterId: string; reason: ReportReason }): Promise<{ counted: boolean; reportCount: number }>
 
   // billing — written only by the RevenueCat reconcile path
   /** Upsert on (userId, entitlement). */

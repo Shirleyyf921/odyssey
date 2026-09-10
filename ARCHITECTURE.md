@@ -42,8 +42,9 @@ How we handle it:
    the primary relationship rather than diluting it.
 2. **Capability tiering.** Voice, proactive messages, anniversaries, and deep memory belong to the
    primary relationship only. Exploration characters are lightweight conversations.
-3. **Curated characters only, no UGC at launch.** UGC means moderation cost plus a cold-start
-   supply problem — a separate business entirely.
+3. **Curated characters only.** Faces, voices, names, and personas are ours. Since 2026-09-10
+   readers may write *episodes* for the explore men (docs/ugc-pipeline.md): scripts, not
+   people. That is the line that keeps the moderation cost a text problem.
 4. **The primary boyfriend is chosen from a curated set of preset faces**, not built from
    sliders. Name and personality are customizable; the face is not. Decided 2026-09-02, because
    identity images (§14) have to show the same person every time, and that is only achievable
@@ -679,6 +680,17 @@ ends on a call with two endings, answered and not, so the path is real before an
 
 On the client the call takes the whole screen, opaque, and outranks a photo he sent a moment
 earlier: the photo waits until the call is resolved.
+
+### User-made episodes
+
+**Status (2026-09-10, docs/ugc-pipeline.md steps 1–5).** An episode carries an author, an
+origin, a status, and a version; runs pin the version they started on. Authors have
+`/me/episodes` on the web build, with the seed's integrity rule as the shared refinement.
+Submit screens every brief on the crisis-detector shape, then plays the whole episode once in
+a sandbox that writes nothing, and rejects with the beat named. What passes lands on his page
+under ours as `community`, ranked by how often it is finished, never on the home screen. A
+player can report a user-made episode once; three reports take it off the shelf until someone
+has read it. The review queue, the editor, and the Plus-day credits are steps 6–8.
 
 ## 15. Relationship Progression
 
