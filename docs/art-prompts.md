@@ -69,6 +69,16 @@ His paid cards, on the same line as everything else in "Paid moments":
 Still owed for him: the four earned cards, which are placeholders, and a hotspot map cut to
 this framing rather than the shared one.
 
+Episodes, one each (2026-09-10). Each is built on that man's shape rather than a template:
+Ash's turns on what he already knew, Rafe's on whether she takes what he offers, Jun's on
+who gets to decide. Two of the three end on a call, and Jun's declined ending is the better
+of his two on purpose: the silence is the message, and what arrives instead is a demolition
+notice being withdrawn with no name on it.
+
+A content note from playing them: on a `CALL` beat the model still writes a room beat ("he
+turns to you") even though the brief says a phone has no room. Worth a line in the story
+prompt rather than in every brief.
+
 ## Chosen heroes (2026-09-04, Lovart) — Elliot, retired
 
 The faces are locked. Every later prompt attaches the hero as the character reference and
