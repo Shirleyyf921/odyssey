@@ -14,7 +14,8 @@
     "db:seed": "tsx src/db/seed.ts",
     "check:llm": "tsx src/scripts/check-llm.ts",
     "list:models": "tsx src/scripts/list-models.ts",
-    "eval:crisis": "tsx src/scripts/eval-crisis.ts"
+    "eval:crisis": "tsx src/scripts/eval-crisis.ts",
+    "eval:screen": "tsx src/scripts/eval-screen.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",

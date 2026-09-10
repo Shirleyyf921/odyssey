@@ -364,6 +364,8 @@ export const Episode = z.object({
   status: EpisodeLifecycle,
   /** Bumps on every edit after LIVE. Runs pin the version they started on. */
   version: z.number().int().min(1),
+  /** Why it was rejected, or what the screen wanted a human to look at. Written by us, read by the author. */
+  reviewNote: z.string().nullable(),
 })
 export type Episode = z.infer<typeof Episode>
 

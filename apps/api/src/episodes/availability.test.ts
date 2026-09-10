@@ -35,8 +35,8 @@ test('the seeded episode is well formed: first beat exists, every next resolves,
         if (b.photoMomentId) assert.ok(seed.moments.some((m) => m.id === b.photoMomentId), `${e.title}/${b.position}: photo exists`)
       }
       assert.deepEqual(
-        { authorId: e.authorId, origin: e.origin, status: e.status, version: e.version },
-        { authorId: null, origin: 'OFFICIAL', status: 'LIVE', version: 1 },
+        { authorId: e.authorId, origin: e.origin, status: e.status, version: e.version, reviewNote: e.reviewNote },
+        { authorId: null, origin: 'OFFICIAL', status: 'LIVE', version: 1, reviewNote: null },
         `${e.title}: ours, and on the shelf`
       )
     }
