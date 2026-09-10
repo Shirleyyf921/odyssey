@@ -392,6 +392,77 @@ export const EpisodeReport = z.object({
 })
 export type EpisodeReport = z.infer<typeof EpisodeReport>
 
+// ---------------------------------------------------------------- authoring (docs/ugc-pipeline.md, section 2)
+
+/**
+ * A beat as an author writes it. Ids are the author's, so options and `next`
+ * can point at beats that do not exist yet; the episode id is the server's.
+ */
+export const DraftBeat = Beat.omit({ episodeId: true })
+export type DraftBeat = z.infer<typeof DraftBeat>
+
+/**
+ * The integrity rule, in words the editor can show. Empty means the episode
+ * hangs together: the first beat exists, every `next` resolves, END beats end,
+ * STORY beats offer two choices, and some ending can actually be reached. The
+ * seed test and the author API both run this, so there is exactly one rule.
+ */
+export function episodeIssues(e: { firstBeatId: string; beats: DraftBeat[] }): string[] {
+  const issues: string[] = []
+  const ids = new Set<string>()
+  for (const b of e.beats) {
+    if (ids.has(b.id)) issues.push(`beat ${b.position}: duplicate id`)
+    ids.add(b.id)
+  }
+  if (!ids.has(e.firstBeatId)) issues.push('first beat does not exist')
+  const beatById = new Map(e.beats.map((b) => [b.id, b] as const))
+  for (const b of e.beats) {
+    const at = `beat ${b.position}`
+    if (b.next && !ids.has(b.next)) issues.push(`${at}: next points at a beat that does not exist`)
+    for (const o of b.options) if (o.next && !ids.has(o.next)) issues.push(`${at}: an option points at a beat that does not exist`)
+    if (b.kind === 'END' && (b.options.length > 0 || b.next !== null)) issues.push(`${at}: an END beat has no options and no next`)
+    if (b.kind === 'STORY' && b.options.length !== 2) issues.push(`${at}: a STORY beat has two options; free text is the third`)
+    if (b.kind !== 'CALL' && (b.callUrl !== null || b.callSeconds !== null)) issues.push(`${at}: only a CALL beat has a call`)
+  }
+  // Reachability from the first beat, following both options and next.
+  const seen = new Set<string>()
+  const stack = [e.firstBeatId]
+  while (stack.length) {
+    const id = stack.pop()!
+    if (seen.has(id)) continue
+    seen.add(id)
+    const b = beatById.get(id)
+    if (!b) continue
+    if (b.next) stack.push(b.next)
+    for (const o of b.options) if (o.next) stack.push(o.next)
+  }
+  if (![...seen].some((id) => beatById.get(id)?.kind === 'END')) issues.push('no ending can be reached from the first beat')
+  for (const b of e.beats) if (!seen.has(b.id)) issues.push(`beat ${b.position}: cannot be reached`)
+  return issues
+}
+
+/**
+ * What an author sends to create or replace a draft. Position, unlock rule,
+ * origin, status, and version are the server's. Photos are checked against
+ * the man's moment pool and scenes against his scenes on the server, because
+ * that needs data; everything structural is here.
+ */
+export const EpisodeDraft = Episode.pick({
+  characterId: true,
+  title: true,
+  premise: true,
+  setting: true,
+  opener: true,
+  sceneId: true,
+  rating: true,
+  firstBeatId: true,
+})
+  .extend({ beats: z.array(DraftBeat).min(1).max(20) })
+  .superRefine((e, ctx) => {
+    for (const message of episodeIssues(e)) ctx.addIssue({ code: z.ZodIssueCode.custom, message })
+  })
+export type EpisodeDraft = z.infer<typeof EpisodeDraft>
+
 export const EpisodeStatus = z.enum(['LOCKED', 'AVAILABLE', 'IN_PROGRESS', 'DONE'])
 export type EpisodeStatus = z.infer<typeof EpisodeStatus>
 

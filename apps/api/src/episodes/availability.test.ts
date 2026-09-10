@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import type { EpisodeRun, EpisodeUnlockRule } from '@odyssey/shared'
+import { episodeIssues, type EpisodeRun, type EpisodeUnlockRule } from '@odyssey/shared'
 import { SEED_CHARACTERS } from '../content/seed.js'
 import type { EpisodeRecord } from '../repo/types.js'
 import { availability, toEpisodeCard, tonight } from './availability.js'
@@ -29,20 +29,11 @@ function run(episodeId: string, ended: boolean, currentBeatId = ep1.beats[2]!.id
 test('the seeded episode is well formed: first beat exists, every next resolves, END has no options', () => {
   for (const seed of SEED_CHARACTERS) {
     for (const e of seed.episodes) {
-      const ids = new Set(e.beats.map((b) => b.id))
-      assert.ok(ids.has(e.firstBeatId), `${e.title}: firstBeatId`)
+      assert.deepEqual(episodeIssues(e), [], `${e.title}: the same rule the author API applies`)
       for (const b of e.beats) {
         assert.equal(b.episodeId, e.id)
-        if (b.next) assert.ok(ids.has(b.next), `${e.title}/${b.position}: next`)
-        for (const o of b.options) if (o.next) assert.ok(ids.has(o.next), `${e.title}/${b.position}: option next`)
-        if (b.kind === 'END') {
-          assert.equal(b.options.length, 0)
-          assert.equal(b.next, null)
-        }
-        if (b.kind === 'STORY') assert.equal(b.options.length, 2, 'a STORY beat has two authored options; free text is the third')
         if (b.photoMomentId) assert.ok(seed.moments.some((m) => m.id === b.photoMomentId), `${e.title}/${b.position}: photo exists`)
       }
-      assert.ok(e.beats.some((b) => b.kind === 'END'), `${e.title}: has an ending`)
       assert.deepEqual(
         { authorId: e.authorId, origin: e.origin, status: e.status, version: e.version },
         { authorId: null, origin: 'OFFICIAL', status: 'LIVE', version: 1 },

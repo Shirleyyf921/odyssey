@@ -2,6 +2,8 @@ import { and, asc, cosineDistance, count, desc, eq, gt, gte, inArray, isNotNull,
 import type {
   AuthProvider,
   Beat,
+  DraftBeat,
+  EpisodeDraft,
   EpisodeRun,
   Message,
   Moment,
@@ -39,6 +41,7 @@ import type {
   ConversationSummary,
   EpisodeRecord,
   CreateRunInput,
+  EpisodePatch,
   EpisodeRunPatch,
   IdentityRecord,
   MemoryRecord,
@@ -76,6 +79,23 @@ function toBeat(r: BeatRow): Beat {
     callUrl: r.callUrl,
     callSeconds: r.callSeconds,
     hotspots: r.hotspots,
+  }
+}
+
+function toBeatRow(episodeId: string, b: DraftBeat): typeof beats.$inferInsert {
+  return {
+    id: b.id,
+    episodeId,
+    position: b.position,
+    kind: b.kind,
+    brief: b.brief,
+    setting: b.setting,
+    options: b.options,
+    nextBeatId: b.next,
+    photoMomentId: b.photoMomentId,
+    callUrl: b.callUrl,
+    callSeconds: b.callSeconds,
+    hotspots: b.hotspots,
   }
 }
 
@@ -408,7 +428,11 @@ export class DrizzleRepository implements AppRepository {
   // ---------------------------------------------------------------- episodes
 
   async listEpisodes(characterId: string): Promise<EpisodeRecord[]> {
-    const rows = await this.db.select().from(episodes).where(eq(episodes.characterId, characterId)).orderBy(asc(episodes.position))
+    const rows = await this.db
+      .select()
+      .from(episodes)
+      .where(and(eq(episodes.characterId, characterId), eq(episodes.status, 'LIVE')))
+      .orderBy(asc(episodes.position))
     if (!rows.length) return []
     const beatRows = await this.db
       .select()
@@ -422,6 +446,53 @@ export class DrizzleRepository implements AppRepository {
     if (!row) return null
     const beatRows = await this.db.select().from(beats).where(eq(beats.episodeId, id))
     return toEpisode(row, beatRows)
+  }
+
+  // ---------------------------------------------------------------- authoring (docs/ugc-pipeline.md)
+
+  async listEpisodesByAuthor(userId: string): Promise<EpisodeRecord[]> {
+    const rows = await this.db.select().from(episodes).where(eq(episodes.authorId, userId)).orderBy(desc(episodes.createdAt))
+    if (!rows.length) return []
+    const beatRows = await this.db
+      .select()
+      .from(beats)
+      .where(inArray(beats.episodeId, rows.map((r) => r.id)))
+    return rows.map((r) => toEpisode(r, beatRows.filter((b) => b.episodeId === r.id)))
+  }
+
+  async createEpisode(authorId: string, draft: EpisodeDraft): Promise<EpisodeRecord> {
+    const { beats: draftBeats, ...fields } = draft
+    return this.db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(episodes)
+        .values({ ...fields, unlockRule: { kind: 'FREE' }, authorId, origin: 'UGC', status: 'DRAFT', version: 1, position: 0 })
+        .returning()
+      if (!row) throw new Error('episode insert returned no row')
+      const beatRows = await tx.insert(beats).values(draftBeats.map((b) => toBeatRow(row.id, b))).returning()
+      return toEpisode(row, beatRows)
+    })
+  }
+
+  async replaceEpisode(id: string, draft: EpisodeDraft): Promise<EpisodeRecord> {
+    const { beats: draftBeats, characterId: _characterId, ...fields } = draft
+    return this.db.transaction(async (tx) => {
+      const [row] = await tx.update(episodes).set(fields).where(eq(episodes.id, id)).returning()
+      if (!row) throw new Error('episode not found')
+      await tx.delete(beats).where(eq(beats.episodeId, id))
+      const beatRows = await tx.insert(beats).values(draftBeats.map((b) => toBeatRow(id, b))).returning()
+      return toEpisode(row, beatRows)
+    })
+  }
+
+  async updateEpisode(id: string, patch: EpisodePatch): Promise<EpisodeRecord> {
+    const [row] = await this.db.update(episodes).set(patch).where(eq(episodes.id, id)).returning()
+    if (!row) throw new Error('episode not found')
+    const beatRows = await this.db.select().from(beats).where(eq(beats.episodeId, id))
+    return toEpisode(row, beatRows)
+  }
+
+  async deleteEpisode(id: string) {
+    await this.db.delete(episodes).where(eq(episodes.id, id))
   }
 
   async listRuns(relationshipId: string) {

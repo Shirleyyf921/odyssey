@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type {
   AuthProvider,
+  EpisodeDraft,
   EpisodeRun,
   Message,
   Moment,
@@ -18,6 +19,7 @@ import type {
   ConversationSummary,
   EpisodeRecord,
   CreateRunInput,
+  EpisodePatch,
   EpisodeRunPatch,
   IdentityRecord,
   MemoryRecord,
@@ -188,7 +190,40 @@ export class MemoryRepository implements AppRepository {
   // ---------------------------------------------------------------- episodes
 
   async listEpisodes(characterId: string) {
-    return [...(this.episodes.get(characterId) ?? [])].sort((a, b) => a.position - b.position)
+    return [...(this.episodes.get(characterId) ?? [])].filter((e) => e.status === 'LIVE').sort((a, b) => a.position - b.position)
+  }
+  async listEpisodesByAuthor(userId: string) {
+    return [...this.episodes.values()].flat().filter((e) => e.authorId === userId)
+  }
+  async createEpisode(authorId: string, draft: EpisodeDraft) {
+    const id = randomUUID()
+    const episode = this.fromDraft({ id, authorId, origin: 'UGC', status: 'DRAFT', version: 1, position: 0, unlock: { kind: 'FREE' } }, draft)
+    this.episodes.set(draft.characterId, [...(this.episodes.get(draft.characterId) ?? []), episode])
+    return episode
+  }
+  async replaceEpisode(id: string, draft: EpisodeDraft) {
+    const current = await this.getEpisode(id)
+    if (!current) throw new Error('episode not found')
+    const episode = this.fromDraft(current, draft)
+    this.episodes.set(current.characterId, (this.episodes.get(current.characterId) ?? []).map((e) => (e.id === id ? episode : e)))
+    return episode
+  }
+  async updateEpisode(id: string, patch: EpisodePatch) {
+    const current = await this.getEpisode(id)
+    if (!current) throw new Error('episode not found')
+    const episode = { ...current, ...patch }
+    this.episodes.set(current.characterId, (this.episodes.get(current.characterId) ?? []).map((e) => (e.id === id ? episode : e)))
+    return episode
+  }
+  async deleteEpisode(id: string) {
+    for (const [characterId, list] of this.episodes) this.episodes.set(characterId, list.filter((e) => e.id !== id))
+  }
+  private fromDraft(
+    row: Pick<EpisodeRecord, 'id' | 'authorId' | 'origin' | 'status' | 'version' | 'position' | 'unlock'>,
+    draft: EpisodeDraft
+  ): EpisodeRecord {
+    const { beats, ...fields } = draft
+    return { ...row, ...fields, beats: beats.map((b) => ({ ...b, episodeId: row.id })).sort((a, b) => a.position - b.position) }
   }
   async getEpisode(id: string) {
     for (const list of this.episodes.values()) {
