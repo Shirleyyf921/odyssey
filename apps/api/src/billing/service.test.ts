@@ -17,7 +17,7 @@ const silent = { info() {}, warn() {}, error() {} }
 const SECRET = 'webhook-secret-for-tests-0123456789'
 const PLUS_PRODUCT = 'odyssey_plus_monthly'
 /** The seeded PURCHASE moment (content/seed.ts). */
-const MOMENT_SKU = 'moment_elliot_05'
+const MOMENT_SKU = 'moment_ash_05'
 
 function inDays(n: number) {
   return new Date(Date.now() + n * 86_400_000).toISOString()
@@ -145,10 +145,10 @@ test('a bought SKU unlocks its moment; a refund stops unlocking new ones', async
   const { app, billing, repo } = await build(rc)
   const device = randomUUID()
   const userId = await userIdOf(app, device)
-  const elliot = (await repo.listCharacters()).find((c) => c.kind === 'PRIMARY')!
-  await app.inject({ method: 'POST', url: `/characters/${elliot.id}/start`, headers: asDevice(device) })
+  const primary = (await repo.listCharacters()).find((c) => c.kind === 'PRIMARY')!
+  await app.inject({ method: 'POST', url: `/characters/${primary.id}/start`, headers: asDevice(device) })
 
-  const before = MomentsResponse.parse((await app.inject({ method: 'GET', url: `/characters/${elliot.id}/moments`, headers: asDevice(device) })).json())
+  const before = MomentsResponse.parse((await app.inject({ method: 'GET', url: `/characters/${primary.id}/moments`, headers: asDevice(device) })).json())
   const target = before.moments.find((m) => m.unlock.kind === 'PURCHASE' && m.unlock.sku === MOMENT_SKU)!
   assert.equal(target.status, 'LOCKED')
 
@@ -161,7 +161,7 @@ test('a bought SKU unlocks its moment; a refund stops unlocking new ones', async
   const restored = RestoreResponse.parse((await app.inject({ method: 'POST', url: '/billing/restore', headers: asDevice(device) })).json())
   assert.deepEqual(restored.billing.purchasedSkus, [MOMENT_SKU])
 
-  const after = MomentsResponse.parse((await app.inject({ method: 'GET', url: `/characters/${elliot.id}/moments`, headers: asDevice(device) })).json())
+  const after = MomentsResponse.parse((await app.inject({ method: 'GET', url: `/characters/${primary.id}/moments`, headers: asDevice(device) })).json())
   const card = after.moments.find((m) => m.id === target.id)!
   assert.equal(card.status, 'UNLOCKED')
   assert.ok(card.imageUrl)
@@ -286,8 +286,8 @@ test('dev grant: open outside production, secret-gated in production, FREE revok
 test('dev purchase: a granted SKU unlocks its moment and is idempotent', async () => {
   const { app, repo } = await build(null)
   const device = randomUUID()
-  const elliot = (await repo.listCharacters()).find((c) => c.kind === 'PRIMARY')!
-  await app.inject({ method: 'POST', url: `/characters/${elliot.id}/start`, headers: asDevice(device) })
+  const primary = (await repo.listCharacters()).find((c) => c.kind === 'PRIMARY')!
+  await app.inject({ method: 'POST', url: `/characters/${primary.id}/start`, headers: asDevice(device) })
   for (let i = 0; i < 2; i++) {
     const res = await app.inject({ method: 'POST', url: '/billing/dev/purchase', headers: asDevice(device), payload: { sku: MOMENT_SKU } })
     assert.equal(res.statusCode, 200)
@@ -295,7 +295,7 @@ test('dev purchase: a granted SKU unlocks its moment and is idempotent', async (
   }
   const userId = await userIdOf(app, device)
   assert.equal((await repo.listPurchases(userId)).length, 1)
-  const gallery = MomentsResponse.parse((await app.inject({ method: 'GET', url: `/characters/${elliot.id}/moments`, headers: asDevice(device) })).json())
+  const gallery = MomentsResponse.parse((await app.inject({ method: 'GET', url: `/characters/${primary.id}/moments`, headers: asDevice(device) })).json())
   const card = gallery.moments.find((m) => m.unlock.kind === 'PURCHASE' && m.unlock.sku === MOMENT_SKU)!
   assert.equal(card.status, 'UNLOCKED')
 })

@@ -120,7 +120,7 @@ test('playing through: the photo beat sends its moment locked, the phone rings, 
   await say('stay', 0)
   const ring = last('incoming_call')
   assert.ok(ring, 'the phone rings')
-  assert.equal(ring.characterName, 'Elliot')
+  assert.equal(ring.characterName, 'Ash')
   assert.equal(ring.audioUrl, null)
   assert.equal(ring.silent, 'NOT_RENDERED', 'no clip is recorded yet, so it plays out in text')
   assert.equal(persona().length, before, 'a ring generates nothing')
@@ -201,7 +201,7 @@ test('a hotspot the beat does not offer is treated as ordinary text, not a touch
 
 test('the ring: a clip reaches Plus and never a free caller, and letting it ring is its own ending', async () => {
   // Pretend the clip has been rendered for the call beat.
-  const clip = 'https://cdn.example.com/calls/elliot-ep1.m4a'
+  const clip = 'https://cdn.example.com/calls/ash-ep1.m4a'
   const withClip = async (tier: 'FREE' | 'PLUS') => {
     const t = await setup()
     t.deps.billing = { async tierOf() { return tier } }

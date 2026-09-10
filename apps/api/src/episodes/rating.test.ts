@@ -24,9 +24,9 @@ test('ages are whole years and a birthday later this year does not count yet', (
 })
 
 test('the seeded MATURE episode is gated behind the SFW one', () => {
-  const elliot = SEED_CHARACTERS[0]!
-  const mature = elliot.episodes.find((e) => e.rating === 'MATURE')
+  const primary = SEED_CHARACTERS[0]!
+  const mature = primary.episodes.find((e) => e.rating === 'MATURE')
   assert.ok(mature, 'there is one to hide')
   assert.equal(mature.unlock.kind, 'EPISODE', 'and it is not the first thing anyone sees')
-  assert.ok(elliot.episodes.some((e) => e.rating === 'SFW'))
+  assert.ok(primary.episodes.some((e) => e.rating === 'SFW'))
 })

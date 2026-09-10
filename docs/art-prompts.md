@@ -26,7 +26,39 @@ Parameters, in one place:
 Rules of thumb: pick the face at step 1 and never regenerate it, only reference it. Run
 the face through reverse image search once; if it lands on a real person, throw it out.
 
-## Chosen heroes (2026-09-04, Lovart)
+## The roster (2026-09-10)
+
+Elliot was replaced. The diagnosis, which is worth keeping: the first three read as the same
+man in three jobs. Cover the faces and you could not tell them apart, because they shared a
+hair colour, a wardrobe, a light and a register. And they were jobs, not fantasies: a sound
+engineer, a chef and an architect have no world, no secret, and no reason you cannot simply
+have them.
+
+What replaced him, and the rule it sets: **a man is a silhouette, a world and a secret.**
+
+| | Ash (primary) | Jun | Theo |
+|---|---|---|---|
+| Silhouette | Ash-white hair, round glasses, oversized hoodie | Black swept back, steel frames, long coat | Warm blond, chef's whites |
+| Palette | Cool blue-cyan, one amber lamp | Cold blue-black, one warm rim | Warm tungsten |
+| World | Finds what people hide, at 3am, for free | Builds things and owns the people around them | A kitchen, after service |
+| Secret | He knew who you were before you met | *(to write)* | *(to write)* |
+
+Ash's hero: https://a.lovart.ai/artifacts/agent/BeMEa4P89ODWfwPR.png — he is looking at the
+viewer over the top of the glasses, which is the whole brief. His room backdrop:
+https://a.lovart.ai/artifacts/agent/78K32eU1y3LZaLZy.png (no person in it, 16:9).
+
+His paid cards, on the same line as everything else in "Paid moments":
+
+| Card | URL |
+|---|---|
+| Steam | https://a.lovart.ai/artifacts/agent/zXBDeVGcqUA7Nvxb.png |
+| After the run | https://a.lovart.ai/artifacts/agent/qgi8MpzqIr6DCuYC.png |
+| Your side | https://a.lovart.ai/artifacts/agent/FgUYH7au8u2KPLTn.png |
+
+Still owed for him: the four earned cards, which are placeholders, and a hotspot map cut to
+this framing rather than the shared one.
+
+## Chosen heroes (2026-09-04, Lovart) — Elliot, retired
 
 The faces are locked. Every later prompt attaches the hero as the character reference and
 Elliot's hero (plus one other) as the style reference. Canvas:

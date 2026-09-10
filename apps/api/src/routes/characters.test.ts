@@ -172,19 +172,19 @@ test('episodes: cards only, status follows the run, briefs stay on the server', 
   const { app, repo } = await build()
   const device = randomUUID()
   const roster = CharactersResponse.parse((await app.inject({ method: 'GET', url: '/characters', headers: { 'x-device-id': device } })).json())
-  const elliot = roster.characters.find((c) => c.kind === 'PRIMARY')!
+  const primary = roster.characters.find((c) => c.kind === 'PRIMARY')!
 
-  const before = EpisodesResponse.parse((await app.inject({ method: 'GET', url: `/characters/${elliot.id}/episodes`, headers: { 'x-device-id': device } })).json())
+  const before = EpisodesResponse.parse((await app.inject({ method: 'GET', url: `/characters/${primary.id}/episodes`, headers: { 'x-device-id': device } })).json())
   assert.equal(before.relationship, null)
   assert.equal(before.episodes.length, 1)
   assert.equal(before.episodes[0]!.status, 'AVAILABLE')
-  const raw = (await app.inject({ method: 'GET', url: `/characters/${elliot.id}/episodes`, headers: { 'x-device-id': device } })).body
+  const raw = (await app.inject({ method: 'GET', url: `/characters/${primary.id}/episodes`, headers: { 'x-device-id': device } })).body
   assert.ok(!raw.includes('brief'), 'the brief is not in the payload')
 
-  const started = StartRelationshipResponse.parse((await app.inject({ method: 'POST', url: `/characters/${elliot.id}/start`, headers: { 'x-device-id': device } })).json())
-  const [episode] = await repo.listEpisodes(elliot.id)
+  const started = StartRelationshipResponse.parse((await app.inject({ method: 'POST', url: `/characters/${primary.id}/start`, headers: { 'x-device-id': device } })).json())
+  const [episode] = await repo.listEpisodes(primary.id)
   await repo.createRun({ relationshipId: started.relationship.id, episodeId: episode!.id, currentBeatId: episode!.firstBeatId })
-  const during = EpisodesResponse.parse((await app.inject({ method: 'GET', url: `/characters/${elliot.id}/episodes`, headers: { 'x-device-id': device } })).json())
+  const during = EpisodesResponse.parse((await app.inject({ method: 'GET', url: `/characters/${primary.id}/episodes`, headers: { 'x-device-id': device } })).json())
   assert.equal(during.episodes[0]!.status, 'IN_PROGRESS')
   assert.equal(during.episodes[0]!.currentBeat, 1)
 
@@ -193,19 +193,19 @@ test('episodes: cards only, status follows the run, briefs stay on the server', 
   assert.deepEqual(none.episodes, [])
 })
 
-test('tonight gives one card per character, the open one for Elliot and nothing for the others', async () => {
+test('tonight gives one card per character, the open one for the primary and nothing for the others', async () => {
   const { app, repo } = await build()
   const device = randomUUID()
   const before = TonightResponse.parse((await app.inject({ method: 'GET', url: '/tonight', headers: { 'x-device-id': device } })).json())
   assert.equal(before.items.length, 3)
-  const elliot = before.items.find((i) => i.character.kind === 'PRIMARY')!
-  assert.equal(elliot.episode?.title, 'The second staircase')
-  assert.equal(elliot.episode?.status, 'AVAILABLE')
+  const primaryItem = before.items.find((i) => i.character.kind === 'PRIMARY')!
+  assert.equal(primaryItem.episode?.title, 'Four minutes')
+  assert.equal(primaryItem.episode?.status, 'AVAILABLE')
   assert.ok(before.items.filter((i) => i.character.kind === 'EXPLORE').every((i) => i.episode === null), 'no episodes, no card')
   assert.ok(!(await app.inject({ method: 'GET', url: '/tonight', headers: { 'x-device-id': device } })).body.includes('brief'))
 
-  const started = StartRelationshipResponse.parse((await app.inject({ method: 'POST', url: `/characters/${elliot.character.id}/start`, headers: { 'x-device-id': device } })).json())
-  const [episode] = await repo.listEpisodes(elliot.character.id)
+  const started = StartRelationshipResponse.parse((await app.inject({ method: 'POST', url: `/characters/${primaryItem.character.id}/start`, headers: { 'x-device-id': device } })).json())
+  const [episode] = await repo.listEpisodes(primaryItem.character.id)
   await repo.createRun({ relationshipId: started.relationship.id, episodeId: episode!.id, currentBeatId: episode!.firstBeatId })
   const during = TonightResponse.parse((await app.inject({ method: 'GET', url: '/tonight', headers: { 'x-device-id': device } })).json())
   const now = during.items.find((i) => i.character.kind === 'PRIMARY')!
@@ -217,14 +217,14 @@ test('tonight gives one card per character, the open one for Elliot and nothing 
 test('the rating rail: a store build never sees MATURE, and the web build only after the age gate', async () => {
   const { app, repo } = await build()
   const device = randomUUID()
-  const elliot = (await repo.listCharacters()).find((c) => c.kind === 'PRIMARY')!
-  const url = `/characters/${elliot.id}/episodes`
+  const primary = (await repo.listCharacters()).find((c) => c.kind === 'PRIMARY')!
+  const url = `/characters/${primary.id}/episodes`
   const titles = async (headers: Record<string, string>) =>
     EpisodesResponse.parse((await app.inject({ method: 'GET', url, headers })).json()).episodes.map((e) => e.title)
 
   const asDevice = { 'x-device-id': device }
   const asWeb = { ...asDevice, 'x-odyssey-channel': 'web' }
-  const all = (await repo.listEpisodes(elliot.id)).map((e) => e.title)
+  const all = (await repo.listEpisodes(primary.id)).map((e) => e.title)
   assert.equal(all.length, 2, 'the seed has one of each rating')
 
   assert.deepEqual(await titles(asDevice), [all[0]], 'no channel header is read as store')
