@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { renderStoryTurn } from '@odyssey/prompts'
-import { toMomentCard, type Beat, type ClientEvent, type EpisodeRun, type RelationshipStage, type ServerEvent } from '@odyssey/shared'
+import { toMomentCard, type Beat, type ClientEvent, type EpisodeRun, type RelationshipStage, type ServerEvent, type Tier } from '@odyssey/shared'
 import { availability, toEpisodeCard } from '../episodes/availability.js'
 import { TOUCH_PHRASE, allowedHotspots } from './touch.js'
 import { canSee } from '../episodes/rating.js'
@@ -55,7 +55,8 @@ function choicesEvent(
     type: 'choices',
     conversationId,
     messageId,
-    options: beat.kind === 'STORY' ? options : [],
+    // END is the only beat with nothing to choose; a CALL beat's options are answer and let it ring.
+    options: beat.kind === 'END' ? [] : options,
     beat: {
       position: episode.beats.findIndex((b) => b.id === beat.id) + 1,
       count: episode.beats.length,
@@ -105,6 +106,7 @@ export async function handleStartEpisode(
   send({ type: 'episode_started', conversationId: ctx.conversation.id, episode: toEpisodeCard(episode, ctx.relationship, tier, runsNow, all), message })
   const beat = episode.beats.find((b) => b.id === run.currentBeatId)!
   const lastCharacter = message ?? (await repo.listRecentMessages(ctx.conversation.id, 20)).filter((m) => m.role === 'CHARACTER').at(-1)
+  if (beat.kind === 'CALL') send(ringEvent(ctx, beat, tier))
   if (lastCharacter) send(choicesEvent(ctx.conversation.id, lastCharacter.id, episode, beat, intentsOf(beat), ctx.relationship.stage))
 }
 
@@ -113,6 +115,7 @@ export async function choicesAfterResume(deps: ChatDeps, ctx: ConversationContex
   const story = await activeStory(deps, ctx)
   if (!story) return
   const last = (await deps.repo.listRecentMessages(ctx.conversation.id, 20)).filter((m) => m.role === 'CHARACTER').at(-1)
+  if (story.beat.kind === 'CALL') send(ringEvent(ctx, story.beat, await deps.billing.tierOf(ctx.user.id)))
   if (last) send(choicesEvent(ctx.conversation.id, last.id, story.episode, story.beat, intentsOf(story.beat), ctx.relationship.stage))
 }
 
@@ -156,6 +159,19 @@ export async function runStoryTurn(deps: ChatDeps, input: StoryTurnInput, send: 
     }
   }
   const beat = target
+
+  // Arriving at a call beat: the phone rings and nothing is generated. He speaks
+  // on the beat after the user answers, which is authored like any other.
+  if (beat.kind === 'CALL' && beat.id !== story.beat.id) {
+    await repo.updateRun(story.run.id, { currentBeatId: beat.id, path: [...story.run.path, beat.id] })
+    const tier = await deps.billing.tierOf(ctx.user.id)
+    send(ringEvent(ctx, beat, tier))
+    const last = (await repo.listRecentMessages(conversationId, 20)).filter((m) => m.role === 'CHARACTER').at(-1)
+    if (last) send(choicesEvent(conversationId, last.id, story.episode, beat, intentsOf(beat), ctx.relationship.stage))
+    log.info({ conversationId, episodeId: story.episode.id, beat: beat.position, ringing: true }, 'story turn')
+    return { replyId: input.userMessageId, model: null, usage: null }
+  }
+
   const expectOptions = beat.kind === 'STORY' && !touch
 
   const system = renderStoryTurn({
@@ -255,4 +271,32 @@ async function offerBeatPhoto(deps: ChatDeps, ctx: ConversationContext, momentId
   })
   log.info({ conversationId: ctx.conversation.id, momentId }, 'beat photo sent')
   send({ type: 'moment_offer', message, moment: toMomentCard(moment, unlock) })
+}
+
+/**
+ * The ring (docs/story-pipeline.md, "Voice"). A CALL beat is the only beat that
+ * costs no generation: nothing is written until the user answers or lets it
+ * ring, which are the beat's two authored options. The clip, when one exists,
+ * is a file rendered offline; nothing is synthesized at runtime.
+ *
+ * FREE hears it ring and reads what he says. That is the tier line: the voice
+ * is the thing Plus buys, not the story.
+ */
+export function ringEvent(
+  ctx: ConversationContext,
+  beat: Beat,
+  tier: Tier
+): Extract<ServerEvent, { type: 'incoming_call' }> {
+  const rendered = beat.callUrl !== null
+  const allowed = tier !== 'FREE'
+  const silent = !rendered ? 'NOT_RENDERED' : !allowed ? 'NEEDS_PLUS' : 'NONE'
+  return {
+    type: 'incoming_call',
+    conversationId: ctx.conversation.id,
+    characterName: ctx.character.name,
+    // The URL leaves the server only when both are true; a FREE client never holds it.
+    audioUrl: silent === 'NONE' ? beat.callUrl : null,
+    seconds: silent === 'NONE' ? beat.callSeconds : null,
+    silent,
+  }
 }

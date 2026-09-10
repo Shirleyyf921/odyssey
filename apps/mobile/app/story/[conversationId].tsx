@@ -15,6 +15,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { parseReply, parseStoryOutput, type Hotspot, type HotspotRect } from '@odyssey/shared'
+import { CallScreen } from '../../src/components/CallScreen'
 import { PhotoBubble } from '../../src/components/MessageBubble'
 import { api } from '../../src/lib/api'
 import { billing } from '../../src/lib/billing'
@@ -104,8 +105,11 @@ export default function StoryScreen() {
   }, [lastCharacter?.id, pages.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const atEnd = pageIndex >= pages.length - 1
-  const showPhoto = lastPhoto && dismissedPhoto !== lastPhoto.id && (!lastCharacter || lastPhoto.createdAt >= lastCharacter.createdAt || atEnd)
   const choices = conv?.choices ?? null
+  const ringing = conv?.ringing ?? null
+  // A ringing phone outranks a photo he sent a moment ago: it waits until the call is resolved.
+  const showPhoto =
+    !ringing && lastPhoto && dismissedPhoto !== lastPhoto.id && (!lastCharacter || lastPhoto.createdAt >= lastCharacter.createdAt || atEnd)
   const ended = !!conv?.notices.some((n) => n.key.startsWith('end-'))
   const [typing, setTyping] = useState(false)
   const [draft, setDraft] = useState('')
@@ -267,6 +271,16 @@ export default function StoryScreen() {
             <Text style={styles.dismiss}>Later</Text>
           </Pressable>
         </View>
+      ) : null}
+
+      {/* He is calling: the whole screen is the call until it is answered or not. */}
+      {ringing ? (
+        <CallScreen
+          ringing={ringing}
+          portraitUrl={hero}
+          onAnswer={() => choose(0)}
+          onDecline={() => choose(1)}
+        />
       ) : null}
 
       {conv?.intervention && (
