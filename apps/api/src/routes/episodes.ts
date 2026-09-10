@@ -2,7 +2,9 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { EpisodeDraft, type AuthoredEpisodeResponse, type MyEpisodesResponse, type SubmitEpisodeResponse } from '@odyssey/shared'
 import type { AppRepository, EpisodeRecord } from '../repo/types.js'
+import type { LlmGateway } from '../llm/gateway.js'
 import { ScreenerUnavailable, unitsOf, type EpisodeScreener } from '../safety/episode-screen.js'
+import { DryRunUnavailable, dryRun } from '../story/dry-run.js'
 
 const Params = z.object({ id: z.string().uuid() })
 
@@ -15,8 +17,16 @@ const EDITABLE = new Set(['DRAFT', 'REJECTED'])
  * draft is a row the author can see whole, briefs included, because they wrote
  * them. Inside requireIdentity.
  */
-export async function authorRoutes(app: FastifyInstance, opts: { repo: AppRepository; screener: EpisodeScreener }) {
-  const { repo, screener } = opts
+export interface AuthorRouteDeps {
+  repo: AppRepository
+  screener: EpisodeScreener
+  gateway: LlmGateway
+}
+
+export async function authorRoutes(app: FastifyInstance, opts: AuthorRouteDeps) {
+  const { repo, screener, gateway } = opts
+  const play = (episode: EpisodeRecord) =>
+    repo.getCharacter(episode.characterId).then((c) => dryRun({ gateway, screener, log: app.log }, c!, episode))
 
   app.get('/me/episodes', async (req): Promise<MyEpisodesResponse> => {
     return { episodes: await repo.listEpisodesByAuthor(req.user.id) }
@@ -59,6 +69,23 @@ export async function authorRoutes(app: FastifyInstance, opts: { repo: AppReposi
    * whatever the text reads as, at least what was declared; MATURE needs the age
    * gate. A unit the screen could not read is submitted for a human to read.
    */
+  /**
+   * The dry-run on its own, so an author can read how he plays their beats
+   * before committing. Submit runs it again regardless.
+   */
+  app.post('/me/episodes/:id/dry-run', async (req, reply): Promise<AuthoredEpisodeResponse | void> => {
+    const current = await own(req.user.id, Params.parse(req.params).id)
+    if (!current) return reply.code(404).send({ error: 'episode not found' })
+    if (!EDITABLE.has(current.status)) return reply.code(409).send({ error: `a ${current.status} episode cannot be played as a draft` })
+    try {
+      const episode = await repo.updateEpisode(current.id, { dryRun: await play(current) })
+      return { episode }
+    } catch (err) {
+      if (err instanceof DryRunUnavailable) return reply.code(503).send({ error: 'he is not answering right now; nothing was changed, try again in a minute' })
+      throw err
+    }
+  })
+
   app.post('/me/episodes/:id/submit', async (req, reply): Promise<SubmitEpisodeResponse | void> => {
     const current = await own(req.user.id, Params.parse(req.params).id)
     if (!current) return reply.code(404).send({ error: 'episode not found' })
@@ -93,7 +120,22 @@ export async function authorRoutes(app: FastifyInstance, opts: { repo: AppReposi
       for (const u of report.units) if (u.label === 'UNSURE') notes.push(`${u.at}: the screen could not read this; a person will`)
     }
 
-    const episode = await repo.updateEpisode(current.id, { status: outcome, rating, reviewNote: notes.length ? notes.join('\n') : null })
+    // The screen passed: now he plays it. A beat he cannot play is a rejection with the transcript attached.
+    let run = current.dryRun
+    if (outcome === 'SUBMITTED') {
+      try {
+        run = await play(current)
+      } catch (err) {
+        if (err instanceof DryRunUnavailable) return reply.code(503).send({ error: 'he is not answering right now; nothing was changed, try again in a minute' })
+        throw err
+      }
+      if (!run.passed) {
+        outcome = 'REJECTED'
+        for (const b of run.beats) if (b.problem) notes.push(`${b.at}: ${b.problem}`)
+      }
+    }
+
+    const episode = await repo.updateEpisode(current.id, { status: outcome, rating, reviewNote: notes.length ? notes.join('\n') : null, dryRun: run })
     req.log.info({ userId: req.user.id, episodeId: episode.id, outcome, rating, worst: report.worst }, 'episode submitted')
     return { episode, outcome, notes }
   })

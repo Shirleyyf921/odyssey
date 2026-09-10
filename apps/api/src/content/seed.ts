@@ -59,6 +59,7 @@ const ASH_EPISODE_1: EpisodeRecord = {
   status: 'LIVE',
   version: 1,
   reviewNote: null,
+  dryRun: null,
   beats: [
     {
       id: B(1),
@@ -235,6 +236,7 @@ const ASH_EPISODE_2: EpisodeRecord = {
   status: 'LIVE',
   version: 1,
   reviewNote: null,
+  dryRun: null,
   beats: [
     {
       id: C(1),
@@ -317,6 +319,7 @@ const RAFE_EPISODE_1: EpisodeRecord = {
   status: 'LIVE',
   version: 1,
   reviewNote: null,
+  dryRun: null,
   beats: [
     {
       id: D(1),
@@ -433,6 +436,7 @@ const JUN_EPISODE_1: EpisodeRecord = {
   status: 'LIVE',
   version: 1,
   reviewNote: null,
+  dryRun: null,
   beats: [
     {
       id: E(1),

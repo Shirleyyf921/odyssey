@@ -197,7 +197,7 @@ export class MemoryRepository implements AppRepository {
   }
   async createEpisode(authorId: string, draft: EpisodeDraft) {
     const id = randomUUID()
-    const episode = this.fromDraft({ id, authorId, origin: 'UGC', status: 'DRAFT', version: 1, position: 0, unlock: { kind: 'FREE' }, reviewNote: null }, draft)
+    const episode = this.fromDraft({ id, authorId, origin: 'UGC', status: 'DRAFT', version: 1, position: 0, unlock: { kind: 'FREE' }, reviewNote: null, dryRun: null }, draft)
     this.episodes.set(draft.characterId, [...(this.episodes.get(draft.characterId) ?? []), episode])
     return episode
   }
@@ -220,7 +220,7 @@ export class MemoryRepository implements AppRepository {
     for (const [characterId, list] of this.episodes) this.episodes.set(characterId, list.filter((e) => e.id !== id))
   }
   private fromDraft(
-    row: Pick<EpisodeRecord, 'id' | 'authorId' | 'origin' | 'status' | 'version' | 'position' | 'unlock' | 'reviewNote'>,
+    row: Pick<EpisodeRecord, 'id' | 'authorId' | 'origin' | 'status' | 'version' | 'position' | 'unlock' | 'reviewNote' | 'dryRun'>,
     draft: EpisodeDraft
   ): EpisodeRecord {
     const { beats, ...fields } = draft

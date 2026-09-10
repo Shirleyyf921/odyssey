@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Beat, BillingStatus, Character, Tier, CharacterProfile, Episode, EpisodeCard, MomentCard, Relationship, RelationshipStage, Scene } from './domain.js'
+import { Beat, BillingStatus, Character, Tier, CharacterProfile, DryRun, Episode, EpisodeCard, MomentCard, Relationship, RelationshipStage, Scene } from './domain.js'
 
 /**
  * REST shapes. The client validates every response against these, so a server
@@ -74,7 +74,7 @@ export type EpisodesResponse = z.infer<typeof EpisodesResponse>
  * briefs leave the server, and only to the person who wrote them.
  * docs/ugc-pipeline.md, section 2.
  */
-export const AuthoredEpisode = Episode.extend({ beats: z.array(Beat) })
+export const AuthoredEpisode = Episode.extend({ beats: z.array(Beat), dryRun: DryRun.nullable() })
 export type AuthoredEpisode = z.infer<typeof AuthoredEpisode>
 
 export const MyEpisodesResponse = z.object({ episodes: z.array(AuthoredEpisode) })
