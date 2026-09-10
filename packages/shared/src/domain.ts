@@ -276,6 +276,18 @@ export const EpisodeUnlockRule = z.discriminatedUnion('kind', [
 ])
 export type EpisodeUnlockRule = z.infer<typeof EpisodeUnlockRule>
 
+/** Who wrote it. Ours, or a creator's under the terms in docs/ugc-pipeline.md. */
+export const EpisodeOrigin = z.enum(['OFFICIAL', 'UGC'])
+export type EpisodeOrigin = z.infer<typeof EpisodeOrigin>
+
+/**
+ * Where an episode is in its life, from the author's blank page to the shelf.
+ * Official episodes are born LIVE. Not to be confused with `EpisodeStatus`,
+ * which is one player's progress through it (docs/ugc-pipeline.md, section 1).
+ */
+export const EpisodeLifecycle = z.enum(['DRAFT', 'SUBMITTED', 'LIVE', 'REJECTED', 'UNLISTED', 'REMOVED'])
+export type EpisodeLifecycle = z.infer<typeof EpisodeLifecycle>
+
 export const BeatKind = z.enum([
   /** Narration, his line, two authored options plus free text. */
   'STORY',
@@ -346,6 +358,12 @@ export const Episode = z.object({
   rating: ContentRating,
   unlock: EpisodeUnlockRule,
   firstBeatId: z.string().uuid(),
+  /** Null for ours; the creator's user id for theirs. */
+  authorId: z.string().uuid().nullable(),
+  origin: EpisodeOrigin,
+  status: EpisodeLifecycle,
+  /** Bumps on every edit after LIVE. Runs pin the version they started on. */
+  version: z.number().int().min(1),
 })
 export type Episode = z.infer<typeof Episode>
 
@@ -355,12 +373,24 @@ export const EpisodeRun = z.object({
   relationshipId: z.string().uuid(),
   episodeId: z.string().uuid(),
   currentBeatId: z.string().uuid(),
+  /** The episode version this run started on, so an edit after LIVE cannot strand a player mid-path. */
+  episodeVersion: z.number().int().min(1),
   /** Beat ids in the order visited, current one last. */
   path: z.array(z.string().uuid()),
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime().nullable(),
 })
 export type EpisodeRun = z.infer<typeof EpisodeRun>
+
+/** A player flagging a user-made episode. One per player per episode; the count lives on the episode row. */
+export const EpisodeReport = z.object({
+  id: z.string().uuid(),
+  episodeId: z.string().uuid(),
+  reporterId: z.string().uuid(),
+  reason: z.string().min(1).max(500),
+  createdAt: z.string().datetime(),
+})
+export type EpisodeReport = z.infer<typeof EpisodeReport>
 
 export const EpisodeStatus = z.enum(['LOCKED', 'AVAILABLE', 'IN_PROGRESS', 'DONE'])
 export type EpisodeStatus = z.infer<typeof EpisodeStatus>

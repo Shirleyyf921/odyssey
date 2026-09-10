@@ -19,6 +19,7 @@ function run(episodeId: string, ended: boolean, currentBeatId = ep1.beats[2]!.id
     relationshipId: randomUUID(),
     episodeId,
     currentBeatId,
+    episodeVersion: 1,
     path: [ep1.firstBeatId, currentBeatId],
     startedAt: new Date().toISOString(),
     endedAt: ended ? new Date().toISOString() : null,
@@ -42,6 +43,11 @@ test('the seeded episode is well formed: first beat exists, every next resolves,
         if (b.photoMomentId) assert.ok(seed.moments.some((m) => m.id === b.photoMomentId), `${e.title}/${b.position}: photo exists`)
       }
       assert.ok(e.beats.some((b) => b.kind === 'END'), `${e.title}: has an ending`)
+      assert.deepEqual(
+        { authorId: e.authorId, origin: e.origin, status: e.status, version: e.version },
+        { authorId: null, origin: 'OFFICIAL', status: 'LIVE', version: 1 },
+        `${e.title}: ours, and on the shelf`
+      )
     }
   }
   assert.equal(primary.episodes.length, 2, 'one SFW, one MATURE')

@@ -129,6 +129,14 @@ export interface EpisodeRecord extends Episode {
   beats: Beat[]
 }
 
+/** Runs pin the episode version they started on (docs/ugc-pipeline.md, section 1). */
+export interface CreateRunInput {
+  relationshipId: string
+  episodeId: string
+  currentBeatId: string
+  episodeVersion: number
+}
+
 export interface EpisodeRunPatch {
   currentBeatId?: string
   path?: string[]
@@ -224,7 +232,7 @@ export interface AppRepository extends ChatRepository {
   getEpisode(id: string): Promise<EpisodeRecord | null>
   listRuns(relationshipId: string): Promise<EpisodeRun[]>
   findRun(relationshipId: string, episodeId: string): Promise<EpisodeRun | null>
-  createRun(input: { relationshipId: string; episodeId: string; currentBeatId: string }): Promise<EpisodeRun>
+  createRun(input: CreateRunInput): Promise<EpisodeRun>
   updateRun(id: string, patch: EpisodeRunPatch): Promise<EpisodeRun>
 
   // billing — written only by the RevenueCat reconcile path

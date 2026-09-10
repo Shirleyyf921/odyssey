@@ -54,6 +54,10 @@ const ASH_EPISODE_1: EpisodeRecord = {
   rating: 'SFW',
   unlock: { kind: 'FREE' },
   firstBeatId: B(1),
+  authorId: null,
+  origin: 'OFFICIAL',
+  status: 'LIVE',
+  version: 1,
   beats: [
     {
       id: B(1),
@@ -225,6 +229,10 @@ const ASH_EPISODE_2: EpisodeRecord = {
   rating: 'MATURE',
   unlock: { kind: 'EPISODE', episodeId: EP1 },
   firstBeatId: C(1),
+  authorId: null,
+  origin: 'OFFICIAL',
+  status: 'LIVE',
+  version: 1,
   beats: [
     {
       id: C(1),
@@ -302,6 +310,10 @@ const RAFE_EPISODE_1: EpisodeRecord = {
   rating: 'SFW',
   unlock: { kind: 'FREE' },
   firstBeatId: D(1),
+  authorId: null,
+  origin: 'OFFICIAL',
+  status: 'LIVE',
+  version: 1,
   beats: [
     {
       id: D(1),
@@ -413,6 +425,10 @@ const JUN_EPISODE_1: EpisodeRecord = {
   rating: 'SFW',
   unlock: { kind: 'FREE' },
   firstBeatId: E(1),
+  authorId: null,
+  origin: 'OFFICIAL',
+  status: 'LIVE',
+  version: 1,
   beats: [
     {
       id: E(1),

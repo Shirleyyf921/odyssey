@@ -51,6 +51,8 @@ export const store = pgEnum('store', [
 export const billingEnvironment = pgEnum('billing_environment', ['SANDBOX', 'PRODUCTION'])
 export const contentRating = pgEnum('content_rating', ['SFW', 'MATURE'])
 export const beatKind = pgEnum('beat_kind', ['STORY', 'CALL', 'END'])
+export const episodeOrigin = pgEnum('episode_origin', ['OFFICIAL', 'UGC'])
+export const episodeStatus = pgEnum('episode_status', ['DRAFT', 'SUBMITTED', 'LIVE', 'REJECTED', 'UNLISTED', 'REMOVED'])
 
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' })
 
@@ -368,9 +370,18 @@ export const episodes = pgTable(
     unlockRule: jsonb('unlock_rule').$type<EpisodeUnlockRule>().notNull(),
     /** No FK: beats reference episodes, so this would be circular. Validated by the seed test. */
     firstBeatId: uuid('first_beat_id').notNull(),
+    // ---- authorship and life (docs/ugc-pipeline.md, section 1). Defaults describe our own rows.
+    /** Null for ours. A deleted creator leaves the episode; the row is removed by moderation, not by cascade. */
+    authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
+    origin: episodeOrigin('origin').notNull().default('OFFICIAL'),
+    status: episodeStatus('status').notNull().default('LIVE'),
+    version: integer('version').notNull().default(1),
+    reportCount: integer('report_count').notNull().default(0),
+    lastReviewedAt: timestamptz('last_reviewed_at'),
+    reviewNote: text('review_note'),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
   },
-  (t) => [index('episodes_character_idx').on(t.characterId, t.position)]
+  (t) => [index('episodes_character_idx').on(t.characterId, t.position), index('episodes_author_idx').on(t.authorId)]
 )
 
 export const beats = pgTable(
@@ -407,9 +418,28 @@ export const episodeRuns = pgTable(
       .notNull()
       .references(() => episodes.id, { onDelete: 'cascade' }),
     currentBeatId: uuid('current_beat_id').notNull(),
+    /** The episode version at start. Existing runs predate versions, hence the default. */
+    episodeVersion: integer('episode_version').notNull().default(1),
     path: jsonb('path').$type<string[]>().notNull().default([]),
     startedAt: timestamptz('started_at').notNull().defaultNow(),
     endedAt: timestamptz('ended_at'),
   },
   (t) => [uniqueIndex('episode_runs_relationship_episode_uq').on(t.relationshipId, t.episodeId)]
+)
+
+/** A player's flag on a user-made episode. Counted onto `episodes.report_count`; the UNLISTED threshold reads that. */
+export const episodeReports = pgTable(
+  'episode_reports',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    episodeId: uuid('episode_id')
+      .notNull()
+      .references(() => episodes.id, { onDelete: 'cascade' }),
+    reporterId: uuid('reporter_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    reason: text('reason').notNull(),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('episode_reports_episode_reporter_uq').on(t.episodeId, t.reporterId)]
 )

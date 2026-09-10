@@ -92,7 +92,7 @@ export async function handleStartEpisode(
   let run = open ?? null
   let message = null
   if (!run) {
-    run = await repo.createRun({ relationshipId: ctx.relationship.id, episodeId: episode.id, currentBeatId: episode.firstBeatId })
+    run = await repo.createRun({ relationshipId: ctx.relationship.id, episodeId: episode.id, currentBeatId: episode.firstBeatId, episodeVersion: episode.version })
     message = await repo.insertMessage({
       conversationId: ctx.conversation.id,
       role: 'CHARACTER',
