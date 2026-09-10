@@ -162,3 +162,5 @@ inside episodes), any plan for realtime video. Runtime TTS stays v2.
 - Whether choices should ever be hidden behind Plus (Tipsy locks some). Default no; it breaks
   the fiction the same way metering messages does.
 - Mythological / "Odyssey" cast: keep as a season concept for later, not a character type.
+- User-made episodes: decided 2026-09-10, see `docs/ugc-pipeline.md`. Creators write scripts
+  for our men; they do not make people.
