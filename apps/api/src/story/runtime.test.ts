@@ -248,3 +248,21 @@ test('a resume while the phone is ringing rings again', async () => {
   assert.ok(t.last('incoming_call'), 'the client that reconnected still has a call waiting')
   assert.deepEqual(t.last('choices')?.options, ['Answer', 'Let it ring'])
 })
+
+test('answering the ring puts the phone rule into the prompt; letting it ring does not', async () => {
+  const answered = await setup()
+  await answered.start()
+  await answered.say('sit', 0)
+  await answered.say('ask', 0)
+  await answered.say('stay', 0)
+  await answered.say('Answer', 0)
+  assert.ok(answered.persona().at(-1)!.system.includes('You are on the phone'))
+
+  const ignored = await setup()
+  await ignored.start()
+  await ignored.say('sit', 0)
+  await ignored.say('ask', 0)
+  await ignored.say('stay', 0)
+  await ignored.say('Let it ring', 1)
+  assert.ok(!ignored.persona().at(-1)!.system.includes('You are on the phone'), 'a text that arrives later is not a call')
+})

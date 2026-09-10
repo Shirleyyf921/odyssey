@@ -193,6 +193,9 @@ export async function runStoryTurn(deps: ChatDeps, input: StoryTurnInput, send: 
     userAction,
     opening: false,
     reacting: !!touch,
+    // Answering a ring lands on the beat after it, which is his voice on a phone.
+    // On a CALL beat options[0] answers and options[1] lets it ring (see BeatKind).
+    onPhone: story.beat.kind === 'CALL' && event.choice === 0,
   })
   const request: CompletionRequest = {
     system: input.turnDirective ? `${system}\n\n## Right now\n- ${input.turnDirective}` : system,
