@@ -6,8 +6,8 @@ import { SEED_CHARACTERS } from '../content/seed.js'
 import type { EpisodeRecord } from '../repo/types.js'
 import { availability, toEpisodeCard, tonight } from './availability.js'
 
-const elliot = SEED_CHARACTERS[0]!
-const ep1 = elliot.episodes[0]!
+const primary = SEED_CHARACTERS[0]!
+const ep1 = primary.episodes[0]!
 
 function episode(id: string, unlock: EpisodeUnlockRule, position = 1): EpisodeRecord {
   return { ...ep1, id, position, title: `ep ${position}`, unlock, beats: ep1.beats }
@@ -44,7 +44,7 @@ test('the seeded episode is well formed: first beat exists, every next resolves,
       assert.ok(e.beats.some((b) => b.kind === 'END'), `${e.title}: has an ending`)
     }
   }
-  assert.equal(elliot.episodes.length, 2, 'one SFW, one MATURE')
+  assert.equal(primary.episodes.length, 2, 'one SFW, one MATURE')
 })
 
 test('FREE is available without a relationship; a run makes it in progress or done', () => {
