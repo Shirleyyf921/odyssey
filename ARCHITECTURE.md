@@ -663,6 +663,21 @@ Content: Elliot's second episode, "The long way home", is MATURE and unlocks aft
 so the rail has something real to hide. It stays inside the line in `docs/art-prompts.md`:
 charged, one person, nothing explicit.
 
+**Step 7 (2026-09-10): the ring.** A `CALL` beat is the only beat that costs no generation.
+Arriving at one sends `incoming_call` and stops: nothing is written until the user answers or
+lets it ring, which are the beat's two authored options and arrive as ordinary `choices`. He
+speaks on the beat after, which is authored like any other, so the phone call is content
+rather than a second code path. A resume while the phone is ringing rings again.
+
+The clip is a file rendered offline; nothing is synthesized at runtime. `audioUrl` leaves the
+server only when a clip exists for that beat *and* the caller's tier includes calls, so a free
+client never holds the file; `silent` says which of the two is missing and the beat plays out
+in text. That is the tier line: Plus buys the voice, not the story. Elliot's first episode now
+ends on a call with two endings, answered and not, so the path is real before any voice is cast.
+
+On the client the call takes the whole screen, opaque, and outranks a photo he sent a moment
+earlier: the photo waits until the call is resolved.
+
 ## 15. Relationship Progression
 
 `Relationship.affinity` (0–100, never shown as a number) and `Relationship.stage` are the

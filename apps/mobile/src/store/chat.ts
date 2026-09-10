@@ -15,6 +15,14 @@ export interface Streaming {
   line: string
 }
 
+/** Story mode: he is calling. Cleared when the user answers or lets it ring. */
+export interface Ringing {
+  characterName: string
+  audioUrl: string | null
+  seconds: number | null
+  silent: 'NONE' | 'NOT_RENDERED' | 'NEEDS_PLUS'
+}
+
 /** Story mode: what the user can do after his last line. */
 export interface Choices {
   messageId: string
@@ -43,6 +51,7 @@ interface ConversationState {
   intervention: Intervention | null
   error: string | null
   choices: Choices | null
+  ringing: Ringing | null
   /** Title of the open episode, for the header; null outside story mode. */
   episodeTitle: string | null
 }
@@ -71,6 +80,7 @@ const empty = (): ConversationState => ({
   intervention: null,
   error: null,
   choices: null,
+  ringing: null,
   episodeTitle: null,
 })
 
@@ -94,7 +104,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       return {
         conversations: {
           ...s.conversations,
-          [conversationId]: { ...c, pending: [...c.pending, pending], error: null, choices: keepChoices ? c.choices : null },
+          [conversationId]: { ...c, pending: [...c.pending, pending], error: null, choices: keepChoices ? c.choices : null, ringing: keepChoices ? c.ringing : null },
         },
       }
     }),
@@ -171,6 +181,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         case 'choices':
           next = { ...c, choices: { messageId: event.messageId, options: event.options, beat: event.beat } }
           break
+        case 'incoming_call':
+          next = { ...c, ringing: { characterName: event.characterName, audioUrl: event.audioUrl, seconds: event.seconds, silent: event.silent } }
+          break
         case 'episode_started':
           next = {
             ...c,
@@ -179,7 +192,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           }
           break
         case 'episode_ended':
-          next = { ...c, choices: null, episodeTitle: null, notices: [...c.notices, { key: `end-${event.episodeId}`, text: 'End of tonight.', at: new Date().toISOString() }] }
+          next = { ...c, choices: null, ringing: null, episodeTitle: null, notices: [...c.notices, { key: `end-${event.episodeId}`, text: 'End of tonight.', at: new Date().toISOString() }] }
           break
         case 'moment_unlocked':
           next = {

@@ -54,7 +54,7 @@ test('FREE is available without a relationship; a run makes it in progress or do
   assert.equal(availability(ep1, null, 'FREE', [run(ep1.id, true)], all).status, 'DONE')
   const card = toEpisodeCard(ep1, null, 'FREE', [run(ep1.id, false)], all)
   assert.equal(card.currentBeat, 3)
-  assert.equal(card.beatCount, 5)
+  assert.equal(card.beatCount, 7)
   assert.ok(!('beats' in card) && !('opener' in card), 'briefs and beats never reach the client')
 })
 

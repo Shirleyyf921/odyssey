@@ -111,6 +111,24 @@ export const Choices = z.object({
   }),
 })
 
+/**
+ * Story mode: he is calling (docs/story-pipeline.md, "Voice"). The ring is its
+ * own beat and costs no generation: nothing is written until the user answers
+ * or lets it ring, which are the beat's two options and arrive as `choices`.
+ *
+ * `audioUrl` is present only when a clip has been rendered for this beat and
+ * the caller's tier includes calls; otherwise `silent` says why and the beat
+ * plays out in text, which is what FREE hears.
+ */
+export const IncomingCall = z.object({
+  type: z.literal('incoming_call'),
+  conversationId: z.string().uuid(),
+  characterName: z.string(),
+  audioUrl: z.string().url().nullable(),
+  seconds: z.number().int().positive().nullable(),
+  silent: z.enum(['NONE', 'NOT_RENDERED', 'NEEDS_PLUS']),
+})
+
 /** Story mode: the episode is open in this conversation, with his opener already in the history. */
 export const EpisodeStarted = z.object({
   type: z.literal('episode_started'),
@@ -206,6 +224,7 @@ export const ServerEvent = z.discriminatedUnion('type', [
   MomentUnlocked,
   MomentOffer,
   Choices,
+  IncomingCall,
   EpisodeStarted,
   EpisodeEnded,
   ProactiveMessage,
