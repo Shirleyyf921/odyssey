@@ -200,7 +200,7 @@ test('a hard block or an injection rejects, naming the beat, with no appeal but 
   assert.equal(res.episode.reviewNote, res.notes.join('\n'), 'the author can read why later')
   // The rewrite path from #31: back to DRAFT, note cleared by the next submit.
   const again = AuthoredEpisodeResponse.parse((await app.inject({ method: 'PUT', url: `/me/episodes/${e.id}`, headers: me, payload: draft() })).json())
-  assert.equal(again.episode.status, 'DRAFT')
+  assert.deepEqual([again.episode.status, again.episode.reviewNote, again.episode.dryRun], ['DRAFT', null, null], 'a rewrite carries nothing over')
   const clean = SubmitEpisodeResponse.parse((await submit(app, me, e.id)).json())
   assert.deepEqual([clean.outcome, clean.episode.reviewNote], ['SUBMITTED', null])
 })

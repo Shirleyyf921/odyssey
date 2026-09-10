@@ -57,9 +57,9 @@ export async function authorRoutes(app: FastifyInstance, opts: AuthorRouteDeps) 
     if (parsed.data.characterId !== current.characterId) return reply.code(400).send({ error: 'an episode cannot change its man' })
     const refused = await refuse(parsed.data)
     if (refused) return reply.code(refused.code).send({ error: refused.error })
-    let episode = await repo.replaceEpisode(current.id, parsed.data)
-    // A rewrite of a rejected episode is a fresh draft; the note that rejected it no longer describes it.
-    if (current.status === 'REJECTED') episode = await repo.updateEpisode(current.id, { status: 'DRAFT' })
+    await repo.replaceEpisode(current.id, parsed.data)
+    // A rewrite is a fresh draft: the note that rejected it and the run that played it describe text that is gone.
+    const episode = await repo.updateEpisode(current.id, { status: 'DRAFT', reviewNote: null, dryRun: null })
     return { episode }
   })
 
