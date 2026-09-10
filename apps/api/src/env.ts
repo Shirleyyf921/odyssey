@@ -36,6 +36,13 @@ const Env = z.object({
    */
   CRISIS_MODEL: z.string().default('meta-llama/llama-3.1-8b-instruct'),
   CRISIS_TIMEOUT_MS: z.coerce.number().int().positive().default(3000),
+  /**
+   * Screens user-made episodes at submit (docs/ugc-pipeline.md). Off the request
+   * path, so it can afford the persona-sized model: the 8B one blocks our own
+   * briefs. Same host and key as CRISIS_MODEL.
+   */
+  SCREEN_MODEL: z.string().default('meta-llama/llama-3.3-70b-instruct'),
+  SCREEN_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
 
   /** Which tier runs memory extraction and summaries. */
   MEMORY_TIER: z.enum(['EVERYDAY', 'PIVOTAL']).default('PIVOTAL'),

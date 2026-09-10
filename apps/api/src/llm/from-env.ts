@@ -16,6 +16,8 @@ export interface InferenceStack {
   live: boolean
   /** Small model for crisis screening, or null when there is no key for it. */
   crisisProvider: LlmProvider | null
+  /** Model that screens user-made episodes at submit; null without a key. */
+  screenProvider: LlmProvider | null
 }
 
 /**
@@ -59,6 +61,15 @@ export function inferenceFromEnv(env: Env): InferenceStack {
       })
     : null
 
+  const screenProvider = env.NOVITA_API_KEY
+    ? new OpenAiCompatibleProvider({
+        name: 'novita-screen',
+        baseUrl: env.NOVITA_BASE_URL,
+        apiKey: env.NOVITA_API_KEY,
+        model: env.SCREEN_MODEL,
+      })
+    : null
+
   const candidates: Array<LlmProvider | null> = [novita, anthropic]
   return {
     configured: candidates.filter((p): p is LlmProvider => p !== null),
@@ -66,6 +77,7 @@ export function inferenceFromEnv(env: Env): InferenceStack {
     embeddings,
     live: everyday !== scripted,
     crisisProvider,
+    screenProvider,
   }
 }
 

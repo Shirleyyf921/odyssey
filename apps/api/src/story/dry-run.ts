@@ -4,6 +4,7 @@ import type { LlmGateway } from '../llm/gateway.js'
 import type { CharacterRecord, EpisodeRecord } from '../repo/types.js'
 import type { EpisodeScreener } from '../safety/episode-screen.js'
 import { generateStoryTurn } from './generate.js'
+import { pooled } from '../lib/pooled.js'
 
 /**
  * The dry-run (docs/ugc-pipeline.md, section 2): the author's episode played
@@ -31,6 +32,8 @@ export interface DryRunDeps {
   log: { warn(obj: Record<string, unknown>, msg: string): void }
   /** Per-beat ceiling. */
   timeoutMs?: number
+  /** Beats generated at once. Default 3. */
+  concurrency?: number
 }
 
 export class DryRunUnavailable extends Error {
@@ -67,7 +70,7 @@ function arrivals(episode: EpisodeRecord): Map<string, { beat: Beat; option: num
 export async function dryRun(deps: DryRunDeps, character: CharacterRecord, episode: EpisodeRecord): Promise<DryRun> {
   const from = arrivals(episode)
   const beats = [...episode.beats].sort((a, b) => a.position - b.position)
-  const played = await Promise.all(beats.map((beat) => playBeat(deps, character, episode, beat, from.get(beat.id) ?? null)))
+  const played = await pooled(beats, deps.concurrency ?? 3, (beat) => playBeat(deps, character, episode, beat, from.get(beat.id) ?? null))
   return { ranAt: new Date().toISOString(), version: episode.version, beats: played, passed: played.every((b) => b.problem === null) }
 }
 
