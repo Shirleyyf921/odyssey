@@ -12,7 +12,7 @@ import { ScriptedProvider } from '../llm/scripted.js'
 import type { LlmProvider } from '../llm/types.js'
 
 const STORY_REPLY = `[narration]\nThe lamp is the only light left.\n[line]\n*doesn't look back down* you found it.\n[options]\nA. sit by the lamp\nB. stay by the door`
-const storyGateway = (provider: LlmProvider = new ScriptedProvider(STORY_REPLY)) => new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider })
+const storyGateway = (provider: LlmProvider = new ScriptedProvider(STORY_REPLY)) => new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider, STORY: provider })
 import { characterRoutes } from './characters.js'
 import { authorRoutes } from './episodes.js'
 

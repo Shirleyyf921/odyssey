@@ -31,6 +31,15 @@ const Env = z.object({
   ANTHROPIC_MODEL: z.string().default('claude-opus-5'),
 
   /**
+   * STORY tier: story turns and the author's dry-run. DeepSeek on the Novita host
+   * by default, so the everyday key is enough; set the base URL and key to use
+   * DeepSeek's own endpoint (`https://api.deepseek.com`, model `deepseek-chat`).
+   */
+  STORY_MODEL: z.string().default('deepseek/deepseek-v3.2'),
+  STORY_BASE_URL: z.string().url().optional(),
+  STORY_API_KEY: z.string().min(1).optional(),
+
+  /**
    * Crisis classifier (ARCHITECTURE.md section 12): a small, fast model on the
    * OpenAI-compatible host, separate from the persona tiers. Needs NOVITA_API_KEY.
    */

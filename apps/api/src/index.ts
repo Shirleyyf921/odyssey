@@ -49,7 +49,7 @@ const inference = gatewayFromEnv(env, app.log)
 const { gateway, embeddings } = inference
 if (!inference.live) app.log.warn('no LLM keys: replies are scripted (see README, "Connecting the models")')
 if (embeddings.name === 'hash') app.log.warn('no embedding key: long-term memory uses hash embeddings')
-app.log.info({ EVERYDAY: inference.routes.EVERYDAY.name, PIVOTAL: inference.routes.PIVOTAL.name }, 'llm routes')
+app.log.info({ EVERYDAY: inference.routes.EVERYDAY.name, PIVOTAL: inference.routes.PIVOTAL.name, STORY: `${inference.routes.STORY.name} ${env.STORY_MODEL}` }, 'llm routes')
 
 // ---------------------------------------------------------------- safety
 let crisis: CrisisDetector

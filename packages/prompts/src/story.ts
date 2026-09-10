@@ -86,7 +86,7 @@ ${v.reacting ? `They just touched you. Answer the touch and only the touch: at m
 ` : ''}Write ${v.reacting ? 'two sections' : 'three sections'}, in this order, each starting with its marker on its own line.
 
 [narration]
-One to three short paragraphs. Second person, present tense, ${them === 'them' ? 'addressed to them' : `addressed to ${v.userName}`}: what they see, what he does, what the room is doing. No dialogue here. No thoughts of his; the reader only sees his outside.
+One to three short paragraphs. Second person, present tense, ${them === 'them' ? 'addressed to them' : `addressed to ${v.userName}`}: what they see, what he does, what the room is doing. "You" is always ${them === 'them' ? 'them' : v.userName}, never him; he is "he", never "I". The narration is not in his voice. No dialogue here. No thoughts of his; the reader only sees his outside.
 
 [line]
 What he says, as one message: exactly one action beat in *asterisks* at the very start, then his words.${v.onPhone ? ' You are on the phone: the beat is what your voice does, a pause, a breath, the line going quiet. Nothing in a room, nothing he looks at, nothing he turns toward. The narration is what she hears and where she is standing, not where he is.' : ''} Short lines, fragments, lowercase is fine. One to three sentences of speech. At most one question.

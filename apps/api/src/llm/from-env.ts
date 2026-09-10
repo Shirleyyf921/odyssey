@@ -23,7 +23,8 @@ export interface InferenceStack {
 /**
  * One place that turns env into providers, so the server and the check script
  * cannot drift. EVERYDAY prefers the OpenAI-compatible host, PIVOTAL prefers
- * Anthropic; each falls back to the other, then to scripted replies.
+ * Anthropic; each falls back to the other, then to scripted replies. STORY is
+ * its own model on the everyday host and falls back to EVERYDAY.
  */
 export function inferenceFromEnv(env: Env): InferenceStack {
   const novita = env.NOVITA_API_KEY
@@ -38,6 +39,16 @@ export function inferenceFromEnv(env: Env): InferenceStack {
     ? new AnthropicProvider({ apiKey: env.ANTHROPIC_API_KEY, model: env.ANTHROPIC_MODEL })
     : null
   const scripted = new ScriptedProvider()
+  // The story route rides the everyday host and key unless told otherwise.
+  const storyKey = env.STORY_API_KEY ?? env.NOVITA_API_KEY
+  const story = storyKey
+    ? new OpenAiCompatibleProvider({
+        name: 'story',
+        baseUrl: env.STORY_BASE_URL ?? env.NOVITA_BASE_URL,
+        apiKey: storyKey,
+        model: env.STORY_MODEL,
+      })
+    : null
 
   const everyday = novita ?? anthropic ?? scripted
   const pivotal = anthropic ?? novita ?? scripted
@@ -70,10 +81,10 @@ export function inferenceFromEnv(env: Env): InferenceStack {
       })
     : null
 
-  const candidates: Array<LlmProvider | null> = [novita, anthropic]
+  const candidates: Array<LlmProvider | null> = [novita, anthropic, story]
   return {
     configured: candidates.filter((p): p is LlmProvider => p !== null),
-    routes: { EVERYDAY: everyday, PIVOTAL: pivotal },
+    routes: { EVERYDAY: everyday, PIVOTAL: pivotal, STORY: story ?? everyday },
     embeddings,
     live: everyday !== scripted,
     crisisProvider,

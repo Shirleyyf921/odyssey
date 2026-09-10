@@ -71,7 +71,9 @@ Without keys the API answers with scripted text. To talk to real models:
    `NOVITA_API_KEY`. This runs everyday chat and embeddings.
 3. Get an Anthropic key at https://console.anthropic.com and put it in `ANTHROPIC_API_KEY`.
    This runs pivotal turns and, by default, memory extraction.
-4. Check both before starting the app:
+   Story turns run on `STORY_MODEL` (DeepSeek on the Novita host by default, so the Novita key
+   is enough); set `STORY_BASE_URL` and `STORY_API_KEY` to point it at DeepSeek's own endpoint.
+4. Check everything before starting the app:
 
    ```bash
    pnpm --filter @odyssey/api check:llm

@@ -7,7 +7,7 @@ import { canSee } from '../episodes/rating.js'
 import type { CompletionRequest } from '../llm/types.js'
 import type { AssembledMemory } from '../memory/service.js'
 import type { ConversationContext, EpisodeRecord } from '../repo/types.js'
-import { chooseTier } from '../chat/tier.js'
+import { chooseStoryTier } from '../chat/tier.js'
 import type { ChatDeps, Send } from '../chat/handler.js'
 import { generateStoryTurn } from './generate.js'
 
@@ -208,7 +208,7 @@ export async function runStoryTurn(deps: ChatDeps, input: StoryTurnInput, send: 
       .filter((m) => m.role !== 'SYSTEM')
       .map((m) => ({ role: m.role === 'USER' ? 'user' : 'assistant', content: m.content })),
   }
-  const modelTier = chooseTier(ctx, event.content, input.signals)
+  const modelTier = chooseStoryTier(input.signals)
 
   const messageId = randomUUID()
   send({ type: 'message_start', messageId, conversationId })

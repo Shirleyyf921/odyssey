@@ -114,7 +114,7 @@ async function playBeat(
   try {
     const result = await generateStoryTurn(
       deps.gateway,
-      'EVERYDAY',
+      'STORY',
       { system, messages: [{ role: 'assistant', content: episode.opener }, { role: 'user', content: userAction }] },
       { expectOptions, log: deps.log, signal: controller.signal }
     )

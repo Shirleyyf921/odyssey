@@ -15,7 +15,7 @@ function scripted(first: string, then = '') {
     requests.push(req)
     return requests.length === 1 ? first : then
   })
-  return { gateway: new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider }), requests }
+  return { gateway: new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider, STORY: provider }), requests }
 }
 
 test('a complete output streams narration and line, and needs no repair', async () => {

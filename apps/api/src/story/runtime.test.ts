@@ -22,7 +22,7 @@ async function setup() {
     requests.push(req)
     return STORY_REPLY
   })
-  const gateway = new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider })
+  const gateway = new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider, STORY: provider })
   const memory = new MemoryService(repo, gateway, null, silent)
   const deps: ChatDeps = {
     repo,
@@ -282,4 +282,33 @@ test('an episode off the shelf cannot be started, but a run already open on it p
   await start()
   assert.equal(last('error'), undefined)
   assert.ok(last('choices'), 'the open run resumes on the version it pinned')
+})
+
+test('a story turn goes to the STORY route, not the chat model', async () => {
+  const repo = new MemoryRepository()
+  const demo = await repo.seedDemo()
+  const hits: string[] = []
+  const on = (tier: string) =>
+    new ScriptedProvider(() => {
+      hits.push(tier)
+      return STORY_REPLY
+    })
+  const gateway = new LlmGateway({ EVERYDAY: on('EVERYDAY'), PIVOTAL: on('PIVOTAL'), STORY: on('STORY') })
+  const deps: ChatDeps = {
+    repo,
+    gateway,
+    memory: new MemoryService(repo, gateway, null, silent),
+    relationship: new RelationshipService(repo, silent),
+    crisis: new NoopCrisisDetector(),
+    channel: 'store',
+    billing: { async tierOf() { return 'PLUS' } },
+    user: { id: demo.userId, displayName: 'Shirley', locale: 'en-US', ageVerifiedAt: null },
+    log: silent,
+  }
+  const send = () => {}
+  const [episode] = await repo.listEpisodes(demo.characterId)
+  await handleClientEvent(deps, { type: 'start_episode', conversationId: demo.conversationId, episodeId: episode!.id }, send)
+  await handleClientEvent(deps, { type: 'send_message', conversationId: demo.conversationId, clientMsgId: randomUUID(), content: 'sit by the lamp', choice: 0 }, send)
+  assert.ok(hits.includes('STORY'), `story turn hit ${hits.join(',')}`)
+  assert.ok(!hits.includes('EVERYDAY') || hits.indexOf('EVERYDAY') > hits.indexOf('STORY'), 'the chat model is at most the options repair, after the turn')
 })

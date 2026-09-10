@@ -20,7 +20,7 @@ function deps(reply: string | ((req: CompletionRequest) => string) = REPLY, scre
     requests.push(req)
     return typeof reply === 'function' ? reply(req) : reply
   })
-  const gateway = new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider })
+  const gateway = new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider, STORY: provider })
   return { deps: { gateway, screener, log: silent }, requests }
 }
 
