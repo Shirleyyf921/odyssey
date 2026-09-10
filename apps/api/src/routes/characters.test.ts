@@ -183,7 +183,7 @@ test('episodes: cards only, status follows the run, briefs stay on the server', 
 
   const started = StartRelationshipResponse.parse((await app.inject({ method: 'POST', url: `/characters/${primary.id}/start`, headers: { 'x-device-id': device } })).json())
   const [episode] = await repo.listEpisodes(primary.id)
-  await repo.createRun({ relationshipId: started.relationship.id, episodeId: episode!.id, currentBeatId: episode!.firstBeatId })
+  await repo.createRun({ relationshipId: started.relationship.id, episodeId: episode!.id, currentBeatId: episode!.firstBeatId, episodeVersion: episode!.version })
   const during = EpisodesResponse.parse((await app.inject({ method: 'GET', url: `/characters/${primary.id}/episodes`, headers: { 'x-device-id': device } })).json())
   assert.equal(during.episodes[0]!.status, 'IN_PROGRESS')
   assert.equal(during.episodes[0]!.currentBeat, 1)
@@ -213,7 +213,7 @@ test('tonight gives one card per character, the open one for the primary and not
 
   const started = StartRelationshipResponse.parse((await app.inject({ method: 'POST', url: `/characters/${primaryItem.character.id}/start`, headers: { 'x-device-id': device } })).json())
   const [episode] = await repo.listEpisodes(primaryItem.character.id)
-  await repo.createRun({ relationshipId: started.relationship.id, episodeId: episode!.id, currentBeatId: episode!.firstBeatId })
+  await repo.createRun({ relationshipId: started.relationship.id, episodeId: episode!.id, currentBeatId: episode!.firstBeatId, episodeVersion: episode!.version })
   const during = TonightResponse.parse((await app.inject({ method: 'GET', url: '/tonight', headers: { 'x-device-id': device } })).json())
   const now = during.items.find((i) => i.character.kind === 'PRIMARY')!
   assert.equal(now.episode?.status, 'IN_PROGRESS')

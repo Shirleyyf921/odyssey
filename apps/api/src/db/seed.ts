@@ -77,6 +77,10 @@ for (const seed of SEED_CHARACTERS) {
         rating: e.rating,
         unlockRule: e.unlock,
         firstBeatId: e.firstBeatId,
+        authorId: null,
+        origin: 'OFFICIAL',
+        status: 'LIVE',
+        version: e.version,
       })
       .onConflictDoUpdate({
         target: episodes.id,

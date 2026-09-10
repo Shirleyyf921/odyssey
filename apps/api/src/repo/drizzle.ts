@@ -38,6 +38,7 @@ import type {
   ConversationContext,
   ConversationSummary,
   EpisodeRecord,
+  CreateRunInput,
   EpisodeRunPatch,
   IdentityRecord,
   MemoryRecord,
@@ -91,6 +92,10 @@ function toEpisode(r: EpisodeRow, beatRows: BeatRow[]): EpisodeRecord {
     rating: r.rating,
     unlock: r.unlockRule,
     firstBeatId: r.firstBeatId,
+    authorId: r.authorId,
+    origin: r.origin,
+    status: r.status,
+    version: r.version,
     beats: beatRows.sort((a, b) => a.position - b.position).map(toBeat),
   }
 }
@@ -101,6 +106,7 @@ function toRun(r: RunRow): EpisodeRun {
     relationshipId: r.relationshipId,
     episodeId: r.episodeId,
     currentBeatId: r.currentBeatId,
+    episodeVersion: r.episodeVersion,
     path: r.path,
     startedAt: r.startedAt.toISOString(),
     endedAt: r.endedAt?.toISOString() ?? null,
@@ -432,7 +438,7 @@ export class DrizzleRepository implements AppRepository {
     return row ? toRun(row) : null
   }
 
-  async createRun(input: { relationshipId: string; episodeId: string; currentBeatId: string }) {
+  async createRun(input: CreateRunInput) {
     const [row] = await this.db
       .insert(episodeRuns)
       .values({ ...input, path: [input.currentBeatId] })

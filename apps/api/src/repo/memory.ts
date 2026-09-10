@@ -17,6 +17,7 @@ import type {
   ConversationContext,
   ConversationSummary,
   EpisodeRecord,
+  CreateRunInput,
   EpisodeRunPatch,
   IdentityRecord,
   MemoryRecord,
@@ -203,7 +204,7 @@ export class MemoryRepository implements AppRepository {
     const hit = [...this.runs.values()].find((r) => r.relationshipId === relationshipId && r.episodeId === episodeId)
     return hit ? { ...hit } : null
   }
-  async createRun(input: { relationshipId: string; episodeId: string; currentBeatId: string }) {
+  async createRun(input: CreateRunInput) {
     if (await this.findRun(input.relationshipId, input.episodeId)) throw new Error('run already exists')
     const run: EpisodeRun = { id: randomUUID(), ...input, path: [input.currentBeatId], startedAt: new Date().toISOString(), endedAt: null }
     this.runs.set(run.id, run)

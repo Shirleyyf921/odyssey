@@ -117,9 +117,11 @@ messages           role, content, client_msg_id, token usage
 memories           user × character, fact text, embedding(pgvector), confidence
 subscriptions      user × entitlement, synced from RevenueCat; tier is derived from unexpired rows
 purchases          one-time SKUs (moments), keyed by store transaction id
-episodes           authored story per character: premise, setting, opener, rating, unlock rule, first beat
+episodes           authored story per character: premise, setting, opener, rating, unlock rule, first beat;
+                   author_id, origin(OFFICIAL|UGC), status(DRAFT…REMOVED), version, report_count (docs/ugc-pipeline.md)
 beats              episode × position: brief for the model, two authored options, next, optional photo or call
-episode_runs       relationship × episode: current beat, path taken, ended_at
+episode_runs       relationship × episode: current beat, path taken, ended_at, episode_version pinned at start
+episode_reports    episode × reporter: reason; counted onto episodes.report_count
 proactive_jobs     proactive message scheduling and rate limiting
 ```
 
