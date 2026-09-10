@@ -44,3 +44,16 @@ test('an END beat forbids the options section and a beat setting overrides the e
   assert.ok(p.includes('What Shirley just did: chose: Stay until the rain stops'))
   assert.ok(!p.includes('touches you'))
 })
+
+test('the beat after an answered call is written as a voice on a phone, with no room in it', () => {
+  const p = renderStoryTurn({
+    ...base,
+    opening: false,
+    userAction: 'chose: Answer',
+    beat: { kind: 'END', brief: 'He says the thing.', setting: 'On the phone.', optionIntents: [], hotspots: [] },
+    onPhone: true,
+  })
+  assert.ok(p.includes('You are on the phone'))
+  assert.ok(p.includes('nothing he turns toward'))
+  assert.ok(!renderStoryTurn(base).includes('You are on the phone'), 'only after a ring')
+})

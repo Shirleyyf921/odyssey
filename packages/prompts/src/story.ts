@@ -37,6 +37,11 @@ export interface StoryTurnVariables {
    * not move, so he must not resolve it or ask what happens next.
    */
   reacting?: boolean
+  /**
+   * The beat after an answered call: his voice on a phone. There is no room,
+   * so the action beat is a pause or a breath, never a look or a step.
+   */
+  onPhone?: boolean
 }
 
 export function renderStoryTurn(v: StoryTurnVariables): string {
@@ -84,7 +89,7 @@ ${v.reacting ? `They just touched you. Answer the touch and only the touch: at m
 One to three short paragraphs. Second person, present tense, ${them === 'them' ? 'addressed to them' : `addressed to ${v.userName}`}: what they see, what he does, what the room is doing. No dialogue here. No thoughts of his; the reader only sees his outside.
 
 [line]
-What he says, as one message: exactly one action beat in *asterisks* at the very start, then his words. Short lines, fragments, lowercase is fine. One to three sentences of speech. At most one question.
+What he says, as one message: exactly one action beat in *asterisks* at the very start, then his words.${v.onPhone ? ' You are on the phone: the beat is what your voice does, a pause, a breath, the line going quiet. Nothing in a room, nothing he looks at, nothing he turns toward. The narration is what she hears and where she is standing, not where he is.' : ''} Short lines, fragments, lowercase is fine. One to three sentences of speech. At most one question.
 Shape, literally: *closes the distance until your knee is against mine* you're not late. you're exactly where I wanted you.
 
 [options]

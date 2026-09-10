@@ -279,7 +279,11 @@ export type EpisodeUnlockRule = z.infer<typeof EpisodeUnlockRule>
 export const BeatKind = z.enum([
   /** Narration, his line, two authored options plus free text. */
   'STORY',
-  /** He calls. A pre-rendered clip; answer or decline. */
+  /**
+   * He calls. A pre-rendered clip; answer or decline. By convention options[0]
+   * answers and options[1] lets it ring: the call screen and the phone rule in
+   * the story prompt both rely on that order.
+   */
   'CALL',
   /** Closing beat. His last line, no options. */
   'END',
