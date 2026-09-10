@@ -126,6 +126,7 @@ or `x-device-id: <uuid>`. The token wins; an expired token is a 401 rather than 
 | `GET /characters/:id` | Portraits, relationship, moment count |
 | `POST /characters/:id/start` | Idempotent; creates the relationship and its conversation |
 | `GET /characters/:id/moments` | Cards; locked ones carry no asset URL. A PURCHASE card unlocks once its SKU is among the caller's purchases |
+| `GET /tonight` | Home screen: one card per character with the single episode to show for him now |
 | `GET /characters/:id/episodes` | Story cards with the caller's status on each (available, in progress, done, or locked with a reason). Briefs and beats never leave the server |
 | `POST /billing/restore` | Server re-reads the caller from RevenueCat and returns `billing` (tier, expiry, purchased SKUs) |
 | `POST /billing/revenuecat` | Public RevenueCat webhook, authenticated by `REVENUECAT_WEBHOOK_SECRET` in the Authorization header |

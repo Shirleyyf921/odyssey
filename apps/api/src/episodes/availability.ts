@@ -49,6 +49,17 @@ export function availability(
   }
 }
 
+/**
+ * The one episode to show for a character on the home screen. What the user is
+ * in the middle of comes first, then what is open, then what is next but shut,
+ * and only then what they have already played. Null when he has no episodes.
+ */
+export function tonight(cards: EpisodeCard[]): EpisodeCard | null {
+  const byPosition = [...cards].sort((a, b) => a.position - b.position)
+  const first = (status: EpisodeStatus) => byPosition.find((c) => c.status === status) ?? null
+  return first('IN_PROGRESS') ?? first('AVAILABLE') ?? first('LOCKED') ?? [...byPosition].reverse().find((c) => c.status === 'DONE') ?? null
+}
+
 export function toEpisodeCard(
   episode: EpisodeRecord,
   relationship: Pick<Relationship, 'stage'> | null,

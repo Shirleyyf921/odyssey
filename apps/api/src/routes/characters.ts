@@ -6,12 +6,13 @@ import {
   type CharactersResponse,
   type EpisodesResponse,
   type Tier,
+  type TonightResponse,
   type MomentsResponse,
   type StartRelationshipResponse,
 } from '@odyssey/shared'
 import { RULES } from '../relationship/rules.js'
 import { evaluateUnlocks } from '../moments/unlocks.js'
-import { toEpisodeCard } from '../episodes/availability.js'
+import { toEpisodeCard, tonight } from '../episodes/availability.js'
 import type { AppRepository } from '../repo/types.js'
 
 const Params = z.object({ id: z.string().uuid() })
@@ -33,6 +34,25 @@ export async function characterRoutes(
       })
     )
     return { characters }
+  })
+
+  /**
+   * The home screen: every character with the one episode to show for him
+   * tonight. Cards only, same rules as /characters/:id/episodes.
+   */
+  app.get('/tonight', async (req): Promise<TonightResponse> => {
+    const [chars, rels, tier] = await Promise.all([repo.listCharacters(), repo.listRelationships(req.user.id), tierOf(req.user.id)])
+    const byCharacter = new Map(rels.map((r) => [r.characterId, r]))
+    const items = await Promise.all(
+      chars.map(async ({ personaNotes: _notes, ...c }) => {
+        const relationship = byCharacter.get(c.id) ?? null
+        const [portraits, all] = await Promise.all([repo.listPortraits(c.id), repo.listEpisodes(c.id)])
+        const runs = relationship ? await repo.listRuns(relationship.id) : []
+        const cards = all.filter((e) => e.rating === 'SFW').map((e) => toEpisodeCard(e, relationship, tier, runs, all))
+        return { character: { ...c, portraitUrl: portraits[0]?.url ?? null, relationship }, episode: tonight(cards) }
+      })
+    )
+    return { items }
   })
 
   app.get('/characters/:id', async (req, reply): Promise<CharacterDetail | void> => {

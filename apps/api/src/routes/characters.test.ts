@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import Fastify from 'fastify'
-import { CharacterDetail, CharactersResponse, EpisodesResponse, MomentsResponse, StartRelationshipResponse } from '@odyssey/shared'
+import { CharacterDetail, CharactersResponse, EpisodesResponse, MomentsResponse, StartRelationshipResponse, TonightResponse } from '@odyssey/shared'
 import { requireIdentity } from '../auth/identity.js'
 import { MemoryRepository } from '../repo/memory.js'
 import { characterRoutes } from './characters.js'
@@ -179,4 +179,25 @@ test('episodes: cards only, status follows the run, briefs stay on the server', 
   const explore = roster.characters.find((c) => c.kind === 'EXPLORE')!
   const none = EpisodesResponse.parse((await app.inject({ method: 'GET', url: `/characters/${explore.id}/episodes`, headers: { 'x-device-id': device } })).json())
   assert.deepEqual(none.episodes, [])
+})
+
+test('tonight gives one card per character, the open one for Elliot and nothing for the others', async () => {
+  const { app, repo } = await build()
+  const device = randomUUID()
+  const before = TonightResponse.parse((await app.inject({ method: 'GET', url: '/tonight', headers: { 'x-device-id': device } })).json())
+  assert.equal(before.items.length, 3)
+  const elliot = before.items.find((i) => i.character.kind === 'PRIMARY')!
+  assert.equal(elliot.episode?.title, 'The second staircase')
+  assert.equal(elliot.episode?.status, 'AVAILABLE')
+  assert.ok(before.items.filter((i) => i.character.kind === 'EXPLORE').every((i) => i.episode === null), 'no episodes, no card')
+  assert.ok(!(await app.inject({ method: 'GET', url: '/tonight', headers: { 'x-device-id': device } })).body.includes('brief'))
+
+  const started = StartRelationshipResponse.parse((await app.inject({ method: 'POST', url: `/characters/${elliot.character.id}/start`, headers: { 'x-device-id': device } })).json())
+  const [episode] = await repo.listEpisodes(elliot.character.id)
+  await repo.createRun({ relationshipId: started.relationship.id, episodeId: episode!.id, currentBeatId: episode!.firstBeatId })
+  const during = TonightResponse.parse((await app.inject({ method: 'GET', url: '/tonight', headers: { 'x-device-id': device } })).json())
+  const now = during.items.find((i) => i.character.kind === 'PRIMARY')!
+  assert.equal(now.episode?.status, 'IN_PROGRESS')
+  assert.equal(now.episode?.currentBeat, 1)
+  assert.ok(now.character.relationship, 'the card carries the relationship for the client to route with')
 })

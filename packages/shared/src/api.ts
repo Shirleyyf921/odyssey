@@ -46,6 +46,21 @@ export const MomentsResponse = z.object({
 })
 export type MomentsResponse = z.infer<typeof MomentsResponse>
 
+/**
+ * The home screen (docs/story-pipeline.md, step 5). One card per character: who
+ * he is, and the one episode to show for him tonight. The server picks it so
+ * every client agrees on what "tonight" means.
+ */
+export const TonightItem = z.object({
+  character: CharacterListItem,
+  /** In progress, else the first available, else the next locked, else the last played. Null when he has no episodes. */
+  episode: EpisodeCard.nullable(),
+})
+export type TonightItem = z.infer<typeof TonightItem>
+
+export const TonightResponse = z.object({ items: z.array(TonightItem) })
+export type TonightResponse = z.infer<typeof TonightResponse>
+
 /** The episodes one character offers, with the caller's status on each. Story pipeline, section 3 step 1. */
 export const EpisodesResponse = z.object({
   characterId: z.string().uuid(),
