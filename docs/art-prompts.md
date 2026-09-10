@@ -36,12 +36,23 @@ have them.
 
 What replaced him, and the rule it sets: **a man is a silhouette, a world and a secret.**
 
-| | Ash (primary) | Jun | Theo |
+| | Ash (primary) | Jun | Rafe |
 |---|---|---|---|
-| Silhouette | Ash-white hair, round glasses, oversized hoodie | Black swept back, steel frames, long coat | Warm blond, chef's whites |
-| Palette | Cool blue-cyan, one amber lamp | Cold blue-black, one warm rim | Warm tungsten |
-| World | Finds what people hide, at 3am, for free | Builds things and owns the people around them | A kitchen, after service |
-| Secret | He knew who you were before you met | *(to write)* | *(to write)* |
+| Silhouette | Ash-white, round glasses, oversized hoodie | Black swept back, steel frames, long coat | Ash-blond tied back, open dress shirt, rings |
+| Palette | Cool blue-cyan, one amber lamp | Cold blue-black, one warm rim | Pale gold and grey |
+| Hour | 3am | Night | First light |
+| World | Finds what people hide, for free, and will not say why | Buys land: which streets come down is decided in rooms he sits in | A family name he is spending as fast as it can be spent |
+| Secret | He knew who you were before you met | Your building was coming down; he bought the block instead and will never say so | The ruin is a performance. He is sober far more often than he looks |
+| The fantasy | The one who knows you and gives nothing back | The one it is dangerous to be near | The one who would give you everything, already half destroyed |
+
+Three shapes, deliberately: a man who withholds, a man who decides, and a man who
+over-offers. Three hours of the night, three palettes, three silhouettes. Theo was retired
+with Elliot for the same reason — sunny chef is a job, not a fantasy, and warm tungsten put
+him in the same light as everyone else.
+
+Rafe's hero: https://a.lovart.ai/artifacts/agent/pDhIrF47k77rahB1.png · apartment backdrop:
+https://a.lovart.ai/artifacts/agent/FYT4QCZ78PHsECmc.png · paid card "Sober":
+https://a.lovart.ai/artifacts/agent/TGbw6RCXr7FstPQi.png
 
 Ash's hero: https://a.lovart.ai/artifacts/agent/BeMEa4P89ODWfwPR.png — he is looking at the
 viewer over the top of the glasses, which is the whole brief. His room backdrop:
