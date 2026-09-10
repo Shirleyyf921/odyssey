@@ -19,6 +19,7 @@ import { MemoryService } from './memory/service.js'
 import { RelationshipService } from './relationship/service.js'
 import { NoopCrisisDetector, type CrisisDetector } from './safety/crisis.js'
 import { LlmCrisisDetector } from './safety/llm-detector.js'
+import { FloorOnlyEpisodeScreener, LlmEpisodeScreener, type EpisodeScreener } from './safety/episode-screen.js'
 import { RevenueCatHttpClient } from './billing/revenuecat.js'
 import { BillingService } from './billing/service.js'
 import { billingRoutes, billingWebhookRoutes } from './routes/billing.js'
@@ -63,6 +64,13 @@ if (inference.crisisProvider) {
   app.log.warn('no NOVITA_API_KEY: crisis detection is a no-op (development only)')
   crisis = new NoopCrisisDetector()
 }
+// The same small model screens user-made episodes at submit (docs/ugc-pipeline.md).
+let screener: EpisodeScreener
+if (inference.crisisProvider) screener = new LlmEpisodeScreener(inference.crisisProvider, { timeoutMs: env.CRISIS_TIMEOUT_MS, log: app.log })
+else {
+  app.log.warn('no NOVITA_API_KEY: episode screening is the lexical floor only (development only)')
+  screener = new FloorOnlyEpisodeScreener()
+}
 
 const relationship = new RelationshipService(repo, app.log)
 const memory = new MemoryService(repo, gateway, embeddings, app.log, { tier: env.MEMORY_TIER }, (ctx, n) =>
@@ -100,7 +108,7 @@ if (billing.enabled && env.REVENUECAT_WEBHOOK_SECRET) {
 await app.register(async (scoped) => {
   requireIdentity(scoped, repo)
   await scoped.register(characterRoutes, { repo, devTools: env.NODE_ENV !== 'production', billing })
-  await scoped.register(authorRoutes, { repo })
+  await scoped.register(authorRoutes, { repo, screener })
   await scoped.register(billingRoutes, {
     billing,
     grant: env.NODE_ENV !== 'production' ? 'open' : (env.BILLING_GRANT_SECRET ?? null),

@@ -116,6 +116,7 @@ function toEpisode(r: EpisodeRow, beatRows: BeatRow[]): EpisodeRecord {
     origin: r.origin,
     status: r.status,
     version: r.version,
+    reviewNote: r.reviewNote,
     beats: beatRows.sort((a, b) => a.position - b.position).map(toBeat),
   }
 }
@@ -465,7 +466,7 @@ export class DrizzleRepository implements AppRepository {
     return this.db.transaction(async (tx) => {
       const [row] = await tx
         .insert(episodes)
-        .values({ ...fields, unlockRule: { kind: 'FREE' }, authorId, origin: 'UGC', status: 'DRAFT', version: 1, position: 0 })
+        .values({ ...fields, unlockRule: { kind: 'FREE' }, authorId, origin: 'UGC', status: 'DRAFT', version: 1, position: 0, reviewNote: null })
         .returning()
       if (!row) throw new Error('episode insert returned no row')
       const beatRows = await tx.insert(beats).values(draftBeats.map((b) => toBeatRow(row.id, b))).returning()

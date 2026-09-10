@@ -3,6 +3,7 @@ import type {
   Beat,
   Character,
   CharacterKind,
+  ContentRating,
   Episode,
   EpisodeDraft,
   EpisodeLifecycle,
@@ -142,6 +143,9 @@ export interface CreateRunInput {
 export interface EpisodePatch {
   status?: EpisodeLifecycle
   version?: number
+  rating?: ContentRating
+  reviewNote?: string | null
+  lastReviewedAt?: Date | null
 }
 
 export interface EpisodeRunPatch {

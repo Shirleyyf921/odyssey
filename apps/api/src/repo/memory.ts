@@ -197,7 +197,7 @@ export class MemoryRepository implements AppRepository {
   }
   async createEpisode(authorId: string, draft: EpisodeDraft) {
     const id = randomUUID()
-    const episode = this.fromDraft({ id, authorId, origin: 'UGC', status: 'DRAFT', version: 1, position: 0, unlock: { kind: 'FREE' } }, draft)
+    const episode = this.fromDraft({ id, authorId, origin: 'UGC', status: 'DRAFT', version: 1, position: 0, unlock: { kind: 'FREE' }, reviewNote: null }, draft)
     this.episodes.set(draft.characterId, [...(this.episodes.get(draft.characterId) ?? []), episode])
     return episode
   }
@@ -211,7 +211,8 @@ export class MemoryRepository implements AppRepository {
   async updateEpisode(id: string, patch: EpisodePatch) {
     const current = await this.getEpisode(id)
     if (!current) throw new Error('episode not found')
-    const episode = { ...current, ...patch }
+    const { lastReviewedAt: _reviewed, ...fields } = patch
+    const episode = { ...current, ...fields }
     this.episodes.set(current.characterId, (this.episodes.get(current.characterId) ?? []).map((e) => (e.id === id ? episode : e)))
     return episode
   }
@@ -219,7 +220,7 @@ export class MemoryRepository implements AppRepository {
     for (const [characterId, list] of this.episodes) this.episodes.set(characterId, list.filter((e) => e.id !== id))
   }
   private fromDraft(
-    row: Pick<EpisodeRecord, 'id' | 'authorId' | 'origin' | 'status' | 'version' | 'position' | 'unlock'>,
+    row: Pick<EpisodeRecord, 'id' | 'authorId' | 'origin' | 'status' | 'version' | 'position' | 'unlock' | 'reviewNote'>,
     draft: EpisodeDraft
   ): EpisodeRecord {
     const { beats, ...fields } = draft

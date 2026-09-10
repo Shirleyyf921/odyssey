@@ -83,6 +83,19 @@ export type MyEpisodesResponse = z.infer<typeof MyEpisodesResponse>
 export const AuthoredEpisodeResponse = z.object({ episode: AuthoredEpisode })
 export type AuthoredEpisodeResponse = z.infer<typeof AuthoredEpisodeResponse>
 
+/**
+ * What submit says back (docs/ugc-pipeline.md, "Moderation"). REJECTED names the
+ * beat; SUBMITTED means the automated screen passed and a human may still look.
+ * The rating on the episode is the one the screen settled on, which may be
+ * higher than the author declared.
+ */
+export const SubmitEpisodeResponse = z.object({
+  episode: AuthoredEpisode,
+  outcome: z.enum(['SUBMITTED', 'REJECTED']),
+  notes: z.array(z.string()),
+})
+export type SubmitEpisodeResponse = z.infer<typeof SubmitEpisodeResponse>
+
 /** Development only: jump a relationship to a stage without waiting the days out. */
 export const DevSetStageRequest = z.object({
   stage: RelationshipStage,
