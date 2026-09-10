@@ -635,6 +635,15 @@ not crisis-screened, for the same reason an authored choice is not; and it does 
 the beat, so the reply is one short reaction with no options and the standing choices are
 left alone. A `touch` naming a hotspot the beat does not offer is treated as ordinary text.
 
+**Step 5 (2026-09-10): tonight.** `GET /tonight` returns one card per character: who he is,
+and the single episode to show for him right now. The server picks it (`episodes/availability.ts`,
+`tonight()`) so every client agrees on what tonight means: what the user is in the middle of,
+else what is open, else what is next but shut, else the last one they played. The home screen
+is those cards, portrait behind and the premise in front, primary first. Tapping a playable
+card starts the relationship if it does not exist and opens the stage; anything else goes to
+the character page. The roster of names and stages is gone from the home screen: the
+relationship shows through which story is there tonight and what a shut card says.
+
 ## 15. Relationship Progression
 
 `Relationship.affinity` (0–100, never shown as a number) and `Relationship.stage` are the

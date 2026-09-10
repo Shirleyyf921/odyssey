@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import type { EpisodeRun, EpisodeUnlockRule } from '@odyssey/shared'
 import { SEED_CHARACTERS } from '../content/seed.js'
 import type { EpisodeRecord } from '../repo/types.js'
-import { availability, toEpisodeCard } from './availability.js'
+import { availability, toEpisodeCard, tonight } from './availability.js'
 
 const elliot = SEED_CHARACTERS[0]!
 const ep1 = elliot.episodes[0]!
@@ -76,4 +76,16 @@ test('STAGE, PLUS and EPISODE gates say what to do, never a number', () => {
   assert.equal(gated.status, 'LOCKED')
   assert.ok(gated.lockReason?.includes(ep1.title))
   assert.equal(availability(ep4, { stage: 'CLOSE' }, 'FREE', [run(ep1.id, true)], all).status, 'AVAILABLE')
+})
+
+test('tonight prefers what is open over what is shut, and what is shut over what is played', () => {
+  const card = (id: string, position: number, status: 'IN_PROGRESS' | 'AVAILABLE' | 'LOCKED' | 'DONE') =>
+    ({ ...toEpisodeCard(episode(id, { kind: 'FREE' }, position), null, 'FREE', [], []), status })
+
+  assert.equal(tonight([]), null, 'a character with no episodes has no card')
+  assert.equal(tonight([card('a', 0, 'DONE'), card('b', 1, 'LOCKED')])?.id, 'b', 'what is next but shut beats what is played')
+  assert.equal(tonight([card('a', 0, 'LOCKED'), card('b', 1, 'AVAILABLE')])?.id, 'b', 'what is open beats what is shut')
+  assert.equal(tonight([card('a', 0, 'AVAILABLE'), card('b', 1, 'IN_PROGRESS')])?.id, 'b', 'what they are in the middle of comes first')
+  assert.equal(tonight([card('a', 0, 'DONE'), card('b', 1, 'DONE')])?.id, 'b', 'all played: the last one, so the card still says something')
+  assert.equal(tonight([card('b', 2, 'AVAILABLE'), card('a', 1, 'AVAILABLE')])?.id, 'a', 'ties break on position, not order')
 })
