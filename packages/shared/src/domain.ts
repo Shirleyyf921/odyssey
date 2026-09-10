@@ -516,5 +516,15 @@ export const EpisodeCard = Episode.pick({
   beatCount: z.number().int().min(0),
   /** 1-based position of the current beat while IN_PROGRESS; null otherwise. */
   currentBeat: z.number().int().min(1).nullable(),
+  // ---- who wrote it (docs/ugc-pipeline.md, section 1, "Serving rules")
+  origin: EpisodeOrigin,
+  /** The creator's name on the card, nothing else. Null for ours, or for a creator with no name yet. */
+  authorName: z.string().nullable(),
+  /** Times someone reached an END. Ranks user-made episodes and, later, pays the creator in Plus days. */
+  completions: z.number().int().min(0),
 })
 export type EpisodeCard = z.infer<typeof EpisodeCard>
+
+/** Why a player flags a user-made episode. The list is the moderation table's hard blocks plus "it does not play". */
+export const ReportReason = z.enum(['MINOR', 'NON_CONSENT', 'SELF_HARM', 'REAL_PERSON', 'HATE', 'BROKEN', 'OTHER'])
+export type ReportReason = z.infer<typeof ReportReason>

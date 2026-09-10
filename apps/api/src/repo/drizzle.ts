@@ -11,6 +11,7 @@ import type {
   MomentUnlockSource,
   Portrait,
   RelationshipDepth,
+  ReportReason,
   Scene,
 } from '@odyssey/shared'
 import type { Db } from '../db/client.js'
@@ -19,6 +20,7 @@ import {
   beats,
   characters,
   conversations,
+  episodeReports,
   episodeRuns,
   episodes,
   memories,
@@ -51,6 +53,7 @@ import type {
   RelationshipEvent,
   RelationshipPatch,
   RelationshipRecord,
+  RunCounts,
   SessionRecord,
   SubscriptionRecord,
   UserRecord,
@@ -524,6 +527,40 @@ export class DrizzleRepository implements AppRepository {
     const [row] = await this.db.update(episodeRuns).set(patch).where(eq(episodeRuns.id, id)).returning()
     if (!row) throw new Error(`unknown run ${id}`)
     return toRun(row)
+  }
+
+  async countRuns(episodeIds: string[]): Promise<Map<string, RunCounts>> {
+    if (!episodeIds.length) return new Map()
+    const rows = await this.db
+      .select({
+        episodeId: episodeRuns.episodeId,
+        started: count(),
+        finished: count(episodeRuns.endedAt),
+      })
+      .from(episodeRuns)
+      .where(inArray(episodeRuns.episodeId, episodeIds))
+      .groupBy(episodeRuns.episodeId)
+    return new Map(rows.map((r) => [r.episodeId, { started: Number(r.started), finished: Number(r.finished) }]))
+  }
+
+  async reportEpisode(input: { episodeId: string; reporterId: string; reason: ReportReason }) {
+    return this.db.transaction(async (tx) => {
+      const inserted = await tx
+        .insert(episodeReports)
+        .values(input)
+        .onConflictDoNothing({ target: [episodeReports.episodeId, episodeReports.reporterId] })
+        .returning({ id: episodeReports.id })
+      if (inserted.length) {
+        const [row] = await tx
+          .update(episodes)
+          .set({ reportCount: sql`${episodes.reportCount} + 1` })
+          .where(eq(episodes.id, input.episodeId))
+          .returning({ reportCount: episodes.reportCount })
+        return { counted: true, reportCount: row?.reportCount ?? 0 }
+      }
+      const [row] = await tx.select({ reportCount: episodes.reportCount }).from(episodes).where(eq(episodes.id, input.episodeId)).limit(1)
+      return { counted: false, reportCount: row?.reportCount ?? 0 }
+    })
   }
 
   // ---------------------------------------------------------------- billing

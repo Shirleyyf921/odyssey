@@ -2,6 +2,8 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import {
   DevSetStageRequest,
+  ReportEpisodeRequest,
+  type ReportEpisodeResponse,
   type CharacterDetail,
   type CharactersResponse,
   type EpisodesResponse,
@@ -13,10 +15,18 @@ import {
 import { RULES } from '../relationship/rules.js'
 import { evaluateUnlocks } from '../moments/unlocks.js'
 import { toEpisodeCard, tonight } from '../episodes/availability.js'
+import { rankCommunity, statusAfterReport } from '../episodes/community.js'
 import { visibleRatings } from '../episodes/rating.js'
-import type { AppRepository } from '../repo/types.js'
+import type { AppRepository, EpisodeRecord } from '../repo/types.js'
 
 const Params = z.object({ id: z.string().uuid() })
+
+/** A creator's name on the card, nothing else (docs/ugc-pipeline.md, "Open"). */
+async function authorNames(repo: AppRepository, episodes: EpisodeRecord[]): Promise<Map<string, string | null>> {
+  const ids = [...new Set(episodes.map((e) => e.authorId).filter((id): id is string => id !== null))]
+  const users = await Promise.all(ids.map((id) => repo.getUser(id)))
+  return new Map(ids.map((id, i) => [id, users[i]?.displayName ?? null]))
+}
 
 export async function characterRoutes(
   app: FastifyInstance,
@@ -50,7 +60,10 @@ export async function characterRoutes(
         const relationship = byCharacter.get(c.id) ?? null
         const [portraits, all] = await Promise.all([repo.listPortraits(c.id), repo.listEpisodes(c.id)])
         const runs = relationship ? await repo.listRuns(relationship.id) : []
-        const cards = all.filter((e) => ratings.includes(e.rating)).map((e) => toEpisodeCard(e, relationship, tier, runs, all))
+        // The home screen is ours: what readers wrote lives on his page.
+        const cards = all
+          .filter((e) => e.origin === 'OFFICIAL' && ratings.includes(e.rating))
+          .map((e) => toEpisodeCard(e, relationship, tier, runs, all))
         return { character: { ...c, portraitUrl: portraits[0]?.url ?? null, relationship }, episode: tonight(cards) }
       })
     )
@@ -131,7 +144,9 @@ export async function characterRoutes(
 
   /**
    * The "tonight" list for one character. Cards only: briefs and beats stay on
-   * the server. MATURE episodes are not served yet (story pipeline, step 6).
+   * the server. Ours first in authored order; then what readers wrote for him,
+   * best-finished first, under the same rating rail (docs/ugc-pipeline.md,
+   * "Serving rules").
    */
   app.get('/characters/:id/episodes', async (req, reply): Promise<EpisodesResponse | void> => {
     const { id } = Params.parse(req.params)
@@ -139,10 +154,47 @@ export async function characterRoutes(
     if (!character) return reply.code(404).send({ error: 'character not found' })
     const [all, relationship, tier] = await Promise.all([repo.listEpisodes(id), repo.findRelationship(req.user.id, id), tierOf(req.user.id)])
     const runs = relationship ? await repo.listRuns(relationship.id) : []
-    const episodes = all
-      .filter((e) => visibleRatings(req.channel, req.user.ageVerifiedAt !== null).includes(e.rating))
-      .map((e) => toEpisodeCard(e, relationship, tier, runs, all))
-    return { characterId: id, relationship, episodes }
+    const ratings = visibleRatings(req.channel, req.user.ageVerifiedAt !== null)
+    const visible = all.filter((e) => ratings.includes(e.rating))
+    const ours = visible.filter((e) => e.origin === 'OFFICIAL')
+    const theirs = visible.filter((e) => e.origin === 'UGC')
+    const [counts, names] = await Promise.all([repo.countRuns(theirs.map((e) => e.id)), authorNames(repo, theirs)])
+    const episodes = ours.map((e) => toEpisodeCard(e, relationship, tier, runs, all))
+    const community = rankCommunity(
+      theirs.map((e) =>
+        toEpisodeCard(e, relationship, tier, runs, all, {
+          authorName: e.authorId ? (names.get(e.authorId) ?? null) : null,
+          completions: counts.get(e.id)?.finished ?? 0,
+        })
+      ),
+      counts
+    )
+    return { characterId: id, relationship, episodes, community }
+  })
+
+  /**
+   * A player flags a user-made episode (docs/ugc-pipeline.md, "Moderation",
+   * post-publish). One per player; enough of them take it off the shelf until a
+   * person has read it. Our own episodes are not reportable here: they are ours.
+   */
+  app.post('/episodes/:id/report', async (req, reply): Promise<ReportEpisodeResponse | void> => {
+    const { id } = Params.parse(req.params)
+    const parsed = ReportEpisodeRequest.safeParse(req.body)
+    if (!parsed.success) return reply.code(400).send({ error: 'reason required' })
+    const episode = await repo.getEpisode(id)
+    if (!episode || episode.origin !== 'UGC' || !['LIVE', 'UNLISTED'].includes(episode.status)) {
+      return reply.code(404).send({ error: 'episode not found' })
+    }
+    if (episode.authorId === req.user.id) return reply.code(400).send({ error: 'you wrote this one' })
+    const { counted, reportCount } = await repo.reportEpisode({ episodeId: id, reporterId: req.user.id, reason: parsed.data.reason })
+    const status = statusAfterReport(episode.status, reportCount)
+    if (status !== episode.status) {
+      await repo.updateEpisode(id, { status })
+      req.log.warn({ episodeId: id, authorId: episode.authorId, reportCount, reason: parsed.data.reason }, 'episode unlisted on reports')
+    } else if (counted) {
+      req.log.info({ episodeId: id, reportCount, reason: parsed.data.reason }, 'episode reported')
+    }
+    return { counted, status }
   })
 
   app.get('/characters/:id/moments', async (req, reply): Promise<MomentsResponse | void> => {

@@ -85,6 +85,11 @@ export async function handleStartEpisode(
   if (open && open.episodeId !== episode.id) {
     return send({ type: 'error', code: 'INVALID_PAYLOAD', message: 'Finish the open episode first' })
   }
+  // Off the shelf (a draft, or unlisted on reports): nobody new starts it. A run
+  // already open plays out on the version it pinned; that is what the pin is for.
+  if (episode.status !== 'LIVE' && open?.episodeId !== episode.id) {
+    return send({ type: 'error', code: 'INVALID_PAYLOAD', message: 'Unknown episode' })
+  }
   const state = availability(episode, ctx.relationship, tier, runs, all)
   if (state.status === 'LOCKED') return send({ type: 'error', code: 'QUOTA_EXCEEDED', message: state.lockReason ?? 'Not yet' })
   if (state.status === 'DONE') return send({ type: 'error', code: 'INVALID_PAYLOAD', message: 'Already played' })

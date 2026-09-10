@@ -141,10 +141,14 @@ Each line is a PR. None of it touches the turn.
 4. **Dry-run**: a sandbox run type that writes no affinity, sends no photos, and writes no
    memory; a transcript the author can read.
 5. **Serving**: LIVE user-made episodes under official ones on the character's list, ordered
-   by completion; reports endpoint; UNLISTED threshold.
+   by completion; reports endpoint; UNLISTED threshold. *Built 2026-09-10:* `EpisodesResponse.community`,
+   ranked in `episodes/community.ts` (rate, then completions, then position); `/tonight` is
+   official only; `POST /episodes/:id/report`, one per player, three take a LIVE episode to
+   UNLISTED; a run already open on an unlisted episode plays out on its pinned version.
 6. **Review queue**: a route behind a secret, like the grant route, listing SUBMITTED and
-   flagged episodes with the dry-run transcript; LIVE / REJECT with a note. A Feishu message
-   on each new MATURE submission so it is not forgotten.
+   flagged episodes with the dry-run transcript; LIVE / REJECT with a note. An email on each
+   new MATURE submission so it is not forgotten. Not Feishu: that is the founder's employer's
+   tooling and this product does not go through it.
 7. **Editor**: the web form, skeletons, the AI draft button, dry-run playback in the stage.
 8. **Credits**: completions → Plus days, shown on the creator's episode card.
 

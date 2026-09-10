@@ -9,6 +9,7 @@ import type {
   MomentUnlockSource,
   Portrait,
   RelationshipDepth,
+  ReportReason,
   Scene,
 } from '@odyssey/shared'
 import { SEED_CHARACTERS } from '../content/seed.js'
@@ -29,6 +30,7 @@ import type {
   RelationshipEvent,
   RelationshipPatch,
   RelationshipRecord,
+  RunCounts,
   SessionRecord,
   SubscriptionRecord,
   UserRecord,
@@ -51,6 +53,8 @@ export class MemoryRepository implements AppRepository {
   private moments = new Map<string, Moment[]>()
   private episodes = new Map<string, EpisodeRecord[]>()
   private runs = new Map<string, EpisodeRun>()
+  private reports = new Map<string, ReportReason>()
+  private reportCounts = new Map<string, number>()
   private relationships = new Map<string, RelationshipRecord>()
   private conversations = new Map<
     string,
@@ -257,6 +261,26 @@ export class MemoryRepository implements AppRepository {
     }
     this.runs.set(id, updated)
     return { ...updated }
+  }
+  async countRuns(episodeIds: string[]) {
+    const out = new Map<string, RunCounts>()
+    for (const r of this.runs.values()) {
+      if (!episodeIds.includes(r.episodeId)) continue
+      const c = out.get(r.episodeId) ?? { started: 0, finished: 0 }
+      c.started += 1
+      if (r.endedAt) c.finished += 1
+      out.set(r.episodeId, c)
+    }
+    return out
+  }
+  async reportEpisode(input: { episodeId: string; reporterId: string; reason: ReportReason }) {
+    const key = `${input.episodeId}:${input.reporterId}`
+    const counts = this.reportCounts
+    if (this.reports.has(key)) return { counted: false, reportCount: counts.get(input.episodeId) ?? 0 }
+    this.reports.set(key, input.reason)
+    const n = (counts.get(input.episodeId) ?? 0) + 1
+    counts.set(input.episodeId, n)
+    return { counted: true, reportCount: n }
   }
 
   // ---------------------------------------------------------------- billing

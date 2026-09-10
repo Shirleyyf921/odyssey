@@ -266,3 +266,20 @@ test('answering the ring puts the phone rule into the prompt; letting it ring do
   await ignored.say('Let it ring', 1)
   assert.ok(!ignored.persona().at(-1)!.system.includes('You are on the phone'), 'a text that arrives later is not a call')
 })
+
+test('an episode off the shelf cannot be started, but a run already open on it plays out', async () => {
+  const { repo, episode, sent, start, run, last } = await setup()
+  await repo.updateEpisode(episode.id, { status: 'UNLISTED' })
+  await start()
+  assert.equal(last('error')?.message, 'Unknown episode')
+  assert.equal(await run(), null)
+
+  await repo.updateEpisode(episode.id, { status: 'LIVE' })
+  await start()
+  assert.ok(await run())
+  await repo.updateEpisode(episode.id, { status: 'UNLISTED' })
+  sent.length = 0
+  await start()
+  assert.equal(last('error'), undefined)
+  assert.ok(last('choices'), 'the open run resumes on the version it pinned')
+})

@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import Fastify from 'fastify'
-import { AuthoredEpisodeResponse, EpisodesResponse, MyEpisodesResponse, type EpisodeDraft } from '@odyssey/shared'
+import { AuthoredEpisodeResponse, EpisodesResponse, MyEpisodesResponse, ReportEpisodeResponse, TonightResponse, type EpisodeDraft } from '@odyssey/shared'
 import { requireIdentity } from '../auth/identity.js'
 import { SEED_CHARACTERS } from '../content/seed.js'
 import { MemoryRepository } from '../repo/memory.js'
@@ -80,17 +80,87 @@ test('an author creates a draft and sees it whole, briefs included; nobody else 
   assert.equal(theirs.episodes.length, 0)
 })
 
-test('a draft is not on the shelf; a LIVE one is', async () => {
+test('a draft is not on the shelf; a LIVE one is, under ours and with the author named', async () => {
   const { app, repo } = await build()
   const me = randomUUID()
   const { episode } = AuthoredEpisodeResponse.parse(
     (await app.inject({ method: 'POST', url: '/me/episodes', headers: as(me), payload: draft() })).json()
   )
   const shelf = async () =>
-    EpisodesResponse.parse((await app.inject({ method: 'GET', url: `/characters/${rafe.character.id}/episodes`, headers: as(me) })).json()).episodes
-  assert.ok(!(await shelf()).some((e) => e.id === episode.id), 'players never see a draft')
+    EpisodesResponse.parse((await app.inject({ method: 'GET', url: `/characters/${rafe.character.id}/episodes`, headers: as(me) })).json())
+  const before = await shelf()
+  assert.ok(!before.episodes.some((e) => e.id === episode.id) && !before.community.some((e) => e.id === episode.id), 'players never see a draft')
   await repo.updateEpisode(episode.id, { status: 'LIVE' })
-  assert.ok((await shelf()).some((e) => e.id === episode.id))
+  const author = await repo.getOrCreateUserByDevice(me)
+  await repo.updateUser(author.id, { displayName: 'Mara' })
+  const after = await shelf()
+  assert.ok(!after.episodes.some((e) => e.id === episode.id), 'ours stay ours')
+  const card = after.community.find((e) => e.id === episode.id)
+  assert.ok(card)
+  assert.deepEqual([card.origin, card.authorName, card.completions], ['UGC', 'Mara', 0])
+  assert.ok(after.episodes.every((e) => e.origin === 'OFFICIAL'))
+})
+
+test('community is ranked by how often it is finished, and never reaches the home screen', async () => {
+  const { app, repo } = await build()
+  const author = randomUUID()
+  const live = async (title: string) => {
+    const { episode } = AuthoredEpisodeResponse.parse(
+      (await app.inject({ method: 'POST', url: '/me/episodes', headers: as(author), payload: draft({ title }) })).json()
+    )
+    await repo.updateEpisode(episode.id, { status: 'LIVE' })
+    return episode
+  }
+  const [abandoned, finished, unplayed] = [await live('Abandoned'), await live('Finished'), await live('Unplayed')]
+  // Two readers start both; only one of them is ever finished, by one of the readers.
+  for (const device of [randomUUID(), randomUUID()]) {
+    const user = await repo.getOrCreateUserByDevice(device)
+    const rel = await repo.createRelationship(user.id, rafe.character.id, 'LIGHT')
+    for (const e of [abandoned, finished]) {
+      const run = await repo.createRun({ relationshipId: rel.id, episodeId: e.id, currentBeatId: e.firstBeatId, episodeVersion: 1 })
+      if (e.id === finished.id && device === device) await repo.updateRun(run.id, { endedAt: new Date() })
+    }
+  }
+  const shelf = EpisodesResponse.parse(
+    (await app.inject({ method: 'GET', url: `/characters/${rafe.character.id}/episodes`, headers: as(randomUUID()) })).json()
+  )
+  assert.deepEqual(
+    shelf.community.map((e) => [e.title, e.completions]),
+    [['Finished', 2], ['Abandoned', 0], ['Unplayed', 0]]
+  )
+  const home = TonightResponse.parse((await app.inject({ method: 'GET', url: '/tonight', headers: as(randomUUID()) })).json())
+  const his = home.items.find((i) => i.character.id === rafe.character.id)!
+  assert.ok(his.episode && his.episode.origin === 'OFFICIAL', 'the home screen is ours')
+})
+
+test('reports: one per player, not by the author, and three take it off the shelf', async () => {
+  const { app, repo } = await build()
+  const author = randomUUID()
+  const { episode } = AuthoredEpisodeResponse.parse(
+    (await app.inject({ method: 'POST', url: '/me/episodes', headers: as(author), payload: draft() })).json()
+  )
+  await repo.updateEpisode(episode.id, { status: 'LIVE' })
+  const report = (device: string, reason = 'BROKEN') =>
+    app.inject({ method: 'POST', url: `/episodes/${episode.id}/report`, headers: as(device), payload: { reason } })
+
+  assert.equal((await report(author)).statusCode, 400, 'an author cannot report their own')
+  const official = rafe.episodes[0]!
+  assert.equal((await app.inject({ method: 'POST', url: `/episodes/${official.id}/report`, headers: as(randomUUID()), payload: { reason: 'OTHER' } })).statusCode, 404, 'ours are not reportable here')
+  assert.equal((await report(randomUUID(), 'RUDE')).statusCode, 400, 'the reason is one of the listed ones')
+
+  const first = randomUUID()
+  assert.deepEqual(ReportEpisodeResponse.parse((await report(first)).json()), { counted: true, status: 'LIVE' })
+  assert.deepEqual(ReportEpisodeResponse.parse((await report(first, 'HATE')).json()), { counted: false, status: 'LIVE' }, 'a second report from the same player is answered, not counted')
+  assert.deepEqual(ReportEpisodeResponse.parse((await report(randomUUID())).json()), { counted: true, status: 'LIVE' })
+  assert.deepEqual(ReportEpisodeResponse.parse((await report(randomUUID())).json()), { counted: true, status: 'UNLISTED' })
+  assert.equal((await repo.getEpisode(episode.id))?.status, 'UNLISTED')
+
+  const shelf = EpisodesResponse.parse(
+    (await app.inject({ method: 'GET', url: `/characters/${rafe.character.id}/episodes`, headers: as(randomUUID()) })).json()
+  )
+  assert.ok(!shelf.community.some((e) => e.id === episode.id), 'unlisted is off the shelf')
+  // Still reportable while unlisted, so the queue sees every voice; the status does not move again.
+  assert.deepEqual(ReportEpisodeResponse.parse((await report(randomUUID())).json()), { counted: true, status: 'UNLISTED' })
 })
 
 test('the integrity rule refuses a broken draft and names the beat', async () => {

@@ -60,12 +60,19 @@ export function tonight(cards: EpisodeCard[]): EpisodeCard | null {
   return first('IN_PROGRESS') ?? first('AVAILABLE') ?? first('LOCKED') ?? [...byPosition].reverse().find((c) => c.status === 'DONE') ?? null
 }
 
+/** What the card says about who wrote it and how it has been played. Both default to ours, unplayed. */
+export interface CardCredit {
+  authorName?: string | null
+  completions?: number
+}
+
 export function toEpisodeCard(
   episode: EpisodeRecord,
   relationship: Pick<Relationship, 'stage'> | null,
   tier: Tier,
   runs: EpisodeRun[],
-  all: EpisodeRecord[]
+  all: EpisodeRecord[],
+  credit: CardCredit = {}
 ): EpisodeCard {
   const { status, lockReason } = availability(episode, relationship, tier, runs, all)
   const run = runs.find((r) => r.episodeId === episode.id) ?? null
@@ -83,5 +90,8 @@ export function toEpisodeCard(
     lockReason,
     beatCount: episode.beats.length,
     currentBeat: currentIndex >= 0 ? currentIndex + 1 : null,
+    origin: episode.origin,
+    authorName: credit.authorName ?? null,
+    completions: credit.completions ?? 0,
   }
 }
