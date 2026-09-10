@@ -3,7 +3,36 @@
 Working document for producing the v1 assets with Midjourney and Lovart. Everything here
 is a starting point; the face that wins the first round becomes the reference for the rest.
 
-## Style
+## Style anchor (2026-09-10)
+
+The four images in `reference/` are the style, full stop. Everything before this date was
+semi-realistic 2.5D and drifted photoreal; the roster was regenerated against these and the
+difference is not subtle. What they fix, as rules:
+
+1. **Ink, not paint.** Korean manhwa linework: confident black line, hatching in the shadows,
+   sketchy loose hair strands, mostly monochrome grey wash with one accent colour per man.
+   Matte. Say "illustration not a photograph" and mean it.
+2. **He reaches for you.** Two of the four references have his hand coming at the camera. The
+   viewer is the person he is reaching for. Every man now has one such card, earned at
+   ACQUAINTED and never sold: it is the relationship's gift, not the shop's.
+3. **Sheets, not singles.** Two of the four are turnarounds with expression heads. That is the
+   consistency infrastructure the stage needs (his face should change when his line lands) and
+   it is still owed.
+4. **An open shirt is the baseline.** Two of the four have it. The SFW line moves up to match:
+   bare torso and an open shirt are SFW, the MATURE line starts where "Paid moments" already
+   draws it. Fully buttoned reads as celibate, which the first round taught us.
+
+How to use them in Lovart: pass the sheet (`15c5…`) and the couch (`b427…`) as the first two
+attachments and say they are STYLE references only, then the man's hero as the third and say
+it is the CHARACTER reference. The agent will draw the reference's person instead of yours if
+the roles are not stated in that order; it did, once, for Jun.
+
+Current heroes, in this style: Ash `pJCNXKZvCxFPnTEb`, Rafe `8e38GgdGXI3Q4sqx`, Jun
+`La7TUUMcXE1GHcCh`. Reaching cards: Ash `9ZBMKpRuES3F0P3K`, Rafe `RqiYiaiRkRJMTp5g`, Jun
+`giVvn31cg5DlwRPf`. The paid cards and backdrops from earlier in the day are still in the
+old style and are next.
+
+## Style (the earlier prompt, superseded above)
 
 One look for the whole roster. Generate a **style anchor** first, pick the best frame, and
 pass it as `--sref` (Midjourney) or as the style reference image (Lovart) on every later prompt.
