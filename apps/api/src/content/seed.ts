@@ -17,10 +17,20 @@ export interface SeedCharacter {
 }
 
 const ASH = 'a1000000-0000-4000-8000-000000000001'
+const RAFE = 'a1000000-0000-4000-8000-000000000002'
+const JUN = 'a1000000-0000-4000-8000-000000000003'
+const RAFE_APARTMENT_SCENE = 'c1000000-0000-4000-8000-000000000011'
+const JUN_FLOOR_SCENE = 'c1000000-0000-4000-8000-000000000021'
+const RAFE_PIANO_MOMENT = 'b1000000-0000-4000-8000-000000000011'
+const JUN_NOTED_MOMENT = 'b1000000-0000-4000-8000-000000000021'
 const ASH_ROOM_SCENE = 'c1000000-0000-4000-8000-000000000001'
 const ASH_DESK_MOMENT = 'b1000000-0000-4000-8000-000000000003'
 const EP1 = 'e1000000-0000-4000-8000-000000000001'
 const B = (n: number) => `f1000000-0000-4000-8000-00000000000${n}`
+const EP3 = 'e1000000-0000-4000-8000-000000000003'
+const D = (n: number) => `f3000000-0000-4000-8000-00000000000${n}`
+const EP4 = 'e1000000-0000-4000-8000-000000000004'
+const E = (n: number) => `f4000000-0000-4000-8000-00000000000${n}`
 const EP2 = 'e1000000-0000-4000-8000-000000000002'
 const C = (n: number) => `f2000000-0000-4000-8000-00000000000${n}`
 
@@ -258,6 +268,262 @@ const ASH_EPISODE_2: EpisodeRecord = {
   ],
 }
 
+
+/**
+ * Rafe, episode 1. Five beats. The branch is whether she plays along with the
+ * performance or refuses it, and both roads arrive at the same place: the one
+ * moment he is not performing. One photo, a quiet ending, no call. His fantasy
+ * is a man who over-offers, so every beat is him giving too much and her
+ * deciding what to do with it.
+ */
+const RAFE_EPISODE_1: EpisodeRecord = {
+  id: EP3,
+  characterId: RAFE,
+  position: 0,
+  title: 'The forty-second floor',
+  premise: 'Everyone else went home at two. He asked you to stay for a drink, then did not pour one.',
+  setting:
+    'The forty-second floor at five in the morning, after the last of them left. Marble, a grand piano nobody plays, a city going pale through glass that runs floor to ceiling. Someone else\'s jacket on the couch, a glass on the floor beside it.',
+  opener:
+    "*does not get up, tips his head back to look at you upside down, and smiles like this is the best thing that has happened all week* you came all the way up here. *quieter* nobody comes all the way up here.",
+  sceneId: RAFE_APARTMENT_SCENE,
+  rating: 'SFW',
+  unlock: { kind: 'FREE' },
+  firstBeatId: D(1),
+  beats: [
+    {
+      id: D(1),
+      episodeId: EP3,
+      position: 0,
+      kind: 'STORY',
+      brief:
+        'The last guests have gone and he is being delightful about it, which is what he does instead of being alone. He offers her the flat, the view, the car downstairs, a fortnight in someone else\'s house in the south, all in about a minute and all of it genuine, which is the unnerving part. He is watching to see whether she takes any of it. He would rather she took something than looked at him.',
+      setting: null,
+      options: [
+        { intent: 'Take him up on one of the offers, just to see', next: D(2), affinity: 1 },
+        { intent: 'Take nothing and ask him why the flat is so empty', next: D(3), affinity: 2 },
+      ],
+      next: D(2),
+      photoMomentId: null,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: ['hand'],
+    },
+    {
+      id: D(2),
+      episodeId: EP3,
+      position: 1,
+      kind: 'STORY',
+      brief:
+        'She took him up on it, so he delivers, immediately and beautifully, and he is at his most charming here. He is also, underneath, disappointed in a way he would never admit: this is the version of him everyone accepts. Somewhere in this beat he over-gives once too obviously and hears himself do it. He covers it badly for the first time tonight.',
+      setting: null,
+      options: [
+        { intent: 'Tell him he does not have to buy the room', next: D(4), affinity: 2 },
+        { intent: 'Let him keep going and watch him do it', next: D(4), affinity: 1 },
+      ],
+      next: D(4),
+      photoMomentId: null,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: ['hand', 'shoulder'],
+    },
+    {
+      id: D(3),
+      episodeId: EP3,
+      position: 2,
+      kind: 'STORY',
+      brief:
+        'She refused all of it and asked about the emptiness instead, which nobody does. He deflects twice, charmingly, and then does not manage a third time. He tells her the truth about the piano: tuned every year, unplayed for nine, and why. He is not drunk and she can tell, and he watches her work that out.',
+      setting: null,
+      options: [
+        { intent: 'Ask him to play something anyway', next: D(4), affinity: 2 },
+        { intent: 'Say nothing and sit down on the floor by the couch', next: D(4), affinity: 2 },
+      ],
+      next: D(4),
+      photoMomentId: null,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: ['hand', 'shoulder'],
+    },
+    {
+      id: D(4),
+      episodeId: EP3,
+      position: 3,
+      kind: 'STORY',
+      brief:
+        'The light comes up properly and neither of them has gone to bed. This is the beat where he stops performing: the smile goes, briefly, and what is under it is tired and about eleven years old. He says the true thing, which is that being a wreck is the only way he has found of being let go of, and that he does not know what she wants from him because she has not asked for anything. He hates saying it and says it anyway. This is where he sends the photo of the piano.',
+      setting: null,
+      options: [
+        { intent: 'Ask him for one small, ordinary thing', next: D(5), affinity: 3 },
+        { intent: 'Tell him you are not going to ask him for anything', next: D(5), affinity: 3 },
+      ],
+      next: D(5),
+      photoMomentId: RAFE_PIANO_MOMENT,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: ['hand', 'shoulder', 'hair', 'face'],
+    },
+    {
+      id: D(5),
+      episodeId: EP3,
+      position: 4,
+      kind: 'END',
+      brief:
+        'It is fully light. He walks her to the lift and does not offer her anything at all, which from him is enormous. One line as the doors go, no question, the first thing he has said all night that costs him something.',
+      setting: 'The private lift lobby, full daylight now, the party glasses still out on the marble behind you.',
+      options: [],
+      next: null,
+      photoMomentId: null,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: [],
+    },
+  ],
+}
+
+/**
+ * Jun, episode 1. Five beats and a call. The branch is whether she lets him
+ * decide for her or takes the decision back, and the call at the end is him
+ * ringing about something she is not supposed to know he did. Nothing about
+ * the block is confirmed in this episode: he does not deny and does not explain.
+ */
+const JUN_EPISODE_1: EpisodeRecord = {
+  id: EP4,
+  characterId: JUN,
+  position: 0,
+  title: 'Sixty floors of nothing',
+  premise: 'He sent a car for you at eleven at night and did not say where it was going.',
+  setting:
+    'The top floor of a tower that is not finished: concrete, no glass in the frames yet, wind coming straight through, the city sixty floors down and going on without either of you. One work lamp. His coat and nothing else between the wind and you.',
+  opener:
+    "*does not turn from the open edge when the lift doors go; he heard the car arrive twenty minutes ago* you did not ask the driver where he was taking you. *now he turns* I want to know why not.",
+  sceneId: JUN_FLOOR_SCENE,
+  rating: 'SFW',
+  unlock: { kind: 'FREE' },
+  firstBeatId: E(1),
+  beats: [
+    {
+      id: E(1),
+      episodeId: EP4,
+      position: 0,
+      kind: 'STORY',
+      brief:
+        'He asked a real question and he waits for the answer without helping her. He is standing closer to the open edge than anyone should. Everything he says is short. He does not explain why she is here. Whatever she answers, he takes it seriously and does not compliment her for it.',
+      setting: null,
+      options: [
+        { intent: 'Say you trusted him, and watch what that does', next: E(2), affinity: 2 },
+        { intent: 'Say you wanted to see how far he would take it', next: E(3), affinity: 2 },
+      ],
+      next: E(2),
+      photoMomentId: null,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: ['hand'],
+    },
+    {
+      id: E(2),
+      episodeId: EP4,
+      position: 1,
+      kind: 'STORY',
+      brief:
+        'She said she trusted him. He does not thank her for it; he tests it. He tells her, flatly, what he actually does: which streets come down, decided in rooms she will never be in, by men who will never see the streets. He is not confessing and he is not proud. He is showing her the size of the thing she just said she trusts, to see whether she takes it back.',
+      setting: null,
+      options: [
+        { intent: 'Ask whether he has ever stopped one', next: E(4), affinity: 3 },
+        { intent: 'Tell him you already knew what he was', next: E(4), affinity: 2 },
+      ],
+      next: E(4),
+      photoMomentId: null,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: ['hand', 'shoulder'],
+    },
+    {
+      id: E(3),
+      episodeId: EP4,
+      position: 2,
+      kind: 'STORY',
+      brief:
+        'She admitted she was testing him, which he likes more than trust and does not say so. He takes the decision back off her once, small and physical: moves her away from the edge with one hand, without asking. Then he gives her something in exchange, because he is not a man who takes without paying: he tells her one fact about himself, and it is not a soft one.',
+      setting: null,
+      options: [
+        { intent: 'Step back to the edge on your own', next: E(4), affinity: 3 },
+        { intent: 'Stay where he put you and make him say why', next: E(4), affinity: 2 },
+      ],
+      next: E(4),
+      photoMomentId: null,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: ['hand', 'shoulder'],
+    },
+    {
+      id: E(4),
+      episodeId: EP4,
+      position: 3,
+      kind: 'STORY',
+      brief:
+        'The quiet beat, and it is cold. He puts his coat on her without discussing it. From here she can see her own neighbourhood, lit, sixty floors below, and he looks at it for slightly too long before he looks away. He does not explain that. If she asks about it he changes the subject once, cleanly, and does not lie. This is where he sends the photo, the one about the man from dinner.',
+      setting: null,
+      options: [
+        { intent: 'Ask him what he was looking at', next: E(5), affinity: 3 },
+        { intent: 'Take his hand instead of asking', next: E(5), affinity: 3 },
+      ],
+      next: E(5),
+      photoMomentId: JUN_NOTED_MOMENT,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: ['hand', 'shoulder', 'hair', 'face'],
+    },
+    {
+      id: E(5),
+      episodeId: EP4,
+      position: 4,
+      kind: 'CALL',
+      brief: 'The car has dropped her home. Her phone goes before she has the key in the door.',
+      setting: 'Your street, your own front door, the car pulling away behind you.',
+      options: [
+        { intent: 'Answer', next: E(6), affinity: 2 },
+        { intent: 'Let it ring', next: E(7), affinity: 0 },
+      ],
+      next: E(7),
+      photoMomentId: null,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: [],
+    },
+    {
+      id: E(6),
+      episodeId: EP4,
+      position: 5,
+      kind: 'END',
+      brief:
+        'She picked up. Two sentences, no room and no beat: his voice on a phone is all he has, and he uses less of it than anyone. He tells her that the building she is standing in front of is not coming down, in the flattest possible way, as though it were weather. He does not say who decided that or when. He hangs up before she can ask.',
+      setting: 'On the phone, standing at your own front door, key still in your hand.',
+      options: [],
+      next: null,
+      photoMomentId: null,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: [],
+    },
+    {
+      id: E(7),
+      episodeId: EP4,
+      position: 6,
+      kind: 'END',
+      brief:
+        'She let it ring. No second call, no message: from him the silence is the message. What arrives instead, the next morning, is a single line of official-looking text she does not understand yet about a scheduled demolition being withdrawn. No name on it. He never mentions it.',
+      setting: 'The next morning, a notice through your door, no name on it.',
+      options: [],
+      next: null,
+      photoMomentId: null,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: [],
+    },
+  ],
+}
+
 export const SEED_CHARACTERS: SeedCharacter[] = [
   {
     character: {
@@ -460,7 +726,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         unlock: { kind: 'PURCHASE', sku: 'moment_rafe_02' },
       },
     ],
-    episodes: [],
+    episodes: [RAFE_EPISODE_1],
   },
   {
     character: {
@@ -526,6 +792,6 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         unlock: { kind: 'PURCHASE', sku: 'moment_jun_02' },
       },
     ],
-    episodes: [],
+    episodes: [JUN_EPISODE_1],
   },
 ]

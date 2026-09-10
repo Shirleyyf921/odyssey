@@ -188,9 +188,12 @@ test('episodes: cards only, status follows the run, briefs stay on the server', 
   assert.equal(during.episodes[0]!.status, 'IN_PROGRESS')
   assert.equal(during.episodes[0]!.currentBeat, 1)
 
+  // Every character has at least one episode now; an explore character's is his own, not the primary's.
   const explore = roster.characters.find((c) => c.kind === 'EXPLORE')!
-  const none = EpisodesResponse.parse((await app.inject({ method: 'GET', url: `/characters/${explore.id}/episodes`, headers: { 'x-device-id': device } })).json())
-  assert.deepEqual(none.episodes, [])
+  const theirs = EpisodesResponse.parse((await app.inject({ method: 'GET', url: `/characters/${explore.id}/episodes`, headers: { 'x-device-id': device } })).json())
+  assert.ok(theirs.episodes.length >= 1)
+  assert.ok(theirs.episodes.every((e) => e.characterId === explore.id))
+  assert.ok(!theirs.episodes.some((e) => e.title === 'Four minutes'))
 })
 
 test('tonight gives one card per character, the open one for the primary and nothing for the others', async () => {
@@ -201,7 +204,11 @@ test('tonight gives one card per character, the open one for the primary and not
   const primaryItem = before.items.find((i) => i.character.kind === 'PRIMARY')!
   assert.equal(primaryItem.episode?.title, 'Four minutes')
   assert.equal(primaryItem.episode?.status, 'AVAILABLE')
-  assert.ok(before.items.filter((i) => i.character.kind === 'EXPLORE').every((i) => i.episode === null), 'no episodes, no card')
+  assert.ok(before.items.every((i) => i.episode !== null), 'every man has something open tonight')
+  assert.ok(
+    before.items.every((i) => i.episode!.characterId === i.character.id),
+    "and it is his own, not someone else's"
+  )
   assert.ok(!(await app.inject({ method: 'GET', url: '/tonight', headers: { 'x-device-id': device } })).body.includes('brief'))
 
   const started = StartRelationshipResponse.parse((await app.inject({ method: 'POST', url: `/characters/${primaryItem.character.id}/start`, headers: { 'x-device-id': device } })).json())
