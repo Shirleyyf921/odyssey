@@ -465,6 +465,37 @@ export const EpisodeDraft = Episode.pick({
   })
 export type EpisodeDraft = z.infer<typeof EpisodeDraft>
 
+/**
+ * One beat of a dry-run: what he wrote when the author's episode was played
+ * once, in a sandbox, against the real model. Nothing here touched a
+ * relationship, a photo, or a memory (docs/ugc-pipeline.md, section 2).
+ */
+export const DryRunBeat = z.object({
+  beatId: z.string().uuid(),
+  /** "beat 3", the author's numbering. */
+  at: z.string(),
+  kind: BeatKind,
+  /** What the sandbox player did to arrive here. */
+  userAction: z.string(),
+  narration: z.array(z.string()),
+  line: z.string(),
+  options: z.array(z.string()),
+  model: z.string().nullable(),
+  /** Why this beat fails the run, in plain words; null when it played. */
+  problem: z.string().nullable(),
+})
+export type DryRunBeat = z.infer<typeof DryRunBeat>
+
+export const DryRun = z.object({
+  ranAt: z.string().datetime(),
+  /** The episode version that was played. */
+  version: z.number().int().min(1),
+  beats: z.array(DryRunBeat),
+  /** Every beat generated and nothing broke. */
+  passed: z.boolean(),
+})
+export type DryRun = z.infer<typeof DryRun>
+
 export const EpisodeStatus = z.enum(['LOCKED', 'AVAILABLE', 'IN_PROGRESS', 'DONE'])
 export type EpisodeStatus = z.infer<typeof EpisodeStatus>
 

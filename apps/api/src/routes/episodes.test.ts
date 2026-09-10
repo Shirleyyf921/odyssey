@@ -7,6 +7,12 @@ import { requireIdentity } from '../auth/identity.js'
 import { SEED_CHARACTERS } from '../content/seed.js'
 import { MemoryRepository } from '../repo/memory.js'
 import { FloorOnlyEpisodeScreener, type EpisodeScreener } from '../safety/episode-screen.js'
+import { LlmGateway } from '../llm/gateway.js'
+import { ScriptedProvider } from '../llm/scripted.js'
+import type { LlmProvider } from '../llm/types.js'
+
+const STORY_REPLY = `[narration]\nThe lamp is the only light left.\n[line]\n*doesn't look back down* you found it.\n[options]\nA. sit by the lamp\nB. stay by the door`
+const storyGateway = (provider: LlmProvider = new ScriptedProvider(STORY_REPLY)) => new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider })
 import { characterRoutes } from './characters.js'
 import { authorRoutes } from './episodes.js'
 
@@ -15,13 +21,13 @@ const rafe = SEED_CHARACTERS[1]!
 assert.equal(ash.character.kind, 'PRIMARY')
 assert.equal(rafe.character.kind, 'EXPLORE')
 
-async function build(screener: EpisodeScreener = new FloorOnlyEpisodeScreener()) {
+async function build(screener: EpisodeScreener = new FloorOnlyEpisodeScreener(), gateway = storyGateway()) {
   const repo = new MemoryRepository()
   const app = Fastify()
   await app.register(async (scoped) => {
     requireIdentity(scoped, repo)
     await scoped.register(characterRoutes, { repo, devTools: false })
-    await scoped.register(authorRoutes, { repo, screener })
+    await scoped.register(authorRoutes, { repo, screener, gateway })
   })
   await app.ready()
   return { app, repo }
@@ -145,9 +151,9 @@ test("a draft can be rewritten and withdrawn; once out of the author's hands it 
 
 // ---------------------------------------------------------------- submit
 
-import { ScriptedProvider } from '../llm/scripted.js'
 import { LlmEpisodeScreener, ScreenerUnavailable } from '../safety/episode-screen.js'
 import { SubmitEpisodeResponse } from '@odyssey/shared'
+import type { CompletionEvent } from '../llm/types.js'
 
 const silent = { warn() {} }
 /** A screener that answers by what the unit says, so a test can plant a label inside a beat. */
@@ -175,6 +181,8 @@ test('a clean SFW draft is submitted and leaves the author\'s hands', async () =
   const e = await created(app, me)
   const res = SubmitEpisodeResponse.parse((await submit(app, me, e.id)).json())
   assert.deepEqual([res.outcome, res.episode.status, res.episode.rating, res.notes], ['SUBMITTED', 'SUBMITTED', 'SFW', []])
+  assert.ok(res.episode.dryRun?.passed, 'submit played it once and kept the transcript')
+  assert.equal(res.episode.dryRun.beats.length, e.beats.length)
   assert.equal((await submit(app, me, e.id)).statusCode, 409)
   assert.equal((await app.inject({ method: 'PUT', url: `/me/episodes/${e.id}`, headers: me, payload: draft() })).statusCode, 409)
 })
@@ -192,7 +200,7 @@ test('a hard block or an injection rejects, naming the beat, with no appeal but 
   assert.equal(res.episode.reviewNote, res.notes.join('\n'), 'the author can read why later')
   // The rewrite path from #31: back to DRAFT, note cleared by the next submit.
   const again = AuthoredEpisodeResponse.parse((await app.inject({ method: 'PUT', url: `/me/episodes/${e.id}`, headers: me, payload: draft() })).json())
-  assert.equal(again.episode.status, 'DRAFT')
+  assert.deepEqual([again.episode.status, again.episode.reviewNote, again.episode.dryRun], ['DRAFT', null, null], 'a rewrite carries nothing over')
   const clean = SubmitEpisodeResponse.parse((await submit(app, me, e.id)).json())
   assert.deepEqual([clean.outcome, clean.episode.reviewNote], ['SUBMITTED', null])
 })
@@ -249,4 +257,66 @@ test('an outage holds the submission instead of deciding it', async () => {
   assert.equal(res.statusCode, 503)
   const after = AuthoredEpisodeResponse.parse((await app.inject({ method: 'GET', url: `/me/episodes/${e.id}`, headers: me })).json())
   assert.equal(after.episode.status, 'DRAFT', 'nothing was changed')
+})
+
+// ---------------------------------------------------------------- dry-run
+
+test('an author can play a draft and read what he wrote; nobody else can', async () => {
+  const { app, repo } = await build()
+  const me = as(randomUUID())
+  const e = await created(app, me)
+  const before = await repo.listRelationships((await repo.getOrCreateUserByDevice(me['x-device-id']!)).id)
+  const res = await app.inject({ method: 'POST', url: `/me/episodes/${e.id}/dry-run`, headers: me })
+  assert.equal(res.statusCode, 200, res.body)
+  const { episode } = AuthoredEpisodeResponse.parse(res.json())
+  assert.ok(episode.dryRun?.passed)
+  assert.equal(episode.status, 'DRAFT', 'playing is not submitting')
+  const story = episode.dryRun.beats.filter((b) => b.kind !== 'CALL')
+  assert.ok(story.every((b) => b.line.length > 0 && b.model === 'scripted'))
+  assert.ok(episode.dryRun.beats.filter((b) => b.kind === 'CALL').every((b) => b.line === '' && b.problem === null), 'a call rings and writes nothing')
+  assert.deepEqual(await repo.listRelationships((await repo.getOrCreateUserByDevice(me['x-device-id']!)).id), before, 'no relationship was touched')
+  assert.equal((await app.inject({ method: 'POST', url: `/me/episodes/${e.id}/dry-run`, headers: as(randomUUID()) })).statusCode, 404)
+})
+
+test('a beat he refuses to play rejects the submission, with the transcript attached', async () => {
+  let n = 0
+  const flaky: LlmProvider = {
+    name: 'flaky',
+    async *stream(req): AsyncIterable<CompletionEvent> {
+      // Refuse exactly one beat: the one whose brief carries the marker.
+      if (req.system.includes('[REFUSE]')) {
+        yield { type: 'refusal', model: 'x' }
+        return
+      }
+      n++
+      for (const w of STORY_REPLY.split(/(?<=\s)/)) yield { type: 'delta', text: w }
+      yield { type: 'done', model: 'x', usage: { inputTokens: 1, outputTokens: 1 } }
+    },
+  }
+  const { app } = await build(new FloorOnlyEpisodeScreener(), storyGateway(flaky))
+  const me = as(randomUUID())
+  const d = draft()
+  d.beats[2]!.brief += ' [REFUSE]'
+  const e = await created(app, me, d)
+  const res = SubmitEpisodeResponse.parse((await submit(app, me, e.id)).json())
+  assert.equal(res.outcome, 'REJECTED')
+  assert.match(res.notes.join(), /beat 2: he refused to play this beat/)
+  assert.ok(res.episode.dryRun && !res.episode.dryRun.passed)
+  assert.ok(n > 0, 'the other beats were still played, so the author sees the whole run')
+})
+
+test('when he is not answering, the submission is held, not decided', async () => {
+  const down: LlmProvider = {
+    name: 'down',
+    async *stream(): AsyncIterable<CompletionEvent> {
+      throw new Error('ECONNRESET')
+    },
+  }
+  const { app } = await build(new FloorOnlyEpisodeScreener(), storyGateway(down))
+  const me = as(randomUUID())
+  const e = await created(app, me)
+  assert.equal((await submit(app, me, e.id)).statusCode, 503)
+  assert.equal((await app.inject({ method: 'POST', url: `/me/episodes/${e.id}/dry-run`, headers: me })).statusCode, 503)
+  const after = AuthoredEpisodeResponse.parse((await app.inject({ method: 'GET', url: `/me/episodes/${e.id}`, headers: me })).json())
+  assert.deepEqual([after.episode.status, after.episode.dryRun], ['DRAFT', null])
 })

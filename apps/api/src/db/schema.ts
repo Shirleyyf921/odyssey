@@ -12,7 +12,7 @@ import {
   uuid,
   vector,
 } from 'drizzle-orm/pg-core'
-import type { BeatOption, EpisodeUnlockRule, Hotspot, HotspotRect, MomentUnlockRule } from '@odyssey/shared'
+import type { BeatOption, DryRun, EpisodeUnlockRule, Hotspot, HotspotRect, MomentUnlockRule } from '@odyssey/shared'
 
 /**
  * Postgres schema. Mirrors ARCHITECTURE.md section 5 plus the visual-asset tables
@@ -379,6 +379,8 @@ export const episodes = pgTable(
     reportCount: integer('report_count').notNull().default(0),
     lastReviewedAt: timestamptz('last_reviewed_at'),
     reviewNote: text('review_note'),
+    /** The last sandbox play of this episode, for the author and the reviewer. */
+    dryRun: jsonb('dry_run').$type<DryRun>(),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
   },
   (t) => [index('episodes_character_idx').on(t.characterId, t.position), index('episodes_author_idx').on(t.authorId)]

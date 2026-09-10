@@ -64,10 +64,12 @@ if (inference.crisisProvider) {
   app.log.warn('no NOVITA_API_KEY: crisis detection is a no-op (development only)')
   crisis = new NoopCrisisDetector()
 }
-// The same small model screens user-made episodes at submit (docs/ugc-pipeline.md).
+// Screens user-made episodes at submit (docs/ugc-pipeline.md). Off the request path, so it gets the bigger model.
 let screener: EpisodeScreener
-if (inference.crisisProvider) screener = new LlmEpisodeScreener(inference.crisisProvider, { timeoutMs: env.CRISIS_TIMEOUT_MS, log: app.log })
-else {
+if (inference.screenProvider) {
+  screener = new LlmEpisodeScreener(inference.screenProvider, { timeoutMs: env.SCREEN_TIMEOUT_MS, log: app.log })
+  app.log.info({ model: env.SCREEN_MODEL, timeoutMs: env.SCREEN_TIMEOUT_MS }, 'episode screener')
+} else {
   app.log.warn('no NOVITA_API_KEY: episode screening is the lexical floor only (development only)')
   screener = new FloorOnlyEpisodeScreener()
 }
@@ -108,7 +110,7 @@ if (billing.enabled && env.REVENUECAT_WEBHOOK_SECRET) {
 await app.register(async (scoped) => {
   requireIdentity(scoped, repo)
   await scoped.register(characterRoutes, { repo, devTools: env.NODE_ENV !== 'production', billing })
-  await scoped.register(authorRoutes, { repo, screener })
+  await scoped.register(authorRoutes, { repo, screener, gateway })
   await scoped.register(billingRoutes, {
     billing,
     grant: env.NODE_ENV !== 'production' ? 'open' : (env.BILLING_GRANT_SECRET ?? null),

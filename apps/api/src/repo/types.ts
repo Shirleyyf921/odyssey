@@ -4,6 +4,7 @@ import type {
   Character,
   CharacterKind,
   ContentRating,
+  DryRun,
   Episode,
   EpisodeDraft,
   EpisodeLifecycle,
@@ -130,6 +131,7 @@ export interface PurchaseRecord {
 /** An episode with its beats, in position order. Server-only: briefs never reach the client. */
 export interface EpisodeRecord extends Episode {
   beats: Beat[]
+  dryRun: DryRun | null
 }
 
 /** Runs pin the episode version they started on (docs/ugc-pipeline.md, section 1). */
@@ -146,6 +148,7 @@ export interface EpisodePatch {
   rating?: ContentRating
   reviewNote?: string | null
   lastReviewedAt?: Date | null
+  dryRun?: DryRun | null
 }
 
 export interface EpisodeRunPatch {

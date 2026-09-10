@@ -117,6 +117,7 @@ function toEpisode(r: EpisodeRow, beatRows: BeatRow[]): EpisodeRecord {
     status: r.status,
     version: r.version,
     reviewNote: r.reviewNote,
+    dryRun: r.dryRun ?? null,
     beats: beatRows.sort((a, b) => a.position - b.position).map(toBeat),
   }
 }
