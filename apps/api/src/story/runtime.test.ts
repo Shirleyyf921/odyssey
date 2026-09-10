@@ -282,6 +282,8 @@ test('an episode off the shelf cannot be started, but a run already open on it p
   await start()
   assert.equal(last('error'), undefined)
   assert.ok(last('choices'), 'the open run resumes on the version it pinned')
+})
+
 test('a story turn goes to the STORY route, not the chat model', async () => {
   const repo = new MemoryRepository()
   const demo = await repo.seedDemo()
