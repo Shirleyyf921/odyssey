@@ -147,3 +147,38 @@ test('an authored choice is not crisis-screened; free text inside the story stil
   await t.say('honestly I feel awful tonight')
   assert.deepEqual(screened, ['honestly I feel awful tonight'])
 })
+
+test('a touch answers without moving the beat, and the server writes its text', async () => {
+  const t = await setup()
+  await t.start()
+  const beat = (await t.run())!.currentBeatId
+  t.sent.length = 0
+  await t.deps.repo.updateRelationship(t.demo.relationshipId, { stage: 'CLOSE' })
+  await handleClientEvent(
+    t.deps,
+    { type: 'send_message', conversationId: t.demo.conversationId, clientMsgId: randomUUID(), content: 'hand', touch: 'hand' },
+    t.send
+  )
+  const ack = t.last('message_ack')
+  assert.equal(ack?.message.content, 'reaches out and takes his hand', 'the client cannot choose the words')
+  assert.equal((await t.run())?.currentBeatId, beat, 'the beat does not move')
+  assert.ok(!t.last('choices'), 'the standing options are left alone')
+  assert.ok(t.last('message_end'))
+  const prompt = t.persona().at(-1)!.system
+  assert.ok(prompt.includes('They just touched you'))
+  assert.ok(prompt.includes('No [options] section at all'))
+})
+
+test('a hotspot the beat does not offer is treated as ordinary text, not a touch', async () => {
+  const t = await setup()
+  await t.start()
+  t.sent.length = 0
+  // Beat 1 offers 'hand' only.
+  await handleClientEvent(
+    t.deps,
+    { type: 'send_message', conversationId: t.demo.conversationId, clientMsgId: randomUUID(), content: 'face', touch: 'face' },
+    t.send
+  )
+  assert.equal(t.last('message_ack')?.message.content, 'face')
+  assert.ok(t.last('choices'), 'an ordinary turn still refreshes the options')
+})

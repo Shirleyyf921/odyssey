@@ -619,6 +619,22 @@ teaser, until unlocked or set aside. The chat screen stays as the transcript, on
 the header. Play on the character page opens the stage. Touch hotspots and expression
 variants are step 4b; the portrait is the hero for now.
 
+**Step 4b (2026-09-09): touch.** Three things must agree for a touch target to exist, and
+they are owned by three different places: the geometry is on the portrait
+(`portraits.hotspots`, normalized rects authored with the art, migration 0008), which spots
+are live is on the beat, and whether the user has earned one is the relationship's
+(`story/touch.ts`: hand from STRANGER, shoulder from ACQUAINTED, hair and face from CLOSE).
+The server intersects all three and sends only the survivors in `choices.beat.hotspots`, so
+the stage never has to be told what has not been earned. The store build has these four
+hotspots and nothing else.
+
+A touch is a message: it goes through the same turn as a choice, counts against the daily
+cap, and is remembered. Three differences. Its text is written by the server
+(`TOUCH_PHRASE`), never by the client, so it cannot smuggle anything into the prompt; it is
+not crisis-screened, for the same reason an authored choice is not; and it does not advance
+the beat, so the reply is one short reaction with no options and the standing choices are
+left alone. A `touch` naming a hotspot the beat does not offer is treated as ordinary text.
+
 ## 15. Relationship Progression
 
 `Relationship.affinity` (0–100, never shown as a number) and `Relationship.stage` are the

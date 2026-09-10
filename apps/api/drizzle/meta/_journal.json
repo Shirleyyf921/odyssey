@@ -57,6 +57,13 @@
       "when": 1788932066515,
       "tag": "0007_episodes",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788942503419,
+      "tag": "0008_portrait_hotspots",
+      "breakpoints": true
     }
   ]
 }
