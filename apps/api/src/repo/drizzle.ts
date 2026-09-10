@@ -52,7 +52,7 @@ import type {
   UserRecord,
 } from './types.js'
 
-const userColumns = { id: users.id, displayName: users.displayName, locale: users.locale }
+const userColumns = { id: users.id, displayName: users.displayName, locale: users.locale, ageVerifiedAt: users.ageVerifiedAt }
 
 type MessageRow = typeof messages.$inferSelect
 type RelationshipRow = typeof relationships.$inferSelect
@@ -158,7 +158,7 @@ export class DrizzleRepository implements AppRepository {
       .insert(users)
       .values({ deviceId })
       .onConflictDoUpdate({ target: users.deviceId, set: { deviceId } })
-      .returning({ id: users.id, displayName: users.displayName, locale: users.locale })
+      .returning(userColumns)
     if (!row) throw new Error('user upsert returned no row')
     return row
   }
@@ -174,7 +174,7 @@ export class DrizzleRepository implements AppRepository {
     return row
   }
 
-  async updateUser(id: string, patch: { displayName?: string | null }) {
+  async updateUser(id: string, patch: { displayName?: string | null; ageVerifiedAt?: Date | null }) {
     const [row] = await this.db.update(users).set(patch).where(eq(users.id, id)).returning(userColumns)
     if (!row) throw new Error(`unknown user ${id}`)
     return row
@@ -531,7 +531,7 @@ export class DrizzleRepository implements AppRepository {
           name: characters.name,
           personaNotes: characters.personaNotes,
         },
-        user: { id: users.id, displayName: users.displayName, locale: users.locale },
+        user: userColumns,
       })
       .from(conversations)
       .innerJoin(relationships, eq(relationships.id, conversations.relationshipId))

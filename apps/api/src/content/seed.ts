@@ -21,6 +21,8 @@ const ELLIOT_STUDIO_SCENE = 'c1000000-0000-4000-8000-000000000001'
 const ELLIOT_STUDIO_MOMENT = 'b1000000-0000-4000-8000-000000000003'
 const EP1 = 'e1000000-0000-4000-8000-000000000001'
 const B = (n: number) => `f1000000-0000-4000-8000-00000000000${n}`
+const EP2 = 'e1000000-0000-4000-8000-000000000002'
+const C = (n: number) => `f2000000-0000-4000-8000-00000000000${n}`
 
 /**
  * Elliot, episode 1. Built from the studio scene so the backdrop and opener already
@@ -146,6 +148,81 @@ const HERO_HOTSPOTS: HotspotRect[] = [
 
 const placeholder = (label: string) =>
   `https://placehold.co/900x1200/1a1a24/8a8a98.png?text=${encodeURIComponent(label)}`
+
+/**
+ * Elliot, episode 2. MATURE, so it exists only on the web build and only for
+ * someone past the age gate (docs/story-pipeline.md, step 6; the line itself is
+ * in docs/art-prompts.md, "Paid moments"): charged, one person's hands, nothing
+ * explicit. Three beats. Opens once episode 1 is finished.
+ */
+const ELLIOT_EPISODE_2: EpisodeRecord = {
+  id: EP2,
+  characterId: ELLIOT,
+  position: 1,
+  title: 'The long way home',
+  premise: 'He walked you back. Neither of you has said goodnight, and it has been a while.',
+  setting:
+    'The street door of your building, past three. Rain has stopped and everything is still wet. His jacket is around your shoulders and he has not asked for it back.',
+  opener:
+    "*stops a step closer than the goodnight needs* so this is you. *doesn't move* I'm not going to ask to come up. I'm just not leaving while you're still standing there.",
+  sceneId: null,
+  rating: 'MATURE',
+  unlock: { kind: 'EPISODE', episodeId: EP1 },
+  firstBeatId: C(1),
+  beats: [
+    {
+      id: C(1),
+      episodeId: EP2,
+      position: 0,
+      kind: 'STORY',
+      brief:
+        'The doorway. He is close and not hiding it, and he has decided he is not the one who breaks first. Everything is in what he does with his hands and where he looks. He does not ask to come up and he does not leave. Charged, never explicit: the tension is the inch he is not closing.',
+      setting: null,
+      options: [
+        { intent: 'Take his collar and pull him down to you', next: C(2), affinity: 3 },
+        { intent: 'Give him back his jacket, slowly', next: C(2), affinity: 2 },
+      ],
+      next: C(2),
+      photoMomentId: null,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: ['hand', 'shoulder', 'face'],
+    },
+    {
+      id: C(2),
+      episodeId: EP2,
+      position: 1,
+      kind: 'STORY',
+      brief:
+        'After. He is quieter than he was, and he says the one true thing he has been sitting on all night. A kiss, a hand, a held pause is the whole of it: never further, never described. He is still not asking to come up, and now that is a decision rather than manners.',
+      setting: null,
+      options: [
+        { intent: 'Ask him to stay', next: C(3), affinity: 3 },
+        { intent: 'Tell him to go home before you change your mind', next: C(3), affinity: 3 },
+      ],
+      next: C(3),
+      photoMomentId: null,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: ['hand', 'shoulder', 'hair', 'face'],
+    },
+    {
+      id: C(3),
+      episodeId: EP2,
+      position: 2,
+      kind: 'END',
+      brief:
+        'Whatever she chose, he goes, and he makes it clear this is not the end of it. One line from the pavement, no question, the kind a man says when he already knows he will be back.',
+      setting: 'The pavement, looking up at your window.',
+      options: [],
+      next: null,
+      photoMomentId: null,
+      callUrl: null,
+      callSeconds: null,
+      hotspots: [],
+    },
+  ],
+}
 
 export const SEED_CHARACTERS: SeedCharacter[] = [
   {
@@ -278,7 +355,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         unlock: { kind: 'PURCHASE', sku: 'moment_elliot_08' },
       },
     ],
-    episodes: [ELLIOT_EPISODE_1],
+    episodes: [ELLIOT_EPISODE_1, ELLIOT_EPISODE_2],
   },
   {
     character: {

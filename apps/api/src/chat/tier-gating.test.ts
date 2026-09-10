@@ -35,8 +35,9 @@ async function setup(tier: Tier) {
     memory,
     relationship: new RelationshipService(repo, silent),
     crisis: new NoopCrisisDetector(),
+    channel: 'store',
     billing: { async tierOf() { return tier } },
-    user: { id: demo.userId, displayName: null, locale: 'en-US' },
+    user: { id: demo.userId, displayName: null, locale: 'en-US', ageVerifiedAt: null },
     log: silent,
   }
   const sent: ServerEvent[] = []

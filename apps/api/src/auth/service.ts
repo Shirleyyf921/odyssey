@@ -95,6 +95,7 @@ export class AuthService {
       locale: user.locale,
       signedIn: identities.length > 0,
       providers: [...new Set(identities.map((i) => i.provider))],
+      ageVerified: user.ageVerifiedAt !== null,
     }
   }
 

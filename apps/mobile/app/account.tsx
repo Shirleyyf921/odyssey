@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import * as AppleAuthentication from 'expo-apple-authentication'
 import { api } from '../src/lib/api'
 import { appleAvailable, googleConfigured, signInDev, signInWithApple, signOut, useGoogleSignIn } from '../src/lib/auth'
@@ -17,6 +17,7 @@ export default function AccountScreen() {
   const [error, setError] = useState<string | null>(null)
   const [apple, setApple] = useState(false)
   const [devName, setDevName] = useState('')
+  const [bornOn, setBornOn] = useState('')
 
   useEffect(() => {
     void appleAvailable().then(setApple)
@@ -32,6 +33,7 @@ export default function AccountScreen() {
   const devSignIn = useMutation({ mutationFn: () => signInDev(devName.trim()), onSuccess: refresh, onError: fail })
   const out = useMutation({ mutationFn: signOut, onSuccess: refresh, onError: fail })
   const restore = useMutation({ mutationFn: () => billing.restore(), onSuccess: refresh, onError: fail })
+  const age = useMutation({ mutationFn: () => api.declareAge({ bornOn: bornOn.trim() }), onSuccess: refresh, onError: fail })
   const grant = useMutation({
     mutationFn: (tier: 'FREE' | 'PLUS' | 'PREMIUM') => api.devGrant({ tier, days: 30 }),
     onSuccess: refresh,
@@ -85,6 +87,25 @@ export default function AccountScreen() {
             </View>
           )}
         </>
+      )}
+      {/* Only the web build can show MATURE, so only it asks. The store build never
+          mentions adult content at all. */}
+      {Platform.OS === 'web' && user && !user.ageVerified && (
+        <View style={styles.devBox}>
+          <Text style={styles.devLabel}>Date of birth</Text>
+          <Text style={styles.sub}>Some stories are for adults. Tell us when you were born and they show up here.</Text>
+          <TextInput
+            style={styles.input}
+            value={bornOn}
+            onChangeText={setBornOn}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor={colors.textFaint}
+            autoCapitalize="none"
+          />
+          <Pressable style={styles.secondary} onPress={() => age.mutate()} disabled={!bornOn.trim() || age.isPending}>
+            <Text style={styles.secondaryText}>Confirm</Text>
+          </Pressable>
+        </View>
       )}
       {status?.enabled && (
         <View style={styles.billingBox}>

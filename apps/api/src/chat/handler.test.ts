@@ -26,8 +26,9 @@ async function setup(opts: { crisis?: CrisisDetector; reply?: string; tier?: Tie
     memory,
     relationship,
     crisis: opts.crisis ?? new NoopCrisisDetector(),
+    channel: 'store',
     billing: { async tierOf() { return opts.tier ?? 'PLUS' } },
-    user: { id: demo.userId, displayName: null, locale: 'en-US' },
+    user: { id: demo.userId, displayName: null, locale: 'en-US', ageVerifiedAt: null },
     log: silent,
   }
   const sent: ServerEvent[] = []
@@ -140,7 +141,7 @@ test('a message moves affinity and a qualifying one announces the stage before t
 
 test("someone else's conversation is refused as UNAUTHORIZED", async () => {
   const { deps, conversationId, sent, send } = await setup()
-  const stranger: ChatDeps = { ...deps, user: { id: randomUUID(), displayName: null, locale: 'en-US' } }
+  const stranger: ChatDeps = { ...deps, user: { id: randomUUID(), displayName: null, locale: 'en-US', ageVerifiedAt: null } }
   await handleClientEvent(stranger, { type: 'resume', conversationId, lastMessageId: null }, send)
   assert.equal(sent[0]?.type, 'error')
   if (sent[0]?.type !== 'error') return

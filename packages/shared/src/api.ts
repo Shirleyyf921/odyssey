@@ -83,6 +83,28 @@ export type ApiError = z.infer<typeof ApiError>
 /** Header carrying the anonymous device identity. Replaced by real sign-in later. */
 export const DEVICE_ID_HEADER = 'x-device-id'
 
+/**
+ * Which build is asking (docs/story-pipeline.md, step 6). The store binary is
+ * compiled to say `store` and MATURE episodes are never served to it; the web
+ * build says `web`. Absent means `store`, because the wrong default here is a
+ * delisting. This is a client assertion, so it is the second of two gates: the
+ * first is age assurance, which is server-side.
+ */
+export const CHANNEL_HEADER = 'x-odyssey-channel'
+export const Channel = z.enum(['store', 'web'])
+export type Channel = z.infer<typeof Channel>
+
+/**
+ * Age declaration. A date of birth the user types is not assurance, and
+ * ARCHITECTURE section 11 still owes a real check; it is enough to gate MATURE
+ * on something the server holds rather than on nothing.
+ */
+export const AgeGateRequest = z.object({
+  /** YYYY-MM-DD. */
+  bornOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+})
+export type AgeGateRequest = z.infer<typeof AgeGateRequest>
+
 // ---------------------------------------------------------------- auth
 
 /** `dev` exists only outside production: any string is accepted as the subject. */
@@ -108,6 +130,8 @@ export const AuthUser = z.object({
   /** False for anonymous device users. */
   signedIn: z.boolean(),
   providers: z.array(AuthProvider),
+  /** Whether the age declaration has been made. Gates MATURE episodes; see AgeGateRequest. */
+  ageVerified: z.boolean(),
 })
 export type AuthUser = z.infer<typeof AuthUser>
 

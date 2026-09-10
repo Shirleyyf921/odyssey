@@ -30,8 +30,9 @@ async function setup() {
     memory,
     relationship: new RelationshipService(repo, silent),
     crisis: new NoopCrisisDetector(),
+    channel: 'store',
     billing: { async tierOf() { return 'PLUS' } },
-    user: { id: demo.userId, displayName: 'Shirley', locale: 'en-US' },
+    user: { id: demo.userId, displayName: 'Shirley', locale: 'en-US', ageVerifiedAt: null },
     log: silent,
   }
   const sent: ServerEvent[] = []

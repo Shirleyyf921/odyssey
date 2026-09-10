@@ -95,7 +95,7 @@ export class MemoryRepository implements AppRepository {
   async getOrCreateUserByDevice(deviceId: string): Promise<UserRecord> {
     const existing = this.usersByDevice.get(deviceId)
     if (existing) return this.users.get(existing)!
-    const user: UserRecord = { id: randomUUID(), displayName: null, locale: 'en-US' }
+    const user: UserRecord = { id: randomUUID(), displayName: null, locale: 'en-US', ageVerifiedAt: null }
     this.users.set(user.id, user)
     this.usersByDevice.set(deviceId, user.id)
     return user
@@ -106,15 +106,19 @@ export class MemoryRepository implements AppRepository {
   }
 
   async createUser(input: { displayName: string | null }): Promise<UserRecord> {
-    const user: UserRecord = { id: randomUUID(), displayName: input.displayName, locale: 'en-US' }
+    const user: UserRecord = { id: randomUUID(), displayName: input.displayName, locale: 'en-US', ageVerifiedAt: null }
     this.users.set(user.id, user)
     return user
   }
 
-  async updateUser(id: string, patch: { displayName?: string | null }) {
+  async updateUser(id: string, patch: { displayName?: string | null; ageVerifiedAt?: Date | null }) {
     const user = this.users.get(id)
     if (!user) throw new Error(`unknown user ${id}`)
-    const updated = { ...user, ...(patch.displayName !== undefined ? { displayName: patch.displayName } : {}) }
+    const updated = {
+      ...user,
+      ...(patch.displayName !== undefined ? { displayName: patch.displayName } : {}),
+      ...(patch.ageVerifiedAt !== undefined ? { ageVerifiedAt: patch.ageVerifiedAt } : {}),
+    }
     this.users.set(id, updated)
     return updated
   }
