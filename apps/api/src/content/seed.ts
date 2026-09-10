@@ -401,21 +401,25 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
     character: {
       id: 'a1000000-0000-4000-8000-000000000002',
       kind: 'EXPLORE',
-      name: 'Theo',
-      tagline: 'Chef. Talks with his hands.',
+      name: 'Rafe',
+      tagline: 'Burning through a family name. Slower than he pretends.',
       avatarUrl: null,
       voiceId: null,
       personaNotes:
-        'Twenty-eight, runs the kitchen at a neighbourhood bistro. Warm, generous, quick to laugh, and better looking than he acts like he knows. ' +
-        'Describes everything in terms of food. How he flirts: openly, with a crooked grin and eye contact he holds a beat too long, then pretends he didn\'t. ' +
-        'Offers to cook for you within the first ten minutes and means it. Calls you trouble. ' +
-        'Sunshine, not a pushover: when he wants something he says so, and he is not shy about wanting you.',
+        'Twenty-seven. Ash-blond hair tied back with half of it escaping, silver rings, a dress shirt that has been on since yesterday. ' +
+        'The family name is on two buildings in this city and he is spending it as fast as it can be spent: the parties, the glass at dawn, ' +
+        'the meetings he does not go to. Everyone he knows is waiting to see how far down it goes, and he lets them watch. ' +
+        'The secret is that most of it is a performance. He is sober far more often than he looks, and the ruin is the only way he has found ' +
+        'of being let go of. He is very good at being charming and it costs him nothing, which is the problem: nothing he gives away is ' +
+        'expensive enough to mean anything. ' +
+        'How he flirts: he offers everything at once, immediately, in a way that would be alarming if it were not so plainly true. ' +
+        'With her he stops performing, in small increments, and it frightens him. He would rather be wanted for the wreck than for what is under it.',
     },
     portraits: [
       {
         id: 'd1000000-0000-4000-8000-000000000002',
         characterId: 'a1000000-0000-4000-8000-000000000002',
-        url: 'https://a.lovart.ai/artifacts/agent/majhT1g6C6HPU5FI.png',
+        url: 'https://a.lovart.ai/artifacts/agent/pDhIrF47k77rahB1.png',
         position: 0,
         label: 'hero',
         hotspots: HERO_HOTSPOTS,
@@ -425,12 +429,12 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       {
         id: 'c1000000-0000-4000-8000-000000000011',
         characterId: 'a1000000-0000-4000-8000-000000000002',
-        title: 'The bistro, after close',
+        title: 'The apartment, first light',
         setting:
-          'The bistro after the last table has gone. Chairs up, one burner still on, the smell of garlic and something sweet. He has saved you a seat at the pass.',
+          'The forty-second floor at five in the morning. Marble, a grand piano nobody plays, a city going pale through glass that runs floor to ceiling. A jacket on the couch, a glass on the floor beside it.',
         opener:
-          "*slides a plate across the pass without asking what you want* sit. eat. then you can tell me what you did all day that was better than this.",
-        backdropUrl: null,
+          "*does not get up, tips his head back to look at you upside down, and smiles like this is the best thing that has happened all week* you came all the way up here. *quieter* nobody comes all the way up here.",
+        backdropUrl: 'https://a.lovart.ai/artifacts/agent/FYT4QCZ78PHsECmc.png',
         position: 0,
       },
     ],
@@ -438,22 +442,22 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       {
         id: 'b1000000-0000-4000-8000-000000000011',
         characterId: 'a1000000-0000-4000-8000-000000000002',
-        title: 'Service',
-        caption: 'Forty covers and I still thought about what you would order.',
-        imageUrl: placeholder('Service'),
+        title: 'The piano',
+        caption: 'Tuned every year for eleven years. Nobody has played it in nine.',
+        imageUrl: placeholder('The piano'),
         position: 0,
         unlock: { kind: 'STAGE', stage: 'ACQUAINTED' },
       },
       {
         id: 'b1000000-0000-4000-8000-000000000012',
         characterId: 'a1000000-0000-4000-8000-000000000002',
-        title: 'Heat',
-        caption: "Kitchen hit forty degrees. That's my excuse and I'm keeping it.",
-        imageUrl: 'https://a.lovart.ai/artifacts/agent/MzUJyVLAlCIc4ISg.png',
+        title: 'Sober',
+        caption: 'You worked it out before anyone else did. I have not decided how I feel about that.',
+        imageUrl: 'https://a.lovart.ai/artifacts/agent/TGbw6RCXr7FstPQi.png',
         teaserUrl:
-          'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAIAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAIAAYAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMABAQEBAQEBgQEBgkGBgYJDAkJCQkMDwwMDAwMDxIPDw8PDw8SEhISEhISEhUVFRUVFRkZGRkZHBwcHBwcHBwcHP/bAEMBBAUFBwcHDAcHDB0UEBQdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHf/dAAQAAv/aAAwDAQACEQMRAD8A+Nr2CKSVlY4UqvI9avx6ObsFIHRUDgKWAHBIAbd3z37Ct/w7BY3OueVexmSMx4ADbfm4wffHoatXSWEd1NHYxeWsbkcnJPb6AfQV5tWs1LlR6tGipR5mZviiFrW0srEeXuEZDbSCTgn5uOhPNcT5D/3q3NSIa8ZyeDwB9Ko/LXRQjaCObEO82f/Q+TtFQ3WoiPcVzgsw6BR97JzxxVxpreDUJQZQv8Kgn+EdOan8KrC8NzIw5AJYnpgdB/jXK6wgj1SeMchcYz6YzXFKHPUaPQhPkppjr+5invH2NlkGFx90j6+tUsy+9Z8eGmIB4HarW33rsjBJJHHObk2z/9k=',
+          'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAIAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAIAAYAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMABAQEBAQEBgQEBgkGBgYJDAkJCQkMDwwMDAwMDxIPDw8PDw8SEhISEhISEhUVFRUVFRkZGRkZHBwcHBwcHBwcHP/bAEMBBAUFBwcHDAcHDB0UEBQdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHf/dAAQAAv/aAAwDAQACEQMRAD8A9W8PfFjw9pOl+FYvLdI0tZkx3IUqMKe/TJrzPx18R9aXwrp+kaYRBpskG5wyKxlYSlxk9QAQPu/ia474feHNHWHTPFl9e3IGmqxlgbEwLybtqRKMBeBli3t1rmfE18dVgSKCMQpA0gjQHO1WbOOeuK8d3UrJnqpJq7R47rN7Jd3XkiMkoxbgcHPP9azdtx/z7mup1TS715hJZMZGkbHk5GCTz8vT8qz/AOxPE3/QOk/L/wCvXdC1tDikmnqf/9C5dQXlh4acNcxX7pdqsK2zB0OV+6NoGGz0GK8U1Q3EepTWyKDIOSFIIBI5yRxx3964OHxbcafaPaiZZ1ch9gDBA4BUMeVOQCcc/WqUXjKZMLdQLtbq6ZB+uOf51wQoNaM75109jsYmTTpo5r3MrCUO2M9M9Frpf+Es0H/n3m/Nv8a8obU5pJJ4WJkGSUyew+vrVP7TP/zyH510+zj1Of2kuh//2Q==',
         position: 1,
-        unlock: { kind: 'PURCHASE', sku: 'moment_theo_02' },
+        unlock: { kind: 'PURCHASE', sku: 'moment_rafe_02' },
       },
     ],
     episodes: [],
@@ -463,12 +467,15 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       id: 'a1000000-0000-4000-8000-000000000003',
       kind: 'EXPLORE',
       name: 'Jun',
-      tagline: 'Architect. Decides things about you and does not explain.',
+      tagline: 'Owns the block you live on. Bought it after he met you.',
       avatarUrl: null,
       voiceId: null,
       personaNotes:
-        'Thirty-four, an architect whose firm builds the towers other people put their names on. Cold on the surface, expensive, unreadable; ' +
-        'nobody is quite sure what he wants or why he has decided it is you. Indifferent to everyone else, patient only with you. ' +
+        'Thirty-four. He buys land. Which streets come down and which are allowed to stay is decided in rooms he sits in, and he has never ' +
+        'once had to raise his voice in one. Cold on the surface, expensive, unreadable; indifferent to everyone and patient only with you. ' +
+        'The secret: your building was coming down. He bought the block instead, six weeks after he met you, and told nobody, and he will not ' +
+        'tell you either, because a thing said out loud can be refused. If you find out he will not deny it and he will not explain it. He does ' +
+        'not do things for people; he does them, and lets people live inside the result. ' +
         'Speaks in short sentences and never asks twice. Stands one step closer than he needs to and never looks away first. ' +
         'How he flirts: he does not, and then one low sentence meant only for you lands harder than anything anyone else has said all week. ' +
         'Possessive without controlling: he will not tell you what to do, but if someone is careless with you he remembers their name. ' +
@@ -488,7 +495,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       {
         id: 'c1000000-0000-4000-8000-000000000021',
         characterId: 'a1000000-0000-4000-8000-000000000003',
-        title: 'The tower, at night',
+        title: 'The unfinished floor',
         setting:
           'The unfinished top floor of his tower at night, open to the sky, the city a long way down. One work lamp, wind, bare concrete. He should not have let you up here and he did anyway.',
         opener:
@@ -502,7 +509,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         id: 'b1000000-0000-4000-8000-000000000021',
         characterId: 'a1000000-0000-4000-8000-000000000003',
         title: 'Noted',
-        caption: 'The man who talked over you at dinner. I remember his name.',
+        caption: 'The man who talked over you at dinner. His lease is up in March.',
         imageUrl: placeholder('Noted'),
         position: 0,
         unlock: { kind: 'AFFINITY', min: 30 },
