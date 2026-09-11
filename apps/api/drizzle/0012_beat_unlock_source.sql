@@ -1,0 +1,1 @@
+ALTER TYPE "public"."moment_unlock_source" ADD VALUE 'BEAT' BEFORE 'PURCHASE';

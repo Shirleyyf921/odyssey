@@ -85,6 +85,14 @@ him while there is more to read. The options rise from below only when the last 
 landed; a photo he sent waits for the same moment and goes away when they answer. The user's
 own words give way to his first sentence on their own: that is what they are waiting for.
 
+**The story gives the pictures (2026-09-11).** An everyday card placed on a beat is unlocked the
+moment the story reaches that beat (`moment_unlocks.source = BEAT`), and the stage becomes that
+picture from that page on: the scene cut in the reference. His caption is the page under his
+name. A paid card on a beat is still bought; the story only puts it in front of them, veiled,
+once the turn is read. The gallery says which episode shows a locked everyday card instead of a
+stage or a number. Not too many: one everyday reveal mid-episode, one at the ending, one paid
+offer in the second half. The point is that playing tonight is how the pictures happen.
+
 | Layer | What | Cost | When |
 |---|---|---|---|
 | Tap to advance | One sentence at a time, typed; a tap per sentence; his line under his name | Client only | v1, with the story screen; pacing 2026-09-11 |

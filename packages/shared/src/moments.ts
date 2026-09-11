@@ -42,6 +42,8 @@ export function toMomentCard(
     position: moment.position,
     unlock: moment.unlock,
     teaserUrl: moment.teaserUrl ?? null,
+    /** Filled by the route that knows the episodes; the card itself does not. */
+    story: null,
   }
   if (!unlock) {
     return { ...base, status: 'LOCKED', imageUrl: null, caption: null, unlockedAt: null }

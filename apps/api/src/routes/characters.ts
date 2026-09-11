@@ -208,6 +208,13 @@ export async function characterRoutes(
     ])
     const skus = new Set(purchases.filter((p) => !p.refundedAt).map((p) => p.productId))
     const { cards } = await evaluateUnlocks(repo, moments, relationship, skus)
-    return { characterId: id, relationship, moments: cards }
+    // A locked everyday card that a beat carries says which episode shows it, so the
+    // gallery points at the story rather than at a number.
+    const shownIn = new Map<string, string>()
+    for (const e of await repo.listEpisodes(id)) {
+      if (e.origin !== 'OFFICIAL') continue
+      for (const b of e.beats) if (b.photoMomentId && !shownIn.has(b.photoMomentId)) shownIn.set(b.photoMomentId, e.title)
+    }
+    return { characterId: id, relationship, moments: cards.map((c) => ({ ...c, story: shownIn.get(c.id) ?? null })) }
   })
 }

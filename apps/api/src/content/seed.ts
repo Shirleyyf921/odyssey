@@ -25,6 +25,12 @@ const RAFE_PIANO_MOMENT = 'b1000000-0000-4000-8000-000000000011'
 const JUN_NOTED_MOMENT = 'b1000000-0000-4000-8000-000000000021'
 const ASH_ROOM_SCENE = 'c1000000-0000-4000-8000-000000000001'
 const ASH_DESK_MOMENT = 'b1000000-0000-4000-8000-000000000003'
+const ASH_FOUR_AM_MOMENT = 'b1000000-0000-4000-8000-000000000002'
+const ASH_STEAM_MOMENT = 'b1000000-0000-4000-8000-000000000006'
+const RAFE_SIT_MOMENT = 'b1000000-0000-4000-8000-000000000013'
+const RAFE_SOBER_MOMENT = 'b1000000-0000-4000-8000-000000000012'
+const JUN_CLOSER_MOMENT = 'b1000000-0000-4000-8000-000000000023'
+const JUN_GLASSES_MOMENT = 'b1000000-0000-4000-8000-000000000022'
 const EP1 = 'e1000000-0000-4000-8000-000000000001'
 const B = (n: number) => `f1000000-0000-4000-8000-00000000000${n}`
 const EP3 = 'e1000000-0000-4000-8000-000000000003'
@@ -162,7 +168,7 @@ const ASH_EPISODE_1: EpisodeRecord = {
       setting: 'On the phone. You are on the street, his window is the only lit one behind you.',
       options: [],
       next: null,
-      photoMomentId: null,
+      photoMomentId: ASH_FOUR_AM_MOMENT,
       callUrl: null,
       callSeconds: null,
       hotspots: [],
@@ -177,7 +183,7 @@ const ASH_EPISODE_1: EpisodeRecord = {
       setting: 'Your phone, ten minutes later, walking.',
       options: [],
       next: null,
-      photoMomentId: null,
+      photoMomentId: ASH_FOUR_AM_MOMENT,
       callUrl: null,
       callSeconds: null,
       hotspots: [],
@@ -269,7 +275,7 @@ const ASH_EPISODE_2: EpisodeRecord = {
         { intent: 'Tell him to go home before you change your mind', next: C(3), affinity: 3 },
       ],
       next: C(3),
-      photoMomentId: null,
+      photoMomentId: ASH_STEAM_MOMENT,
       callUrl: null,
       callSeconds: null,
       hotspots: ['hand', 'shoulder', 'hair', 'face'],
@@ -370,7 +376,7 @@ const RAFE_EPISODE_1: EpisodeRecord = {
         { intent: 'Say nothing and sit down on the floor by the couch', next: D(4), affinity: 2 },
       ],
       next: D(4),
-      photoMomentId: null,
+      photoMomentId: RAFE_SOBER_MOMENT,
       callUrl: null,
       callSeconds: null,
       hotspots: ['hand', 'shoulder'],
@@ -403,7 +409,7 @@ const RAFE_EPISODE_1: EpisodeRecord = {
       setting: 'The private lift lobby, full daylight now, the party glasses still out on the marble behind you.',
       options: [],
       next: null,
-      photoMomentId: null,
+      photoMomentId: RAFE_SIT_MOMENT,
       callUrl: null,
       callSeconds: null,
       hotspots: [],
@@ -487,7 +493,7 @@ const JUN_EPISODE_1: EpisodeRecord = {
         { intent: 'Stay where he put you and make him say why', next: E(4), affinity: 2 },
       ],
       next: E(4),
-      photoMomentId: null,
+      photoMomentId: JUN_GLASSES_MOMENT,
       callUrl: null,
       callSeconds: null,
       hotspots: ['hand', 'shoulder'],
@@ -537,7 +543,7 @@ const JUN_EPISODE_1: EpisodeRecord = {
       setting: 'On the phone, standing at your own front door, key still in your hand.',
       options: [],
       next: null,
-      photoMomentId: null,
+      photoMomentId: JUN_CLOSER_MOMENT,
       callUrl: null,
       callSeconds: null,
       hotspots: [],
@@ -552,7 +558,7 @@ const JUN_EPISODE_1: EpisodeRecord = {
       setting: 'The next morning, a notice through your door, no name on it.',
       options: [],
       next: null,
-      photoMomentId: null,
+      photoMomentId: JUN_CLOSER_MOMENT,
       callUrl: null,
       callSeconds: null,
       hotspots: [],

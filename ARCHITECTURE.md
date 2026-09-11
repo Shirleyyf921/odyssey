@@ -530,7 +530,7 @@ round: the first image a user sees of him should be him *there*.
 v1 ships one or two curated scenes per character with placeholder backdrops. Changing scenes
 mid-relationship, and scene-specific portraits, come with the art.
 
-### He sends the photo (2026-09-07)
+### He sends the photo (2026-09-07; the story gives it, 2026-09-11)
 
 Paid moments are delivered in the conversation, not discovered in a gallery. After the
 reply, once the day's conversation has some warmth in it (three user messages, or a stage
@@ -547,6 +547,13 @@ lock, so the two surfaces agree.
 
 `POST /billing/dev/purchase` records a SKU for the caller without the store, under the same
 gating as the tier grant, so the flow can be walked end to end before RevenueCat products exist.
+
+**Update 2026-09-11.** An everyday card placed on a beat is the story's to give: reaching the
+beat unlocks it (`source = BEAT`) and the stage becomes that picture, the way the reference
+changes its illustration mid-scene. Paid cards on beats stay veiled and are bought. Placement is
+deliberately sparse, one everyday reveal mid-episode and one at the ending, so the pictures are
+the reason to play tonight rather than a wall of locks. The gallery names the episode that shows
+a locked everyday card.
 
 ### Runtime generation: v2, gated on a measurement
 
