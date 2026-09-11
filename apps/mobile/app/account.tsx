@@ -118,7 +118,7 @@ export default function AccountScreen() {
           )}
         </View>
       )}
-      {__DEV__ && (
+      {(__DEV__ || !!process.env.EXPO_PUBLIC_BILLING_GRANT_SECRET) && (
         <View style={styles.devBox}>
           <Text style={styles.devLabel}>Dogfood grant</Text>
           <Text style={styles.sub}>Current: {status ? planLine(status.tier, status.expiresAt, status.willRenew) : '…'}</Text>

@@ -77,6 +77,9 @@ const Env = z.object({
    */
   BILLING_GRANT_SECRET: z.string().min(16).optional(),
 
+  /** Where the exported web build lives (apps/mobile/dist). Served from this origin when present. */
+  WEB_DIST: z.string().default('../mobile/dist'),
+
   // Review queue (docs/ugc-pipeline.md, "Moderation"). Required in production for /review; open outside it.
   REVIEW_SECRET: z.string().min(16).optional(),
   /** A mail on every submission that needs a person, via Resend's HTTP API. Both unset: the log line only. */
