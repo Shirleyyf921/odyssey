@@ -127,7 +127,10 @@ export class BillingService {
       if (sub.expiresAt && sub.expiresAt <= now) continue
       const t = TIER_BY_ENTITLEMENT[sub.entitlement as EntitlementId]
       if (!t) continue
-      if (TIER_ORDER.indexOf(t) > TIER_ORDER.indexOf(tier)) {
+      // A higher tier wins; at the same tier, whichever runs longer (creator days stack behind paid ones).
+      const higher = TIER_ORDER.indexOf(t) > TIER_ORDER.indexOf(tier)
+      const longer = t === tier && best !== null && (sub.expiresAt === null || (best.expiresAt !== null && sub.expiresAt > best.expiresAt))
+      if (higher || longer) {
         tier = t
         best = sub
       }
@@ -172,6 +175,35 @@ export class BillingService {
     }
     const status = await this.status(userId, now)
     this.log.info({ userId, tier: status.tier, days }, 'billing: manual grant')
+    return status
+  }
+
+  /**
+   * Plus days a creator earned (docs/ugc-pipeline.md, section 3). Kept on the
+   * `creator_plus` row, never on the store's, so a reconcile cannot eat them.
+   * They start when whatever Plus the user already holds runs out, so a paying
+   * creator is not paid in days they already have.
+   */
+  async credit(userId: string, days: number, now = new Date()): Promise<BillingStatus> {
+    const held = await this.repo.listSubscriptions(userId)
+    let from = now
+    for (const sub of held) {
+      if (sub.expiresAt && sub.expiresAt > from && KNOWN_ENTITLEMENTS.has(sub.entitlement)) from = sub.expiresAt
+    }
+    await this.repo.upsertSubscription({
+      userId,
+      entitlement: ENTITLEMENTS.CREATOR,
+      productId: 'creator_credit',
+      store: 'PROMOTIONAL',
+      environment: 'PRODUCTION',
+      purchasedAt: now,
+      expiresAt: new Date(from.getTime() + days * 86_400_000),
+      unsubscribedAt: now,
+      billingIssueAt: null,
+      rcAppUserId: userId,
+    })
+    const status = await this.status(userId, now)
+    this.log.info({ userId, days, until: status.expiresAt }, 'billing: creator credit')
     return status
   }
 

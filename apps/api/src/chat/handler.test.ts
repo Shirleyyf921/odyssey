@@ -27,7 +27,7 @@ async function setup(opts: { crisis?: CrisisDetector; reply?: string; tier?: Tie
     relationship,
     crisis: opts.crisis ?? new NoopCrisisDetector(),
     channel: 'store',
-    billing: { async tierOf() { return opts.tier ?? 'PLUS' } },
+    billing: { async tierOf() { return opts.tier ?? 'PLUS' }, async credit() {} },
     user: { id: demo.userId, displayName: null, locale: 'en-US', ageVerifiedAt: null },
     log: silent,
   }

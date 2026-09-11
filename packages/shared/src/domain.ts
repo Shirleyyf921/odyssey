@@ -226,13 +226,19 @@ export type MomentUnlock = z.infer<typeof MomentUnlock>
 export const Tier = z.enum(['FREE', 'PLUS', 'PREMIUM'])
 export type Tier = z.infer<typeof Tier>
 
-/** RevenueCat entitlement identifiers, configured in the RevenueCat dashboard under these exact names. */
-export const ENTITLEMENTS = { PLUS: 'plus', PREMIUM: 'premium' } as const
+/**
+ * Entitlement identifiers. `plus` and `premium` are configured in the RevenueCat
+ * dashboard under these exact names. `creator_plus` is ours alone: Plus days a
+ * creator earned from completions (docs/ugc-pipeline.md, section 3), kept on
+ * its own row so it never overwrites a store subscription.
+ */
+export const ENTITLEMENTS = { PLUS: 'plus', PREMIUM: 'premium', CREATOR: 'creator_plus' } as const
 export type EntitlementId = (typeof ENTITLEMENTS)[keyof typeof ENTITLEMENTS]
 
 export const TIER_BY_ENTITLEMENT: Record<EntitlementId, Exclude<Tier, 'FREE'>> = {
   [ENTITLEMENTS.PLUS]: 'PLUS',
   [ENTITLEMENTS.PREMIUM]: 'PREMIUM',
+  [ENTITLEMENTS.CREATOR]: 'PLUS',
 }
 
 export const TIER_ORDER: Tier[] = ['FREE', 'PLUS', 'PREMIUM']

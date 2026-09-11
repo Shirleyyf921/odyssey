@@ -78,6 +78,13 @@
       "when": 1789042177681,
       "tag": "0010_episode_dry_run",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789099359529,
+      "tag": "0011_creator_credits",
+      "breakpoints": true
     }
   ]
 }

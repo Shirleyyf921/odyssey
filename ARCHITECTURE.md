@@ -701,7 +701,11 @@ goes out for each; a creator's fourth clean SFW episode goes LIVE at submit. The
 is `/write` on the web build: our episodes as skeletons with the words taken out, an AI draft that
 fills a skeleton we wire (the model writes briefs, options, and the opener; never the wiring, so
 what comes back always passes the integrity rule), the rule itself running as they type, and the
-dry-run transcript under each beat. The Plus-day credits are step 8.
+dry-run transcript under each beat. Credits (step 8): a run of a user-made episode reaching an END
+earns its author a day of Plus when the player is someone else and signed in, three days per
+author per day at most, one credit per run; the days sit on a `creator_plus` entitlement row of
+their own and start after any Plus the author already pays for. That closes the eight steps of
+the build order.
 
 ## 15. Relationship Progression
 

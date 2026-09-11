@@ -21,6 +21,7 @@ import {
   beats,
   characters,
   conversations,
+  creatorCredits,
   episodeReports,
   episodeRuns,
   episodes,
@@ -561,6 +562,29 @@ export class DrizzleRepository implements AppRepository {
   async listReports(episodeId: string): Promise<ReviewReport[]> {
     const rows = await this.db.select().from(episodeReports).where(eq(episodeReports.episodeId, episodeId)).orderBy(asc(episodeReports.createdAt))
     return rows.map((r) => ({ reason: r.reason as ReportReason, createdAt: r.createdAt.toISOString() }))
+  }
+
+  async insertCredit(input: { authorId: string; episodeId: string; runId: string; days: number }) {
+    const rows = await this.db.insert(creatorCredits).values(input).onConflictDoNothing({ target: creatorCredits.runId }).returning({ id: creatorCredits.id })
+    return rows.length > 0
+  }
+
+  async creditedDaysSince(authorId: string, since: Date) {
+    const [row] = await this.db
+      .select({ days: sql<number>`coalesce(sum(${creatorCredits.days}), 0)` })
+      .from(creatorCredits)
+      .where(and(eq(creatorCredits.authorId, authorId), gte(creatorCredits.createdAt, since)))
+    return Number(row?.days ?? 0)
+  }
+
+  async creditedDaysOf(episodeIds: string[]) {
+    if (!episodeIds.length) return new Map<string, number>()
+    const rows = await this.db
+      .select({ episodeId: creatorCredits.episodeId, days: sql<number>`sum(${creatorCredits.days})` })
+      .from(creatorCredits)
+      .where(inArray(creatorCredits.episodeId, episodeIds))
+      .groupBy(creatorCredits.episodeId)
+    return new Map(rows.map((r) => [r.episodeId, Number(r.days)]))
   }
 
   async reportEpisode(input: { episodeId: string; reporterId: string; reason: ReportReason }) {

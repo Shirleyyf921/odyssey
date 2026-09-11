@@ -35,7 +35,10 @@ export async function authorRoutes(app: FastifyInstance, opts: AuthorRouteDeps) 
     repo.getCharacter(episode.characterId).then((c) => dryRun({ gateway, screener, log: app.log }, c!, episode))
 
   app.get('/me/episodes', async (req): Promise<MyEpisodesResponse> => {
-    return { episodes: await repo.listEpisodesByAuthor(req.user.id) }
+    const mine = await repo.listEpisodesByAuthor(req.user.id)
+    const ids = mine.map((e) => e.id)
+    const [counts, credits] = await Promise.all([repo.countRuns(ids), repo.creditedDaysOf(ids)])
+    return { episodes: mine.map((e) => ({ ...e, completions: counts.get(e.id)?.finished ?? 0, creditedDays: credits.get(e.id) ?? 0 })) }
   })
 
   /** Our episodes for this man as shapes to start from (docs/ugc-pipeline.md, "Skeleton"). Words stay ours. */

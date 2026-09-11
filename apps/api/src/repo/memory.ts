@@ -56,6 +56,7 @@ export class MemoryRepository implements AppRepository {
   private runs = new Map<string, EpisodeRun>()
   private reports = new Map<string, ReviewReport & { episodeId: string }>()
   private reportCounts = new Map<string, number>()
+  private credits: Array<{ authorId: string; episodeId: string; runId: string; days: number; createdAt: Date }> = []
   private relationships = new Map<string, RelationshipRecord>()
   private conversations = new Map<
     string,
@@ -212,6 +213,19 @@ export class MemoryRepository implements AppRepository {
     const episode = this.fromDraft(current, draft)
     this.episodes.set(current.characterId, (this.episodes.get(current.characterId) ?? []).map((e) => (e.id === id ? episode : e)))
     return episode
+  }
+  async insertCredit(input: { authorId: string; episodeId: string; runId: string; days: number }) {
+    if (this.credits.some((c) => c.runId === input.runId)) return false
+    this.credits.push({ ...input, createdAt: new Date() })
+    return true
+  }
+  async creditedDaysSince(authorId: string, since: Date) {
+    return this.credits.filter((c) => c.authorId === authorId && c.createdAt >= since).reduce((n, c) => n + c.days, 0)
+  }
+  async creditedDaysOf(episodeIds: string[]) {
+    const out = new Map<string, number>()
+    for (const c of this.credits) if (episodeIds.includes(c.episodeId)) out.set(c.episodeId, (out.get(c.episodeId) ?? 0) + c.days)
+    return out
   }
   async listEpisodesForReview() {
     return [...this.episodes.values()].flat().filter((e) => e.status === 'SUBMITTED' || e.status === 'UNLISTED')

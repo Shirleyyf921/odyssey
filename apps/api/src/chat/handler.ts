@@ -19,8 +19,8 @@ export interface ChatDeps {
   memory: MemoryService
   relationship: RelationshipService
   crisis: CrisisDetector
-  /** Paid state, read once per turn. */
-  billing: { tierOf(userId: string): Promise<Tier> }
+  /** Paid state, read once per turn; and the creator credit, written when a run ends (episodes/credits.ts). */
+  billing: { tierOf(userId: string): Promise<Tier>; credit(userId: string, days: number): Promise<unknown> }
   /** Which build opened this socket. See episodes/rating.ts. */
   channel: Channel
   /** The authenticated user behind this socket. */

@@ -95,7 +95,16 @@ export type ReportEpisodeResponse = z.infer<typeof ReportEpisodeResponse>
 export const AuthoredEpisode = Episode.extend({ beats: z.array(Beat), dryRun: DryRun.nullable() })
 export type AuthoredEpisode = z.infer<typeof AuthoredEpisode>
 
-export const MyEpisodesResponse = z.object({ episodes: z.array(AuthoredEpisode) })
+/** The author's shelf: each episode with how it has been played and what that earned (docs/ugc-pipeline.md, section 3). */
+export const ShelfEpisode = AuthoredEpisode.extend({
+  /** Runs by other people that reached an END. */
+  completions: z.number().int().min(0),
+  /** Plus days this episode has earned its author so far. */
+  creditedDays: z.number().int().min(0),
+})
+export type ShelfEpisode = z.infer<typeof ShelfEpisode>
+
+export const MyEpisodesResponse = z.object({ episodes: z.array(ShelfEpisode) })
 export type MyEpisodesResponse = z.infer<typeof MyEpisodesResponse>
 
 export const AuthoredEpisodeResponse = z.object({ episode: AuthoredEpisode })

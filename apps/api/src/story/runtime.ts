@@ -8,6 +8,7 @@ import type { CompletionRequest } from '../llm/types.js'
 import type { AssembledMemory } from '../memory/service.js'
 import type { ConversationContext, EpisodeRecord } from '../repo/types.js'
 import { chooseStoryTier } from '../chat/tier.js'
+import { creditCompletion } from '../episodes/credits.js'
 import type { ChatDeps, Send } from '../chat/handler.js'
 import { generateStoryTurn } from './generate.js'
 
@@ -248,6 +249,7 @@ export async function runStoryTurn(deps: ChatDeps, input: StoryTurnInput, send: 
   if (ended) {
     log.info({ conversationId, episodeId: story.episode.id, path: [...story.run.path, ...(moved ? [beat.id] : [])] }, 'episode ended')
     send({ type: 'episode_ended', conversationId, episodeId: story.episode.id })
+    await creditCompletion(deps, ctx, story.episode, story.run)
   } else if (!touch) {
     send(choicesEvent(conversationId, messageId, story.episode, beat, result.turn.options.length >= 2 ? result.turn.options : [], ctx.relationship.stage))
   }
