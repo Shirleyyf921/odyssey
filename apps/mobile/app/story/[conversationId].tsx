@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Stack, router, useLocalSearchParams } from 'expo-router'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
+  Animated,
   Image,
   KeyboardAvoidingView,
   Linking,
@@ -25,22 +26,62 @@ import { colors, radius, spacing } from '../../src/theme'
 
 /**
  * The stage (docs/story-pipeline.md, "Stage"). His portrait in the scene, full
- * bleed; narration and his line in the lower third; tap to advance; two option
- * chips and a free-text line under his last line. The transcript view is the
- * chat screen, one tap away.
+ * bleed; one sentence at a time in the lower third, typed out; a tap finishes
+ * the sentence or brings the next; the options rise only when the last
+ * sentence has landed. The transcript view is the chat screen, one tap away.
  *
- * Pages: the latest CHARACTER message is split into narration paragraphs plus
- * his line. A message that arrived live is already read (it streamed in); a
- * message found in history, including his opener, starts at page one so the
- * user taps through it.
+ * Pacing, after the reference in docs/story-pipeline.md ("Stage"): nothing is
+ * ever on screen at once. A turn is a queue of pages: the episode's setting
+ * the first time, the user's own choice once, each sentence of narration
+ * unnamed, his line under his name. A message that streams in feeds the queue
+ * as sentences complete; a message from history queues whole. The user reads
+ * at their own speed either way.
  */
 
-type Page = { kind: 'narration'; text: string } | { kind: 'line'; text: string }
+type Page =
+  | { kind: 'prologue'; text: string }
+  | { kind: 'you'; text: string; name: string }
+  | { kind: 'narration'; text: string }
+  | { kind: 'line'; text: string }
 
-function pagesOf(content: string): Page[] {
+/** Milliseconds per character. Narration reads a touch faster than speech. */
+const TYPE_MS: Record<Page['kind'], number> = { prologue: 22, you: 18, narration: 24, line: 30 }
+
+/** Sentences of a paragraph, terminal punctuation kept. Ellipses and closing quotes stay with their sentence. */
+function sentencesOf(paragraph: string): string[] {
+  const out: string[] = []
+  const re = /[^.!?…]+(?:[.!?…]+["'”’)]*|$)/g
+  for (const m of paragraph.matchAll(re)) {
+    const t = m[0].trim()
+    if (t) out.push(t)
+  }
+  return out.length ? out : [paragraph.trim()].filter(Boolean)
+}
+
+/** Whether the last sentence of streaming text has landed: it ends in terminal punctuation. */
+const complete = (t: string) => /[.!?…]["'”’)]*\s*$/.test(t)
+
+function pagesOf(content: string, opts: { streaming: boolean }): Page[] {
   const turn = parseStoryOutput(content)
-  const pages: Page[] = turn.narration.map((text) => ({ kind: 'narration' as const, text }))
-  if (turn.line) pages.push({ kind: 'line', text: turn.line })
+  const pages: Page[] = []
+  const paragraphs = turn.narration
+  paragraphs.forEach((paragraph, pi) => {
+    const sentences = sentencesOf(paragraph)
+    sentences.forEach((text, si) => {
+      const last = pi === paragraphs.length - 1 && si === sentences.length - 1
+      // While streaming, hold back a sentence that is still being written.
+      if (opts.streaming && last && !turn.line && !complete(text)) return
+      pages.push({ kind: 'narration', text })
+    })
+  })
+  // The line arrives last; while streaming it is shown only once the message has
+  // ended. Each action beat and each stretch of speech is its own page, under his name.
+  if (turn.line && !opts.streaming) {
+    for (const seg of parseReply(turn.line)) {
+      const text = seg.kind === 'action' ? `*${seg.text}*` : seg.text
+      if (text.trim()) pages.push({ kind: 'line', text })
+    }
+  }
   return pages
 }
 
@@ -90,29 +131,99 @@ export default function StoryScreen() {
   const messages = conv?.messages ?? []
   const lastCharacter = useMemo(() => [...messages].reverse().find((m) => m.role === 'CHARACTER' && !m.momentId) ?? null, [messages])
   const lastPhoto = useMemo(() => [...messages].reverse().find((m) => !!m.momentId) ?? null, [messages])
-  const pages = useMemo(() => (lastCharacter ? pagesOf(lastCharacter.content) : []), [lastCharacter])
-  const [pageIndex, setPageIndex] = useState(0)
-  const [dismissedPhoto, setDismissedPhoto] = useState<string | null>(null)
-  const liveIds = useRef(new Set<string>())
   const streaming = conv?.streaming ?? null
-  useEffect(() => {
-    if (streaming) liveIds.current.add(streaming.messageId)
-  }, [streaming])
-  useEffect(() => {
-    // A message that streamed in has been read as it arrived; one from history starts at the top.
-    if (!lastCharacter) return
-    setPageIndex(liveIds.current.has(lastCharacter.id) ? Math.max(0, pages.length - 1) : 0)
-  }, [lastCharacter?.id, pages.length]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const atEnd = pageIndex >= pages.length - 1
+  const pending = conv?.pending.at(-1) ?? null
   const choices = conv?.choices ?? null
   const ringing = conv?.ringing ?? null
-  // A ringing phone outranks a photo he sent a moment ago: it waits until the call is resolved.
-  const showPhoto =
-    !ringing && lastPhoto && dismissedPhoto !== lastPhoto.id && (!lastCharacter || lastPhoto.createdAt >= lastCharacter.createdAt || atEnd)
   const ended = !!conv?.notices.some((n) => n.key.startsWith('end-'))
+  const [dismissedPhoto, setDismissedPhoto] = useState<string | null>(null)
   const [typing, setTyping] = useState(false)
   const [draft, setDraft] = useState('')
+  const myName = me.data?.user.displayName ?? 'You'
+  const episodes = useQuery({ queryKey: ['episodes', characterId], queryFn: () => api.episodes(characterId!), enabled: !!characterId })
+  const scene = character.data?.scenes.find((sc) => sc.id === character.data?.relationship?.sceneId) ?? character.data?.scenes[0] ?? null
+
+  /**
+   * The queue for the turn on stage. Keyed by the message it comes from so a
+   * message that finishes streaming keeps its place: the id does not change
+   * between message_start and message_end.
+   */
+  // The user's own words: sent and not yet acknowledged, or acknowledged and not yet answered.
+  const lastUser = useMemo(() => [...messages].reverse().find((m) => m.role === 'USER') ?? null, [messages])
+  const yours = useMemo<Page | null>(
+    () =>
+      pending
+        ? { kind: 'you', text: pending.content, name: myName }
+        : lastUser && (!lastCharacter || lastUser.createdAt > lastCharacter.createdAt)
+          ? { kind: 'you', text: lastUser.content, name: myName }
+          : null,
+    [pending, lastUser, lastCharacter, myName]
+  )
+  const turnKey = streaming?.messageId ?? (yours ? `you:${pending?.clientMsgId ?? lastUser?.id}` : (lastCharacter?.id ?? 'none'))
+  const pages = useMemo<Page[]>(() => {
+    if (streaming) {
+      const head: Page[] = yours ? [yours] : []
+      return [...head, ...pagesOf(streaming.text, { streaming: true })]
+    }
+    // Sent, nothing back yet: the user's own words, once, while he thinks.
+    if (yours) return [yours]
+    if (!lastCharacter) return scene ? [{ kind: 'prologue', text: scene.setting }] : []
+    const body = pagesOf(lastCharacter.content, { streaming: false })
+    // His opener is the first thing of the night: the setting comes before it, once.
+    // On the first beat with nothing said back yet, what is on stage is the opener.
+    const isOpener = choices?.beat.position === 1 && messages.at(-1)?.id === lastCharacter.id
+    if (isOpener && conv?.episodeTitle) {
+      const card = episodes.data?.episodes.find((e) => e.id === episodeId) ?? null
+      const text = [card?.premise, scene?.setting].filter(Boolean).join('\n\n')
+      if (text) return [{ kind: 'prologue', text }, ...body]
+    }
+    return body
+  }, [streaming, yours, lastCharacter, messages, scene, episodes.data, episodeId, conv?.episodeTitle, choices?.beat.position]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const [pageIndex, setPageIndex] = useState(0)
+  const [shown, setShown] = useState(0)
+  const keyRef = useRef(turnKey)
+  useEffect(() => {
+    if (keyRef.current === turnKey) return
+    // The user's own words were typed while he thought; when his reply starts
+    // streaming the queue grows under them, it does not start over.
+    const carried = keyRef.current.startsWith('you:') && (turnKey.startsWith('you:') || !!streaming)
+    keyRef.current = turnKey
+    if (!carried) {
+      setPageIndex(0)
+      setShown(0)
+    }
+  }, [turnKey, streaming])
+  const page = pages[Math.min(pageIndex, Math.max(0, pages.length - 1))] ?? null
+  const pageText = page?.text ?? ''
+  const revealing = page !== null && shown < pageText.length
+  const atEnd = !streaming && pageIndex >= pages.length - 1
+  /** Nothing more to read yet, and he is still writing (or has not started). */
+  const waiting = !revealing && pageIndex >= pages.length - 1 && (!!streaming || (!!yours && page?.kind === 'you'))
+  // Their own words, once typed, give way to his first sentence on their own: the reply is what they are waiting for.
+  useEffect(() => {
+    if (page?.kind !== 'you' || revealing || pages.length <= pageIndex + 1) return
+    const id = setTimeout(() => advanceRef.current(), 450)
+    return () => clearTimeout(id)
+  }, [page, revealing, pages.length, pageIndex])
+
+  // The typewriter: one character per tick for the page on stage.
+  useEffect(() => {
+    if (!page) return
+    if (shown >= pageText.length) return
+    const id = setInterval(() => setShown((n) => Math.min(pageText.length, n + 1)), TYPE_MS[page.kind])
+    return () => clearInterval(id)
+  }, [page, pageText, shown])
+  // A new page fades in; the old one has already faded out in advance().
+  const fade = useRef(new Animated.Value(1)).current
+  const settled = atEnd && !revealing && !pending && page?.kind !== 'you'
+  // A photo he sent with this turn waits until the turn is read; a ringing phone outranks it.
+  const showPhoto =
+    !ringing && !!lastPhoto && dismissedPhoto !== lastPhoto.id && (!lastCharacter || lastPhoto.createdAt >= lastCharacter.createdAt) && settled
+  // Answering him puts the photo away; it is in Moments if they want it back.
+  useEffect(() => {
+    if (yours && lastPhoto) setDismissedPhoto(lastPhoto.id)
+  }, [yours, lastPhoto])
 
   const heroPortrait = character.data?.portraits[0] ?? null
   const hero = heroPortrait?.url ?? null
@@ -121,13 +232,24 @@ export default function StoryScreen() {
     const live = new Set(choices?.beat.hotspots ?? [])
     return (heroPortrait?.hotspots ?? []).filter((h) => live.has(h.hotspot))
   }, [heroPortrait, choices])
-  const scene = character.data?.scenes.find((sc) => sc.id === character.data?.relationship?.sceneId) ?? character.data?.scenes[0] ?? null
 
   // ---------------------------------------------------------------- actions
-  const advance = () => {
-    if (streaming) return
-    if (!atEnd) setPageIndex((i) => i + 1)
-  }
+  /** A tap finishes the sentence being typed; the next tap brings the next one. */
+  const advanceRef = useRef<() => void>(() => {})
+  const advance = useCallback(() => {
+    if (!page) return
+    if (revealing) {
+      setShown(pageText.length)
+      return
+    }
+    if (pageIndex >= pages.length - 1) return
+    Animated.timing(fade, { toValue: 0, duration: 140, useNativeDriver: Platform.OS !== 'web' }).start(() => {
+      setPageIndex((i) => i + 1)
+      setShown(0)
+      Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: Platform.OS !== 'web' }).start()
+    })
+  }, [page, revealing, pageText.length, pageIndex, pages.length, fade])
+  advanceRef.current = advance
   const choose = (index: number) => {
     const option = choices?.options[index]
     if (!option || !socketRef.current) return
@@ -148,7 +270,6 @@ export default function StoryScreen() {
     setDraft('')
     setTyping(false)
   }
-  const pending = conv?.pending.at(-1) ?? null
   const canUnlock = (billing.available && me.data?.billing.enabled === true) || __DEV__
   const unlock = async (sku: string) => {
     try {
@@ -160,14 +281,9 @@ export default function StoryScreen() {
   }
 
   // ---------------------------------------------------------------- render
-  const live: Page | null = streaming
-    ? streaming.line
-      ? { kind: 'line', text: streaming.line }
-      : streaming.narration
-        ? { kind: 'narration', text: streaming.narration }
-        : { kind: 'narration', text: streaming.text || '…' }
-    : null
-  const page = live ?? pages[pageIndex] ?? null
+  const visible = pageText.slice(0, shown)
+  /** Where the tap cue drifts to, one of a few spots over him, changing with the page. */
+  const cueSpot = CUE_SPOTS[pageIndex % CUE_SPOTS.length]!
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -209,55 +325,67 @@ export default function StoryScreen() {
 
       {status !== 'open' && <Text style={[styles.banner, { top: insets.top + 44 }]}>{status === 'connecting' ? 'Connecting…' : 'Reconnecting…'}</Text>}
 
-      {/* The lower third. */}
-      <View style={[styles.panelWrap, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
-        <Pressable style={styles.panel} onPress={advance} disabled={!!streaming || atEnd}>
-          {pending && !streaming && !page ? <Text style={styles.you}>{pending.content}</Text> : null}
-          {page?.kind === 'narration' && <Text style={styles.narration}>{page.text}</Text>}
-          {page?.kind === 'line' && <LineText text={page.text} name={name ?? ''} />}
-          {!page && !pending && <Text style={styles.narration}>{scene?.setting ?? ''}</Text>}
-          {!streaming && !atEnd && pages.length > 0 && <Text style={styles.tapHint}>tap</Text>}
-          {streaming && <Text style={styles.tapHint}>…</Text>}
-        </Pressable>
+      {/* The tap cue, drifting over him while there is more to read. */}
+      {page && !revealing && !atEnd && !ringing ? <TapRing left={cueSpot.x} top={cueSpot.y} /> : null}
 
-        {conv?.error && <Text style={styles.error}>{conv.error}</Text>}
-
-        {ended ? (
+      {/* The lower third: one sentence at a time. */}
+      <Pressable style={styles.stageTap} onPress={advance} disabled={!page || (!revealing && atEnd)}>
+        <View style={[styles.panelWrap, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+          {/* The options rise only once the last sentence has landed. */}
+      {ended ? (
+        <Choices visible={settled}>
           <Pressable style={styles.choice} onPress={() => router.back()}>
             <Text style={styles.choiceText}>End of tonight. Back to him.</Text>
           </Pressable>
-        ) : atEnd && !streaming && !pending ? (
-          <View style={styles.choices}>
-            {(choices?.options ?? []).map((o, i) => (
-              <Pressable key={i} style={styles.choice} onPress={() => choose(i)} disabled={status !== 'open'}>
-                <Text style={styles.choiceText}>{o}</Text>
+        </Choices>
+      ) : (
+        <Choices visible={settled && !ringing}>
+          {(choices?.options ?? []).map((o, i) => (
+            <Pressable key={i} style={styles.choice} onPress={() => choose(i)} disabled={status !== 'open'}>
+              <Text style={styles.choiceText}>{`${String.fromCharCode(65 + i)}. ${o}`}</Text>
+            </Pressable>
+          ))}
+          {typing ? (
+            <View style={styles.composer}>
+              <TextInput
+                style={styles.input}
+                value={draft}
+                onChangeText={setDraft}
+                placeholder="Say something"
+                placeholderTextColor={colors.textFaint}
+                autoFocus
+                multiline
+                onSubmitEditing={send}
+                blurOnSubmit
+              />
+              <Pressable onPress={send} disabled={!draft.trim() || status !== 'open'} style={[styles.sendButton, (!draft.trim() || status !== 'open') && styles.disabled]}>
+                <Text style={styles.sendText}>Send</Text>
               </Pressable>
-            ))}
-            {typing ? (
-              <View style={styles.composer}>
-                <TextInput
-                  style={styles.input}
-                  value={draft}
-                  onChangeText={setDraft}
-                  placeholder="Say something"
-                  placeholderTextColor={colors.textFaint}
-                  autoFocus
-                  multiline
-                  onSubmitEditing={send}
-                  blurOnSubmit
-                />
-                <Pressable onPress={send} disabled={!draft.trim() || status !== 'open'} style={[styles.sendButton, (!draft.trim() || status !== 'open') && styles.disabled]}>
-                  <Text style={styles.sendText}>Send</Text>
-                </Pressable>
+            </View>
+          ) : (
+            <Pressable style={[styles.choice, styles.choiceFree]} onPress={() => setTyping(true)} disabled={status !== 'open'}>
+              <Text style={styles.choiceFreeText}>{`${String.fromCharCode(65 + (choices?.options.length ?? 0))}. Say something…`}</Text>
+            </Pressable>
+          )}
+        </Choices>
+      )}
+
+          <Animated.View style={[styles.panel, { opacity: fade }]}>
+            {page?.kind === 'prologue' && <Text style={styles.prologue}>{visible}</Text>}
+            {page?.kind === 'you' && (
+              <View style={styles.lineWrap}>
+                <Text style={styles.speakerYou}>{page.name}</Text>
+                <Text style={styles.you}>{visible}</Text>
               </View>
-            ) : (
-              <Pressable style={[styles.choice, styles.choiceFree]} onPress={() => setTyping(true)} disabled={status !== 'open'}>
-                <Text style={styles.choiceFreeText}>Say something…</Text>
-              </Pressable>
             )}
-          </View>
-        ) : null}
-      </View>
+            {page?.kind === 'narration' && <Text style={styles.narration}>{visible}</Text>}
+            {page?.kind === 'line' && <LineText text={visible} name={name ?? ''} />}
+            {!page && <Text style={styles.narration}>{scene?.setting ?? ''}</Text>}
+            {waiting && <Text style={styles.tapHint}>…</Text>}
+          </Animated.View>
+          {conv?.error && <Text style={styles.error}>{conv.error}</Text>}
+        </View>
+      </Pressable>
 
       {/* He sent a photo: it takes the stage until dismissed. */}
       {showPhoto && lastPhoto ? (
@@ -298,19 +426,61 @@ export default function StoryScreen() {
   )
 }
 
+/** Spots over the portrait, as fractions of the screen, that the tap cue drifts between. */
+const CUE_SPOTS = [
+  { x: 0.78, y: 0.34 },
+  { x: 0.22, y: 0.42 },
+  { x: 0.7, y: 0.5 },
+  { x: 0.3, y: 0.3 },
+  { x: 0.8, y: 0.46 },
+]
+
+/** The pulsing ring that says "tap": a soft circle that breathes, nothing else. */
+function TapRing({ left, top }: { left: number; top: number }) {
+  const { width, height } = useWindowDimensions()
+  const pulse = useRef(new Animated.Value(0)).current
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(pulse, { toValue: 0, duration: 900, useNativeDriver: Platform.OS !== 'web' }),
+      ])
+    )
+    loop.start()
+    return () => loop.stop()
+  }, [pulse])
+  const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1.15] })
+  const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.9] })
+  return (
+    <Animated.View pointerEvents="none" style={[styles.ring, { left: left * width - 22, top: top * height - 22, opacity, transform: [{ scale }] }]}>
+      <View style={styles.ringInner} />
+    </Animated.View>
+  )
+}
+
+/** The options, rising from below once there is nothing left to read. */
+function Choices({ visible, children }: { visible: boolean; children: ReactNode }) {
+  const rise = useRef(new Animated.Value(0)).current
+  useEffect(() => {
+    Animated.timing(rise, { toValue: visible ? 1 : 0, duration: visible ? 260 : 120, useNativeDriver: Platform.OS !== 'web' }).start()
+  }, [visible, rise])
+  const translateY = rise.interpolate({ inputRange: [0, 1], outputRange: [16, 0] })
+  return (
+    <Animated.View pointerEvents={visible ? 'auto' : 'none'} style={[styles.choices, { opacity: rise, transform: [{ translateY }] }]}>
+      {children}
+    </Animated.View>
+  )
+}
+
 /** His line on the stage: the action beat small and muted, the speech large. */
 function LineText({ text, name }: { text: string; name: string }) {
-  const segments = parseReply(text)
+  // A page is one segment; while it types, a beat is recognised by its opening asterisk.
+  const action = text.startsWith('*')
+  const body = action ? text.replace(/^\*|\*$/g, '') : text
   return (
     <View style={styles.lineWrap}>
       {name ? <Text style={styles.speaker}>{name}</Text> : null}
-      {segments.map((s, i) =>
-        s.kind === 'action' ? (
-          <Text key={i} style={styles.action}>{s.text}</Text>
-        ) : (
-          <Text key={i} style={styles.speech}>{s.text}</Text>
-        )
-      )}
+      <Text style={action ? styles.action : styles.speech}>{body}</Text>
     </View>
   )
 }
@@ -327,9 +497,14 @@ const styles = StyleSheet.create({
   portraitImage: { width: '100%', height: '100%' },
   portraitEmpty: { backgroundColor: colors.surfaceRaised },
   portraitFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 120, backgroundColor: 'rgba(13, 13, 18, 0.55)' },
+  stageTap: { flex: 1 },
   panelWrap: { flex: 1, justifyContent: 'flex-end', paddingHorizontal: spacing.lg, gap: spacing.sm },
   panel: { minHeight: 132, backgroundColor: 'rgba(13, 13, 18, 0.86)', borderRadius: radius.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border, gap: spacing.sm },
-  you: { color: colors.accent, fontSize: 14, fontStyle: 'italic' },
+  prologue: { color: colors.textMuted, fontSize: 15, lineHeight: 23 },
+  speakerYou: { color: colors.textFaint, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', textAlign: 'right' },
+  you: { color: colors.text, fontSize: 16, lineHeight: 24, textAlign: 'right' },
+  ring: { position: 'absolute', width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.8)', alignItems: 'center', justifyContent: 'center', shadowColor: '#fff', shadowOpacity: 0.6, shadowRadius: 10 },
+  ringInner: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' },
   narration: { color: colors.textMuted, fontSize: 16, lineHeight: 24, fontStyle: 'italic' },
   lineWrap: { gap: 4 },
   speaker: { color: colors.accent, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' },
