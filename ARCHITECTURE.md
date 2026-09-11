@@ -658,6 +658,13 @@ card starts the relationship if it does not exist and opens the stage; anything 
 the character page. The roster of names and stages is gone from the home screen: the
 relationship shows through which story is there tonight and what a shut card says.
 
+**Home, widened (2026-09-11, the founder's "首页的丰富度").** `GET /home` returns the whole
+screen in one call: tonight at the head, the one run to resume, every official episode across
+the roster as tiles (his portrait or the picture the ending gave, beats, whether he calls, how
+many pictures, where you are), what readers wrote best-finished first, the latest pictures he
+gave and the next the story will, and on the web the way into the editor. The screen no longer
+ends when the one card is played. The honest limit is content: three episodes make a short rail.
+
 **Step 6 (2026-09-10): the rating rail.** `episodes/rating.ts` is the only place that decides
 who sees MATURE, and it takes two gates of deliberately different kinds. The **channel** is a
 client assertion (`x-odyssey-channel`, or `?channel=` on the socket): the native binary is

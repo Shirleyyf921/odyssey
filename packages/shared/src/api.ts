@@ -62,6 +62,40 @@ export const TonightResponse = z.object({ items: z.array(TonightItem) })
 export type TonightResponse = z.infer<typeof TonightResponse>
 
 /**
+ * The home screen, whole (2026-09-11, "首页的丰富度"). Tonight stays the
+ * head; under it, everything there is to do tonight across the roster, so the
+ * screen does not end when the one card is played.
+ */
+export const HomeEpisode = EpisodeCard.extend({
+  characterName: z.string(),
+  /** His portrait, for the tile. */
+  portraitUrl: z.string().url().nullable(),
+  /** The picture the story gives at its ending, once earned; null until then. */
+  coverUrl: z.string().url().nullable(),
+  /** He calls in this one. */
+  hasCall: z.boolean(),
+  /** Pictures placed in it, paid or not. */
+  photoCount: z.number().int().min(0),
+})
+export type HomeEpisode = z.infer<typeof HomeEpisode>
+
+export const HomeResponse = z.object({
+  tonight: z.array(TonightItem),
+  /** The one run in progress, if any: pick up where you left off. */
+  resume: HomeEpisode.nullable(),
+  /** Every official episode this build may show, across the roster, in roster order. */
+  episodes: z.array(HomeEpisode),
+  /** What readers wrote, across the roster, best-finished first. */
+  community: z.array(HomeEpisode),
+  /** Latest pictures he gave, and the next ones the story will. */
+  moments: z.object({
+    unlocked: z.array(MomentCard),
+    next: z.array(MomentCard),
+  }),
+})
+export type HomeResponse = z.infer<typeof HomeResponse>
+
+/**
  * The episodes one character offers, with the caller's status on each. Story
  * pipeline, section 3 step 1. `episodes` is ours, in order; `community` is what
  * readers wrote for him and we let through, best-finished first

@@ -5,6 +5,7 @@ import {
   CharactersResponse,
   DEVICE_ID_HEADER,
   EpisodesResponse,
+  HomeResponse,
   TonightResponse,
   GRANT_SECRET_HEADER,
   MeResponse,
@@ -98,6 +99,8 @@ export const api = {
   moments: (id: string) => request('GET', `/characters/${id}/moments`, MomentsResponse),
   episodes: (id: string) => request('GET', `/characters/${id}/episodes`, EpisodesResponse),
   tonight: () => request('GET', '/tonight', TonightResponse),
+  /** The whole home screen in one call. */
+  home: () => request('GET', '/home', HomeResponse),
   /** Flag a user-made episode. One per player; enough of them take it down pending review. */
   reportEpisode: (id: string, body: ReportEpisodeRequest) => request('POST', `/episodes/${id}/report`, ReportEpisodeResponse, body),
   me: () => request('GET', '/me', MeResponse),
