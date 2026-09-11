@@ -29,8 +29,17 @@ the roles are not stated in that order; it did, once, for Jun.
 
 Current heroes, in this style: Ash `pJCNXKZvCxFPnTEb`, Rafe `8e38GgdGXI3Q4sqx`, Jun
 `La7TUUMcXE1GHcCh`. Reaching cards: Ash `9ZBMKpRuES3F0P3K`, Rafe `RqiYiaiRkRJMTp5g`, Jun
-`giVvn31cg5DlwRPf`. The paid cards and backdrops from earlier in the day are still in the
-old style and are next.
+`giVvn31cg5DlwRPf`.
+
+Everyday cards (2026-09-11), the ones the story gives: Ash "The mug" `svFXguCSPXFDCXlG`,
+"Four in the morning" `Za3EwN2xmtKMfOGX`, "When it finally breaks" `rJt0C7u1Me6411Mi`, "The
+roof" `ZVjQvDS3HjHjrd64`; Rafe "The piano" `4bsP3zOqydCbTS8U`; Jun "Noted" `me1CAyZUsHLPzj9q`.
+Prompt shape that worked: the style rules in words, then "CHARACTER REFERENCE: this is X, draw
+HIM" with the hero URL, then the scene, then "Single image". Local `reference/` paths passed as
+attachments are not uploaded by the skill (the failure log says unsupported protocol scheme);
+pass absolute paths or upload them first. The hero URL alone carried the style.
+
+The paid cards and backdrops from earlier in the day are still in the old style and are next.
 
 ## Style (the earlier prompt, superseded above)
 
