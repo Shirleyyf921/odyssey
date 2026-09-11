@@ -8,7 +8,7 @@
     "ios": "expo start --ios",
     "android": "expo start --android",
     "typecheck": "tsc --noEmit",
-    "build": "echo 'client builds via EAS, not turbo'",
+    "build": "expo export -p web",
     "web": "expo start --web",
     "export:web": "expo export -p web"
   },
