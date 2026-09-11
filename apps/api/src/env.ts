@@ -76,6 +76,13 @@ const Env = z.object({
    * the x-grant-secret header. Outside production the route is open without it.
    */
   BILLING_GRANT_SECRET: z.string().min(16).optional(),
+
+  // Review queue (docs/ugc-pipeline.md, "Moderation"). Required in production for /review; open outside it.
+  REVIEW_SECRET: z.string().min(16).optional(),
+  /** A mail on every submission that needs a person, via Resend's HTTP API. Both unset: the log line only. */
+  RESEND_API_KEY: z.string().min(1).optional(),
+  REVIEW_NOTIFY_EMAIL: z.string().email().optional(),
+  REVIEW_NOTIFY_FROM: z.string().default('Odyssey review <onboarding@resend.dev>'),
 })
 
 export const env = Env.parse(process.env)

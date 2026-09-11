@@ -220,3 +220,42 @@ export type DevPurchaseRequest = z.infer<typeof DevPurchaseRequest>
 
 /** Header carrying BILLING_GRANT_SECRET in production. */
 export const GRANT_SECRET_HEADER = 'x-grant-secret'
+
+// ---------------------------------------------------------------- review queue (docs/ugc-pipeline.md, "Moderation")
+
+/** Header carrying REVIEW_SECRET in production. Open outside it, like the grant route. */
+export const REVIEW_SECRET_HEADER = 'x-review-secret'
+
+/** A report as the reviewer sees it: the reason and when. Who reported stays in the row. */
+export const ReviewReport = z.object({ reason: ReportReason, createdAt: z.string().datetime() })
+export type ReviewReport = z.infer<typeof ReviewReport>
+
+/**
+ * One episode as the reviewer reads it: the author's whole draft, briefs and
+ * transcript included, plus who wrote it and what players said about it.
+ */
+export const ReviewItem = AuthoredEpisode.extend({
+  characterName: z.string(),
+  authorName: z.string().nullable(),
+  /** How many the author already has LIVE; the first three are read by a person no matter what. */
+  authorLiveCount: z.number().int().min(0),
+  reports: z.array(ReviewReport),
+})
+export type ReviewItem = z.infer<typeof ReviewItem>
+
+export const ReviewQueueResponse = z.object({ items: z.array(ReviewItem) })
+export type ReviewQueueResponse = z.infer<typeof ReviewQueueResponse>
+
+/**
+ * What a reviewer may do. SUBMITTED goes LIVE or REJECTED; UNLISTED goes back
+ * LIVE or REMOVED; a LIVE one can be REMOVED. A note is required when the
+ * author is told no: they read it.
+ */
+export const ReviewDecisionRequest = z.object({
+  decision: z.enum(['LIVE', 'REJECTED', 'REMOVED']),
+  note: z.string().trim().max(1000).optional(),
+})
+export type ReviewDecisionRequest = z.infer<typeof ReviewDecisionRequest>
+
+export const ReviewDecisionResponse = z.object({ episode: AuthoredEpisode })
+export type ReviewDecisionResponse = z.infer<typeof ReviewDecisionResponse>

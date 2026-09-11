@@ -148,7 +148,12 @@ Each line is a PR. None of it touches the turn.
 6. **Review queue**: a route behind a secret, like the grant route, listing SUBMITTED and
    flagged episodes with the dry-run transcript; LIVE / REJECT with a note. An email on each
    new MATURE submission so it is not forgotten. Not Feishu: that is the founder's employer's
-   tooling and this product does not go through it.
+   tooling and this product does not go through it. *Built 2026-09-10:* `GET/POST /review/episodes`
+   behind `REVIEW_SECRET` (open outside production), `apps/mobile/app/review.tsx` on the web
+   build; SUBMITTED → LIVE/REJECTED, UNLISTED → LIVE (count reset)/REMOVED, LIVE → REMOVED, a note
+   required for a no. Who waits for a person: MATURE, a creator's first three, anything the
+   screen was unsure about; a creator's fourth clean SFW episode goes LIVE at submit. A mail per
+   waiting submission through Resend (`RESEND_API_KEY`, `REVIEW_NOTIFY_EMAIL`), else a log line.
 7. **Editor**: the web form, skeletons, the AI draft button, dry-run playback in the stage.
 8. **Credits**: completions → Plus days, shown on the creator's episode card.
 

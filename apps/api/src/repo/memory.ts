@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type {
   AuthProvider,
   EpisodeDraft,
+  ReviewReport,
   EpisodeRun,
   Message,
   Moment,
@@ -53,7 +54,7 @@ export class MemoryRepository implements AppRepository {
   private moments = new Map<string, Moment[]>()
   private episodes = new Map<string, EpisodeRecord[]>()
   private runs = new Map<string, EpisodeRun>()
-  private reports = new Map<string, ReportReason>()
+  private reports = new Map<string, ReviewReport & { episodeId: string }>()
   private reportCounts = new Map<string, number>()
   private relationships = new Map<string, RelationshipRecord>()
   private conversations = new Map<
@@ -212,10 +213,17 @@ export class MemoryRepository implements AppRepository {
     this.episodes.set(current.characterId, (this.episodes.get(current.characterId) ?? []).map((e) => (e.id === id ? episode : e)))
     return episode
   }
+  async listEpisodesForReview() {
+    return [...this.episodes.values()].flat().filter((e) => e.status === 'SUBMITTED' || e.status === 'UNLISTED')
+  }
+  async listReports(episodeId: string) {
+    return [...this.reports.values()].filter((r) => r.episodeId === episodeId).map(({ reason, createdAt }) => ({ reason, createdAt }))
+  }
   async updateEpisode(id: string, patch: EpisodePatch) {
     const current = await this.getEpisode(id)
     if (!current) throw new Error('episode not found')
-    const { lastReviewedAt: _reviewed, ...fields } = patch
+    const { lastReviewedAt: _reviewed, reportCount, ...fields } = patch
+    if (reportCount !== undefined) this.reportCounts.set(id, reportCount)
     const episode = { ...current, ...fields }
     this.episodes.set(current.characterId, (this.episodes.get(current.characterId) ?? []).map((e) => (e.id === id ? episode : e)))
     return episode
@@ -277,7 +285,7 @@ export class MemoryRepository implements AppRepository {
     const key = `${input.episodeId}:${input.reporterId}`
     const counts = this.reportCounts
     if (this.reports.has(key)) return { counted: false, reportCount: counts.get(input.episodeId) ?? 0 }
-    this.reports.set(key, input.reason)
+    this.reports.set(key, { episodeId: input.episodeId, reason: input.reason, createdAt: new Date().toISOString() })
     const n = (counts.get(input.episodeId) ?? 0) + 1
     counts.set(input.episodeId, n)
     return { counted: true, reportCount: n }
