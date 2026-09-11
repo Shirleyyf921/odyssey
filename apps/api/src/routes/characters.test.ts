@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import Fastify from 'fastify'
-import { CharacterDetail, CharactersResponse, EpisodesResponse, MeResponse, MomentsResponse, StartRelationshipResponse, TonightResponse } from '@odyssey/shared'
+import { CharacterDetail, CharactersResponse, EpisodesResponse, HomeResponse, MeResponse, MomentsResponse, StartRelationshipResponse, TonightResponse } from '@odyssey/shared'
 import { requireIdentity } from '../auth/identity.js'
 import { devVerifier } from '../auth/providers.js'
 import { AuthService } from '../auth/service.js'
@@ -250,4 +250,30 @@ test('the rating rail: a store build never sees MATURE, and the web build only a
 
   const tonight = TonightResponse.parse((await app.inject({ method: 'GET', url: '/tonight', headers: asDevice })).json())
   assert.equal(tonight.items.find((i) => i.character.kind === 'PRIMARY')?.episode?.title, all[0], 'tonight rides the same rail')
+})
+
+test('home: tonight at the head, every episode across the roster, the run to resume, his pictures', async () => {
+  const { app, repo } = await build()
+  const device = randomUUID()
+  const home = async () => HomeResponse.parse((await app.inject({ method: 'GET', url: '/home', headers: { 'x-device-id': device, 'x-odyssey-channel': 'web' } })).json())
+
+  const fresh = await home()
+  assert.equal(fresh.tonight.length, 3)
+  assert.equal(fresh.resume, null)
+  assert.ok(fresh.episodes.length >= 3, 'one per man at least')
+  assert.ok(fresh.episodes.every((e) => e.origin === 'OFFICIAL' && e.characterName && 'hasCall' in e))
+  assert.ok(fresh.episodes.some((e) => e.hasCall), 'someone calls')
+  assert.ok(!fresh.episodes.some((e) => e.rating === 'MATURE'), 'MATURE waits for the age gate even on the web')
+  assert.equal(fresh.moments.unlocked.length, 0, 'nothing given yet')
+  assert.ok(fresh.moments.next.length > 0 && fresh.moments.next.every((m) => m.story), 'what the story will give, named by episode')
+
+  // Start Rafe and open his episode: it is the run to resume, and it is on his tonight card.
+  const rafe = fresh.tonight.find((t) => t.character.name === 'Rafe')!
+  const { relationship } = StartRelationshipResponse.parse((await app.inject({ method: 'POST', url: `/characters/${rafe.character.id}/start`, headers: { 'x-device-id': device } })).json())
+  const ep = fresh.episodes.find((e) => e.characterId === rafe.character.id)!
+  await repo.createRun({ relationshipId: relationship.id, episodeId: ep.id, currentBeatId: ep.id && (await repo.getEpisode(ep.id))!.firstBeatId, episodeVersion: 1 })
+  const later = await home()
+  assert.equal(later.resume?.id, ep.id)
+  assert.equal(later.resume?.status, 'IN_PROGRESS')
+  assert.equal(later.tonight.find((t) => t.character.id === rafe.character.id)?.episode?.id, ep.id)
 })

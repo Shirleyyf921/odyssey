@@ -7,6 +7,10 @@ import {
   type CharacterDetail,
   type CharactersResponse,
   type EpisodesResponse,
+  type HomeEpisode,
+  type HomeResponse,
+  type MomentCard,
+  type TonightItem,
   type Tier,
   type TonightResponse,
   type MomentsResponse,
@@ -14,10 +18,10 @@ import {
 } from '@odyssey/shared'
 import { RULES } from '../relationship/rules.js'
 import { evaluateUnlocks } from '../moments/unlocks.js'
-import { toEpisodeCard, tonight } from '../episodes/availability.js'
+import { toEpisodeCard, tonight as tonight_, type CardCredit } from '../episodes/availability.js'
 import { rankCommunity, statusAfterReport } from '../episodes/community.js'
 import { visibleRatings } from '../episodes/rating.js'
-import type { AppRepository, EpisodeRecord } from '../repo/types.js'
+import type { AppRepository, EpisodeRecord, RunCounts } from '../repo/types.js'
 
 const Params = z.object({ id: z.string().uuid() })
 
@@ -64,10 +68,88 @@ export async function characterRoutes(
         const cards = all
           .filter((e) => e.origin === 'OFFICIAL' && ratings.includes(e.rating))
           .map((e) => toEpisodeCard(e, relationship, tier, runs, all))
-        return { character: { ...c, portraitUrl: portraits[0]?.url ?? null, relationship }, episode: tonight(cards) }
+        return { character: { ...c, portraitUrl: portraits[0]?.url ?? null, relationship }, episode: tonight_(cards) }
       })
     )
     return { items }
+  })
+
+  /**
+   * The home screen, whole. Tonight at the head, then every episode across the
+   * roster, what readers wrote, and his pictures: the screen should not end
+   * when the one card is played.
+   */
+  app.get('/home', async (req): Promise<HomeResponse> => {
+    const [chars, rels, tier, purchases] = await Promise.all([
+      repo.listCharacters(),
+      repo.listRelationships(req.user.id),
+      tierOf(req.user.id),
+      repo.listPurchases(req.user.id),
+    ])
+    const ratings = visibleRatings(req.channel, req.user.ageVerifiedAt !== null)
+    const skus = new Set(purchases.filter((p) => !p.refundedAt).map((p) => p.productId))
+    const byCharacter = new Map(rels.map((r) => [r.characterId, r]))
+    const tonight: TonightItem[] = []
+    const episodes: HomeEpisode[] = []
+    const theirs: HomeEpisode[] = []
+    const unlocked: MomentCard[] = []
+    const next: MomentCard[] = []
+    let resume: HomeEpisode | null = null
+    const counts = new Map<string, RunCounts>()
+    const names = new Map<string, string | null>()
+
+    for (const { personaNotes: _notes, ...c } of chars) {
+      const relationship = byCharacter.get(c.id) ?? null
+      const [portraits, all, moments] = await Promise.all([repo.listPortraits(c.id), repo.listEpisodes(c.id), repo.listMoments(c.id)])
+      const runs = relationship ? await repo.listRuns(relationship.id) : []
+      const portraitUrl = portraits[0]?.url ?? null
+      const visible = all.filter((e) => ratings.includes(e.rating))
+      const { cards: momentCards } = await evaluateUnlocks(repo, moments, relationship, skus)
+      const cardById = new Map(momentCards.map((m) => [m.id, m]))
+      const shownIn = new Map<string, string>()
+      for (const e of all) for (const b of e.beats) if (b.photoMomentId && !shownIn.has(b.photoMomentId)) shownIn.set(b.photoMomentId, e.title)
+
+      const home = (e: EpisodeRecord, credit: CardCredit = {}): HomeEpisode => {
+        const ending = e.beats.find((b) => b.kind === 'END' && b.photoMomentId)?.photoMomentId ?? null
+        const cover = ending ? (cardById.get(ending) ?? null) : null
+        return {
+          ...toEpisodeCard(e, relationship, tier, runs, all, credit),
+          characterName: c.name,
+          portraitUrl,
+          coverUrl: cover?.status === 'UNLOCKED' ? cover.imageUrl : null,
+          hasCall: e.beats.some((b) => b.kind === 'CALL'),
+          photoCount: e.beats.filter((b) => b.photoMomentId).length,
+        }
+      }
+
+      const ours = visible.filter((e) => e.origin === 'OFFICIAL').map((e) => home(e))
+      tonight.push({ character: { ...c, portraitUrl, relationship }, episode: tonight_(ours) })
+      episodes.push(...ours)
+      const open = ours.find((e) => e.status === 'IN_PROGRESS')
+      if (open && !resume) resume = open
+
+      const ugc = visible.filter((e) => e.origin === 'UGC')
+      if (ugc.length) {
+        const [cts, authors] = await Promise.all([repo.countRuns(ugc.map((e) => e.id)), authorNames(repo, ugc)])
+        for (const [k, v] of cts) counts.set(k, v)
+        for (const [k, v] of authors) names.set(k, v)
+        theirs.push(...ugc.map((e) => home(e, { authorName: e.authorId ? (names.get(e.authorId) ?? null) : null, completions: cts.get(e.id)?.finished ?? 0 })))
+      }
+
+      for (const m of momentCards) {
+        const card = { ...m, story: shownIn.get(m.id) ?? null }
+        if (card.status === 'UNLOCKED') unlocked.push(card)
+        else if (card.story && card.unlock.kind !== 'PURCHASE') next.push(card)
+      }
+    }
+    unlocked.sort((a, b) => (b.unlockedAt ?? '').localeCompare(a.unlockedAt ?? ''))
+    return {
+      tonight,
+      resume,
+      episodes,
+      community: rankCommunity(theirs, counts).slice(0, 6) as HomeEpisode[],
+      moments: { unlocked: unlocked.slice(0, 6), next: next.slice(0, 3) },
+    }
   })
 
   app.get('/characters/:id', async (req, reply): Promise<CharacterDetail | void> => {
