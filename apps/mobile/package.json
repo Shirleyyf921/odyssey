@@ -9,7 +9,8 @@
     "android": "expo start --android",
     "typecheck": "tsc --noEmit",
     "build": "echo 'client builds via EAS, not turbo'",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "export:web": "expo export -p web"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.15",
