@@ -665,6 +665,13 @@ many pictures, where you are), what readers wrote best-finished first, the lates
 gave and the next the story will, and on the web the way into the editor. The screen no longer
 ends when the one card is played. The honest limit is content: three episodes make a short rail.
 
+**The personal centre (2026-09-11, "个人中心").** `GET /me/profile`: who you are here and the
+name he calls you (`POST /me/name`, it goes into every prompt), your plan in a sentence, each
+man as a row with `STAGE_LINE` ("He has noticed you" / "He waits up for you" / "He tells you
+things" / "Yours"), nights, pictures and stories out of the total, and the episode in progress;
+what you wrote and what it earned; the adult-stories declaration on the web; sign-in. No stage
+name and no affinity number leaves the server on this route. The dogfood tools sit under one fold.
+
 **Step 6 (2026-09-10): the rating rail.** `episodes/rating.ts` is the only place that decides
 who sees MATURE, and it takes two gates of deliberately different kinds. The **channel** is a
 client assertion (`x-odyssey-channel`, or `?channel=` on the socket): the native binary is

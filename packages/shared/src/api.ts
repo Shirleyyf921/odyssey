@@ -235,6 +235,44 @@ export type SignInResponse = z.infer<typeof SignInResponse>
 export const MeResponse = z.object({ user: AuthUser, billing: BillingStatus })
 export type MeResponse = z.infer<typeof MeResponse>
 
+/** The name he calls you. Empty clears it. */
+export const RenameRequest = z.object({ displayName: z.string().trim().max(40) })
+export type RenameRequest = z.infer<typeof RenameRequest>
+
+/**
+ * The personal centre (2026-09-11, "个人中心"): who you are here, where you
+ * are with each of them in words, what you have of his, what you wrote. Never
+ * a stage name, never a number for affinity.
+ */
+export const ProfileMan = z.object({
+  character: CharacterListItem,
+  /** Null until they have spoken. */
+  since: z.string().datetime().nullable(),
+  /** STAGE_LINE, or "Not yet" before a relationship exists. */
+  line: z.string(),
+  nights: z.number().int().min(0),
+  momentsUnlocked: z.number().int().min(0),
+  momentsTotal: z.number().int().min(0),
+  episodesPlayed: z.number().int().min(0),
+  episodesTotal: z.number().int().min(0),
+  /** Title of the episode in progress, if any. */
+  inProgress: z.string().nullable(),
+})
+export type ProfileMan = z.infer<typeof ProfileMan>
+
+export const ProfileResponse = z.object({
+  user: AuthUser,
+  billing: BillingStatus,
+  men: z.array(ProfileMan),
+  creator: z.object({
+    episodes: z.number().int().min(0),
+    live: z.number().int().min(0),
+    completions: z.number().int().min(0),
+    creditedDays: z.number().int().min(0),
+  }),
+})
+export type ProfileResponse = z.infer<typeof ProfileResponse>
+
 // ---------------------------------------------------------------- billing
 
 /**

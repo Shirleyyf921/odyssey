@@ -29,6 +29,17 @@ export const RelationshipStage = z.enum([
 export type RelationshipStage = z.infer<typeof RelationshipStage>
 
 /** Ordered so stages can be compared for unlock rules. */
+/**
+ * What a stage looks like from the outside. The profile shows these words and
+ * never the stage name or a number (ARCHITECTURE.md section 15).
+ */
+export const STAGE_LINE: Record<RelationshipStage, string> = {
+  STRANGER: 'He has noticed you',
+  ACQUAINTED: 'He waits up for you',
+  CLOSE: 'He tells you things',
+  INTIMATE: 'Yours',
+}
+
 export const STAGE_ORDER: readonly RelationshipStage[] = [
   'STRANGER',
   'ACQUAINTED',

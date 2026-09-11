@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { AgeGateRequest, SignInRequest, type MeResponse, type SignInResponse } from '@odyssey/shared'
+import { AgeGateRequest, SignInRequest, type MeResponse, type SignInResponse, RenameRequest, STAGE_LINE, type ProfileMan, type ProfileResponse } from '@odyssey/shared'
 import { InvalidTokenError } from '../auth/providers.js'
 import { AuthService, UnsupportedProviderError } from '../auth/service.js'
 import { deviceIdFrom, requireIdentity, sessionTokenFrom } from '../auth/identity.js'
@@ -41,6 +41,63 @@ export async function authRoutes(
   app.get('/me', async (req): Promise<MeResponse> => {
     const [user, status] = await Promise.all([auth.describe(req.user), billing.status(req.user.id)])
     return { user, billing: status }
+  })
+
+  /** The name he calls you. It goes into every prompt, so it is trimmed and short. */
+  app.post('/me/name', async (req, reply): Promise<MeResponse | void> => {
+    const parsed = RenameRequest.safeParse(req.body)
+    if (!parsed.success) return reply.code(400).send({ error: 'a name, up to 40 characters' })
+    const user = await repo.updateUser(req.user.id, { displayName: parsed.data.displayName || null })
+    const [described, status] = await Promise.all([auth.describe(user), billing.status(user.id)])
+    return { user: described, billing: status }
+  })
+
+  /**
+   * The personal centre: who you are here, where you are with each of them in
+   * words, what you have of his, what you wrote. Stage names and affinity never
+   * leave as numbers; STAGE_LINE is the whole of it.
+   */
+  app.get('/me/profile', async (req): Promise<ProfileResponse> => {
+    const [user, status, chars, rels, mine] = await Promise.all([
+      auth.describe(req.user),
+      billing.status(req.user.id),
+      repo.listCharacters(),
+      repo.listRelationships(req.user.id),
+      repo.listEpisodesByAuthor(req.user.id),
+    ])
+    const byCharacter = new Map(rels.map((r) => [r.characterId, r]))
+    const men: ProfileMan[] = []
+    for (const { personaNotes: _notes, ...c } of chars) {
+      const relationship = byCharacter.get(c.id) ?? null
+      const [portraits, moments, episodes] = await Promise.all([repo.listPortraits(c.id), repo.listMoments(c.id), repo.listEpisodes(c.id)])
+      const [unlocks, runs] = relationship ? await Promise.all([repo.listUnlocks(relationship.id), repo.listRuns(relationship.id)]) : [[], []]
+      const official = episodes.filter((e) => e.origin === 'OFFICIAL')
+      const open = runs.find((r) => !r.endedAt)
+      men.push({
+        character: { ...c, portraitUrl: portraits[0]?.url ?? null, relationship },
+        since: relationship?.startedAt ?? null,
+        line: relationship ? STAGE_LINE[relationship.stage] : 'Not yet',
+        nights: relationship?.activeDays ?? 0,
+        momentsUnlocked: unlocks.length,
+        momentsTotal: moments.length,
+        episodesPlayed: runs.filter((r) => r.endedAt && official.some((e) => e.id === r.episodeId)).length,
+        episodesTotal: official.length,
+        inProgress: open ? (episodes.find((e) => e.id === open.episodeId)?.title ?? null) : null,
+      })
+    }
+    const ids = mine.map((e) => e.id)
+    const [counts, credits] = await Promise.all([repo.countRuns(ids), repo.creditedDaysOf(ids)])
+    return {
+      user,
+      billing: status,
+      men,
+      creator: {
+        episodes: mine.length,
+        live: mine.filter((e) => e.status === 'LIVE').length,
+        completions: [...counts.values()].reduce((n, c) => n + c.finished, 0),
+        creditedDays: [...credits.values()].reduce((n, d) => n + d, 0),
+      },
+    }
   })
 
   /**
