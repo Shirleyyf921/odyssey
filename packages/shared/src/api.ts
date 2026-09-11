@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Beat, BillingStatus, Character, Tier, CharacterProfile, DryRun, Episode, EpisodeCard, EpisodeLifecycle, MomentCard, Relationship, RelationshipStage, ReportReason, Scene } from './domain.js'
+import { Beat, BeatKind, BillingStatus, Character, ContentRating, Tier, CharacterProfile, DryRun, Episode, EpisodeCard, EpisodeDraft, EpisodeLifecycle, Hotspot, MomentCard, Relationship, RelationshipStage, ReportReason, Scene } from './domain.js'
 
 /**
  * REST shapes. The client validates every response against these, so a server
@@ -259,3 +259,53 @@ export type ReviewDecisionRequest = z.infer<typeof ReviewDecisionRequest>
 
 export const ReviewDecisionResponse = z.object({ episode: AuthoredEpisode })
 export type ReviewDecisionResponse = z.infer<typeof ReviewDecisionResponse>
+
+// ---------------------------------------------------------------- the editor (docs/ugc-pipeline.md, section 2)
+
+/**
+ * The shape of one of our episodes with the words taken out: which beat is
+ * which kind, where the photo and the call land, how the options branch. A
+ * creator starts from one of these; the wiring is ours, the words are theirs.
+ */
+export const SkeletonBeat = z.object({
+  position: z.number().int().min(0),
+  kind: BeatKind,
+  /** Positions the options lead to, in order; null ends the episode from there. */
+  optionsTo: z.array(z.number().int().min(0).nullable()).max(2),
+  /** Position the beat falls through to on free text; null ends. */
+  nextTo: z.number().int().min(0).nullable(),
+  hasPhoto: z.boolean(),
+  hotspots: z.array(Hotspot),
+})
+export type SkeletonBeat = z.infer<typeof SkeletonBeat>
+
+export const Skeleton = z.object({
+  /** The official episode it was taken from. */
+  id: z.string().uuid(),
+  title: z.string(),
+  rating: ContentRating,
+  beats: z.array(SkeletonBeat).min(1),
+})
+export type Skeleton = z.infer<typeof Skeleton>
+
+export const SkeletonsResponse = z.object({ characterId: z.string().uuid(), skeletons: z.array(Skeleton) })
+export type SkeletonsResponse = z.infer<typeof SkeletonsResponse>
+
+/**
+ * "Draft beats from this premise." The model fills the words into a skeleton
+ * we wire; the result is a draft in the author's hands, not a saved row, and
+ * it is moderated exactly like typed text when submitted.
+ */
+export const AiDraftRequest = z.object({
+  characterId: z.string().uuid(),
+  premise: z.string().min(1).max(280),
+  /** Where it opens, if the author already knows. */
+  setting: z.string().max(400).optional(),
+  rating: ContentRating.default('SFW'),
+  /** Beats to fill. Omitted: five beats, four STORY then END, straight through. */
+  skeleton: z.array(SkeletonBeat).min(1).max(20).optional(),
+})
+export type AiDraftRequest = z.infer<typeof AiDraftRequest>
+
+export const AiDraftResponse = z.object({ draft: EpisodeDraft, model: z.string().nullable() })
+export type AiDraftResponse = z.infer<typeof AiDraftResponse>

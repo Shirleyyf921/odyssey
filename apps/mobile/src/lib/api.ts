@@ -9,7 +9,12 @@ import {
   GRANT_SECRET_HEADER,
   MeResponse,
   MomentsResponse,
+  AiDraftResponse,
+  AuthoredEpisodeResponse,
+  MyEpisodesResponse,
   REVIEW_SECRET_HEADER,
+  SkeletonsResponse,
+  SubmitEpisodeResponse,
   ReportEpisodeResponse,
   RestoreResponse,
   ReviewDecisionResponse,
@@ -22,6 +27,8 @@ import {
   type DevSetStageRequest,
   type ReportEpisodeRequest,
   type ReviewDecisionRequest,
+  type AiDraftRequest,
+  type EpisodeDraft,
   type SignInRequest,
 } from '@odyssey/shared'
 import { Platform } from 'react-native'
@@ -62,7 +69,7 @@ async function headers(): Promise<Record<string, string>> {
 
 /** Every response is validated against the shared schema before a screen sees it. */
 async function request<T extends z.ZodTypeAny>(
-  method: 'GET' | 'POST',
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
   path: string,
   schema: T,
   body?: unknown
@@ -104,6 +111,16 @@ export const api = {
   devGrant: (body: DevGrantRequest) => request('POST', '/billing/dev/grant', RestoreResponse, body),
   /** Dogfood: record a SKU purchase without the store. Same gating as devGrant. */
   devPurchase: (body: DevPurchaseRequest) => request('POST', '/billing/dev/purchase', RestoreResponse, body),
+  // ---- the editor (docs/ugc-pipeline.md, section 2). Web only; the author sees their own briefs.
+  myEpisodes: () => request('GET', '/me/episodes', MyEpisodesResponse),
+  myEpisode: (id: string) => request('GET', `/me/episodes/${id}`, AuthoredEpisodeResponse),
+  createEpisode: (body: EpisodeDraft) => request('POST', '/me/episodes', AuthoredEpisodeResponse, body),
+  updateEpisode: (id: string, body: EpisodeDraft) => request('PUT', `/me/episodes/${id}`, AuthoredEpisodeResponse, body),
+  deleteEpisode: (id: string) => request('DELETE', `/me/episodes/${id}`, MyEpisodesResponse.optional()),
+  dryRunEpisode: (id: string) => request('POST', `/me/episodes/${id}/dry-run`, AuthoredEpisodeResponse),
+  submitEpisode: (id: string) => request('POST', `/me/episodes/${id}/submit`, SubmitEpisodeResponse),
+  skeletons: (characterId: string) => request('GET', `/me/skeletons/${characterId}`, SkeletonsResponse),
+  aiDraft: (body: AiDraftRequest) => request('POST', '/me/episodes/ai-draft', AiDraftResponse, body),
   /** The review queue (docs/ugc-pipeline.md, step 6). Needs EXPO_PUBLIC_REVIEW_SECRET against production. */
   reviewQueue: () => request('GET', '/review/episodes', ReviewQueueResponse),
   reviewDecide: (id: string, body: ReviewDecisionRequest) => request('POST', `/review/episodes/${id}`, ReviewDecisionResponse, body),

@@ -43,6 +43,8 @@ export default function RootLayout() {
         <Stack.Screen name="moments/[characterId]" options={{ title: 'Moments' }} />
         <Stack.Screen name="account" options={{ title: 'Account', presentation: 'modal' }} />
         <Stack.Screen name="review" options={{ title: 'Review' }} />
+        <Stack.Screen name="write/index" options={{ title: 'Write for him' }} />
+        <Stack.Screen name="write/[id]" options={{ title: '' }} />
       </Stack>
     </QueryClientProvider>
   )

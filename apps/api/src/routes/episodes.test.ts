@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import Fastify from 'fastify'
-import { AuthoredEpisodeResponse, EpisodesResponse, MyEpisodesResponse, ReportEpisodeResponse, ReviewDecisionResponse, ReviewQueueResponse, TonightResponse, type EpisodeDraft } from '@odyssey/shared'
+import { AiDraftResponse, AuthoredEpisodeResponse, EpisodesResponse, MyEpisodesResponse, ReportEpisodeResponse, ReviewDecisionResponse, ReviewQueueResponse, SkeletonsResponse, TonightResponse, type EpisodeDraft } from '@odyssey/shared'
 import { requireIdentity } from '../auth/identity.js'
 import { SEED_CHARACTERS } from '../content/seed.js'
 import { MemoryRepository } from '../repo/memory.js'
@@ -476,4 +476,51 @@ test('the review route is shut without the secret', async () => {
   await app.ready()
   assert.equal((await app.inject({ method: 'GET', url: '/review/episodes', headers: as(randomUUID()) })).statusCode, 403)
   assert.equal((await app.inject({ method: 'GET', url: '/review/episodes', headers: { ...as(randomUUID()), 'x-review-secret': 'a-secret-of-some-length' } })).statusCode, 200)
+})
+
+test('skeletons are our episodes with the words taken out, and the AI draft fills one that hangs together', async () => {
+  const DRAFT_JSON = JSON.stringify({
+    title: 'The other staircase',
+    setting: 'The service stairs behind the forty-second floor, concrete and one flickering light.',
+    opener: '*holds the fire door open with his shoulder* this way. nobody uses this way.',
+    beats: [
+      { position: 0, brief: 'He has brought her the back way out. He wants to see if she minds the dark.', setting: null, options: ['Take his hand on the stairs', 'Ask why not the lift'] },
+      { position: 1, brief: 'Two flights down he stops.', setting: null, options: ['Keep going', 'Stop with him'] },
+      { position: 2, brief: 'He tells her about the first night he used these stairs.', setting: null, options: ['Ask who he was with', 'Say nothing'] },
+      { position: 3, brief: 'The street door. He does not open it yet.', setting: 'The bottom of the stairs, a door with a bar across it.', options: ['Push the bar', 'Wait'] },
+      { position: 4, brief: 'It closes on the street, cold, him still holding the door.', setting: null, options: [] },
+    ],
+  })
+  const { app } = await build(undefined, storyGateway(new ScriptedProvider(`Here you go:\n\`\`\`json\n${DRAFT_JSON}\n\`\`\``)))
+  const me = as(randomUUID())
+
+  const shapes = SkeletonsResponse.parse((await app.inject({ method: 'GET', url: `/me/skeletons/${rafe.character.id}`, headers: me })).json())
+  assert.equal(shapes.skeletons.length, rafe.episodes.length)
+  const shape = shapes.skeletons[0]!
+  assert.equal(shape.id, rafe.episodes[0]!.id)
+  assert.ok(!JSON.stringify(shape).includes(rafe.episodes[0]!.beats[0]!.brief.slice(0, 20)), 'no words of ours in a skeleton')
+  assert.deepEqual(shape.beats.map((b) => b.kind), rafe.episodes[0]!.beats.map((b) => b.kind))
+
+  const res = await app.inject({ method: 'POST', url: '/me/episodes/ai-draft', headers: me, payload: { characterId: rafe.character.id, premise: 'He takes you out the back way.' } })
+  assert.equal(res.statusCode, 200, res.body)
+  const { draft } = AiDraftResponse.parse(res.json())
+  assert.equal(draft.title, 'The other staircase')
+  assert.equal(draft.beats.length, 5)
+  assert.deepEqual(draft.beats.map((b) => b.kind), ['STORY', 'STORY', 'STORY', 'STORY', 'END'])
+  assert.deepEqual(draft.beats[0]!.options.map((o) => o.intent), ['Take his hand on the stairs', 'Ask why not the lift'])
+  assert.equal(draft.beats[0]!.options[0]!.next, draft.beats[1]!.id, 'the wiring is the skeleton\'s')
+  assert.equal(draft.beats[3]!.setting, 'The bottom of the stairs, a door with a bar across it.')
+
+  // The draft is a draft: it saves and submits like typed text.
+  const saved = await app.inject({ method: 'POST', url: '/me/episodes', headers: me, payload: draft })
+  assert.equal(saved.statusCode, 201, saved.body)
+
+  // Ash is not open to authors, for the draft either.
+  assert.equal((await app.inject({ method: 'POST', url: '/me/episodes/ai-draft', headers: me, payload: { characterId: ash.character.id, premise: 'x' } })).statusCode, 403)
+})
+
+test('an AI draft that is not JSON is a 503, not a broken episode', async () => {
+  const { app } = await build(undefined, storyGateway(new ScriptedProvider('I would rather not.')))
+  const res = await app.inject({ method: 'POST', url: '/me/episodes/ai-draft', headers: as(randomUUID()), payload: { characterId: rafe.character.id, premise: 'x' } })
+  assert.equal(res.statusCode, 503)
 })
