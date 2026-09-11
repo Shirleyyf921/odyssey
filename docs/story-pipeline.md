@@ -85,6 +85,16 @@ him while there is more to read. The options rise from below only when the last 
 landed; a photo he sent waits for the same moment and goes away when they answer. The user's
 own words give way to his first sentence on their own: that is what they are waiting for.
 
+**Heat (2026-09-11, after "not flirtatious enough").** The episode's rating sets how far
+tonight goes, not the stage: the stage says how well they know each other, the scene decides
+what happens in it. `HEAT.SFW` closes distance in words (hands, jaw, hair, the back of the neck,
+his mouth close enough to feel him breathe, a kiss written as a kiss, what he has been thinking
+about said plainly) and stops above the waist and over the clothes; `HEAT.MATURE` lets the door
+close and cuts before sex itself is narrated. Each has one line of register the model can hear.
+STRANGER no longer "holds back because it is early". The old ceiling ("a kiss, a hand, a held
+breath is as far as words go") was the reason every scene read chaste, and it applied to every
+episode regardless of rating.
+
 **The story gives the pictures (2026-09-11).** An everyday card placed on a beat is unlocked the
 moment the story reaches that beat (`moment_unlocks.source = BEAT`), and the stage becomes that
 picture from that page on: the scene cut in the reference. His caption is the page under his

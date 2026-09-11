@@ -182,6 +182,7 @@ export async function runStoryTurn(deps: ChatDeps, input: StoryTurnInput, send: 
 
   const system = renderStoryTurn({
     characterName: ctx.character.name,
+    rating: story.episode.rating,
     userName: ctx.user.displayName,
     personaNotes: ctx.character.personaNotes,
     stage: ctx.relationship.stage,
