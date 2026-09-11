@@ -75,9 +75,19 @@ The story is not read in chat bubbles. The screen is his portrait in the scene, 
 narration and his line sit in the lower third; the user taps to advance. Three layers, in order
 of cost:
 
+**Pacing (2026-09-11, after the Tipsy Chat reference).** Nothing is ever on screen at once. A
+turn is a queue of pages: the episode's premise and setting the first time, the user's own
+words once, each sentence of narration unnamed, each beat and stretch of his line under his
+name. A page types itself out; a tap finishes it, the next tap brings the next; a page fades
+before the next types. A message that streams in feeds the queue as sentences complete, so the
+user reads at their own speed and never sees a half-written sentence. A pulsing ring drifts over
+him while there is more to read. The options rise from below only when the last page has
+landed; a photo he sent waits for the same moment and goes away when they answer. The user's
+own words give way to his first sentence on their own: that is what they are waiting for.
+
 | Layer | What | Cost | When |
 |---|---|---|---|
-| Tap to advance | Narration arrives in paragraphs, one tap each; his expression swaps when his line lands | Client only | v1, with the story screen |
+| Tap to advance | One sentence at a time, typed; a tap per sentence; his line under his name | Client only | v1, with the story screen; pacing 2026-09-11 |
 | Touch | Hotspots on the portrait (hand, shoulder, hair, face). Touching one plays a reaction: an authored line, or one short generated line in his voice | One short turn at most | v1 |
 | Motion | Breathing, blinks, a head turn: Live2D rig or a looping clip per portrait | Rigging per portrait | v2 |
 

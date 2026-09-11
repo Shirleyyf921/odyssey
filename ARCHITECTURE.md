@@ -616,7 +616,7 @@ pivotal rule as chat: the turn after a stage change goes to the strong model whe
 allows it. The options repair and ordinary chat stay on EVERYDAY. The author's dry-run plays
 on STORY too, so what they read is what a player gets.
 
-**Step 4 (2026-09-09): the stage.** `apps/mobile/app/story/[conversationId].tsx`. The scene
+**Step 4 (2026-09-09): the stage.** `apps/mobile/app/story/[conversationId].tsx`. Pacing rewritten 2026-09-11, see docs/story-pipeline.md "Stage": one typed sentence at a time, a tap each, options only when the last has landed. The scene
 backdrop fills the screen, his hero portrait sits in the upper two thirds, and the lower
 third is the page: one narration paragraph or his line at a time, tap to advance. A message
 that streamed in has been read as it arrived; one found in history, including his opener,
