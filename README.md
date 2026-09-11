@@ -100,8 +100,9 @@ gitignored; never commit it. On Railway, set the same variables in the service s
 
 `pnpm --filter mobile export:web` writes the web app to `apps/mobile/dist`; the API serves it
 from its own origin when that directory exists (`WEB_DIST`, default `../mobile/dist`), so the
-browser needs no CORS and the client no configured API URL. The Railway build runs the export,
-which is how the demo at the API's URL exists. A build that carries
+browser needs no CORS and the client no configured API URL. The mobile package's `build` script is that export, so the root `pnpm run build`
+that Railpack runs produces it; that is how the demo at the API's URL exists (native
+builds go through EAS, not turbo). A build that carries
 `EXPO_PUBLIC_BILLING_GRANT_SECRET` shows the dogfood grant button on the account page; keep that
 to demo builds and rotate the secret after.
 
