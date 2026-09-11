@@ -270,7 +270,15 @@ async function offerBeatPhoto(deps: ChatDeps, ctx: ConversationContext, momentId
   ])
   const moment = moments.find((m) => m.id === momentId)
   if (!moment || offered.some((o) => o.momentId === momentId)) return
-  const unlock = unlocks.find((u) => u.momentId === momentId) ?? null
+  let unlock = unlocks.find((u) => u.momentId === momentId) ?? null
+  // An everyday card placed on a beat is the story's to give: reaching the beat
+  // unlocks it, and the stage becomes that picture. A paid card stays veiled;
+  // the story only puts it in front of them.
+  let revealed = false
+  if (!unlock && moment.unlock.kind !== 'PURCHASE') {
+    unlock = await repo.insertUnlock({ relationshipId: ctx.relationship.id, momentId, source: 'BEAT' })
+    revealed = true
+  }
   const message = await repo.insertMessage({
     conversationId: ctx.conversation.id,
     role: 'CHARACTER',
@@ -279,8 +287,10 @@ async function offerBeatPhoto(deps: ChatDeps, ctx: ConversationContext, momentId
     inReplyTo: null,
     momentId: moment.id,
   })
-  log.info({ conversationId: ctx.conversation.id, momentId }, 'beat photo sent')
-  send({ type: 'moment_offer', message, moment: toMomentCard(moment, unlock) })
+  const card = toMomentCard(moment, unlock)
+  log.info({ conversationId: ctx.conversation.id, momentId, revealed, locked: card.status === 'LOCKED' }, 'beat photo sent')
+  send({ type: 'moment_offer', message, moment: card })
+  if (revealed) send({ type: 'moment_unlocked', relationshipId: ctx.relationship.id, moment: card })
 }
 
 /**

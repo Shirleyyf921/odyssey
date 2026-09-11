@@ -34,6 +34,7 @@ export const momentUnlockSource = pgEnum('moment_unlock_source', [
   'FREE',
   'STAGE',
   'AFFINITY',
+  'BEAT',
   'PURCHASE',
   'GRANT',
 ])

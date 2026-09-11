@@ -3,6 +3,8 @@ import type { MomentCard } from '@odyssey/shared'
 import { colors, radius, spacing } from '../theme'
 
 function unlockHint(card: MomentCard): string {
+  // The story gives everyday cards; a paid one is still bought, wherever it is offered.
+  if (card.story && card.unlock.kind !== 'PURCHASE') return `He shows you this in "${card.story}"`
   switch (card.unlock.kind) {
     case 'FREE':
       return 'Free'

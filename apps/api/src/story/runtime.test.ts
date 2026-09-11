@@ -103,7 +103,7 @@ test('free text stays on the beat and gets the choices again', async () => {
   assert.ok(last('message_end'))
 })
 
-test('playing through: the photo beat sends its moment locked, the phone rings, END closes the run', async () => {
+test('playing through: the photo beat gives its everyday moment, the phone rings, END closes the run', async () => {
   const { repo, demo, episode, sent, start, say, run, last, persona } = await setup()
   await start()
   await say('sit', 0) // B1 -> B2
@@ -111,8 +111,11 @@ test('playing through: the photo beat sends its moment locked, the phone rings, 
   const photo = last('moment_offer')
   assert.ok(photo)
   assert.equal(photo.moment.id, episode.beats[3]!.photoMomentId)
-  assert.equal(photo.moment.status, 'LOCKED')
-  assert.equal(photo.moment.imageUrl, null)
+  // An everyday card on a beat is the story's to give: it arrives open, and the gallery knows why.
+  assert.equal(photo.moment.status, 'UNLOCKED')
+  assert.ok(photo.moment.imageUrl)
+  assert.equal(last('moment_unlocked')?.moment.id, photo.moment.id)
+  assert.equal((await repo.listUnlocks(demo.relationshipId)).find((u) => u.momentId === photo.moment.id)?.source, 'BEAT')
 
   // B4 -> B5, the call beat: it rings and costs nothing.
   sent.length = 0
@@ -133,6 +136,7 @@ test('playing through: the photo beat sends its moment locked, the phone rings, 
   assert.ok(last('message_end'), 'answering is when he speaks')
   assert.ok(last('episode_ended'))
   assert.ok(!last('choices'), 'no choices after the ending')
+  assert.equal(last('moment_offer')?.moment.status, 'UNLOCKED', 'the ending gives its picture too')
   assert.ok((await run())?.endedAt)
   assert.ok(persona().at(-1)!.system.includes('No [options] section at all'))
 

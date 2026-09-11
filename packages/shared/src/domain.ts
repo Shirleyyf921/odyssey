@@ -166,6 +166,8 @@ export const MomentUnlockSource = z.enum([
   'PURCHASE',
   /** Manual grant: support, promotions, testing. */
   'GRANT',
+  /** The story reached the beat that shows it (docs/story-pipeline.md, "Stage"). */
+  'BEAT',
 ])
 export type MomentUnlockSource = z.infer<typeof MomentUnlockSource>
 
@@ -206,6 +208,8 @@ export const MomentCard = z.object({
   teaserUrl: z.string().nullable().default(null),
   caption: z.string().nullable(),
   unlockedAt: z.string().datetime().nullable(),
+  /** The episode that shows it, when a beat carries it: a locked everyday card says "play this". */
+  story: z.string().nullable().default(null),
 })
 export type MomentCard = z.infer<typeof MomentCard>
 

@@ -15,7 +15,7 @@ import {
   useWindowDimensions,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { parseReply, parseStoryOutput, type Hotspot, type HotspotRect } from '@odyssey/shared'
+import { parseReply, parseStoryOutput, type Hotspot, type HotspotRect, type MomentCard } from '@odyssey/shared'
 import { CallScreen } from '../../src/components/CallScreen'
 import { PhotoBubble } from '../../src/components/MessageBubble'
 import { api } from '../../src/lib/api'
@@ -43,9 +43,11 @@ type Page =
   | { kind: 'you'; text: string; name: string }
   | { kind: 'narration'; text: string }
   | { kind: 'line'; text: string }
+  /** A photo the story gave: the stage becomes it, and his caption is the page. */
+  | { kind: 'photo'; text: string; imageUrl: string }
 
 /** Milliseconds per character. Narration reads a touch faster than speech. */
-const TYPE_MS: Record<Page['kind'], number> = { prologue: 22, you: 18, narration: 24, line: 30 }
+const TYPE_MS: Record<Page['kind'], number> = { prologue: 22, you: 18, narration: 24, line: 30, photo: 30 }
 
 /** Sentences of a paragraph, terminal punctuation kept. Ellipses and closing quotes stay with their sentence. */
 function sentencesOf(paragraph: string): string[] {
@@ -169,6 +171,9 @@ export default function StoryScreen() {
     if (yours) return [yours]
     if (!lastCharacter) return scene ? [{ kind: 'prologue', text: scene.setting }] : []
     const body = pagesOf(lastCharacter.content, { streaming: false })
+    // A photo the story gave with this turn: the stage becomes it, his caption under his name.
+    const given = lastPhoto && lastPhoto.createdAt >= lastCharacter.createdAt ? cardById.get(lastPhoto.momentId ?? '') : null
+    if (given?.status === 'UNLOCKED' && given.imageUrl) body.push({ kind: 'photo', text: lastPhoto!.content, imageUrl: given.imageUrl })
     // His opener is the first thing of the night: the setting comes before it, once.
     // On the first beat with nothing said back yet, what is on stage is the opener.
     const isOpener = choices?.beat.position === 1 && messages.at(-1)?.id === lastCharacter.id
@@ -178,7 +183,7 @@ export default function StoryScreen() {
       if (text) return [{ kind: 'prologue', text }, ...body]
     }
     return body
-  }, [streaming, yours, lastCharacter, messages, scene, episodes.data, episodeId, conv?.episodeTitle, choices?.beat.position]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [streaming, yours, lastCharacter, lastPhoto, cardById, messages, scene, episodes.data, episodeId, conv?.episodeTitle, choices?.beat.position]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [pageIndex, setPageIndex] = useState(0)
   const [shown, setShown] = useState(0)
@@ -217,16 +222,35 @@ export default function StoryScreen() {
   // A new page fades in; the old one has already faded out in advance().
   const fade = useRef(new Animated.Value(1)).current
   const settled = atEnd && !revealing && !pending && page?.kind !== 'you'
-  // A photo he sent with this turn waits until the turn is read; a ringing phone outranks it.
+  // A paid photo he offered with this turn waits, veiled, until the turn is read; a ringing phone outranks it.
+  // One the story gave is a page instead, and the stage becomes it.
+  const lastPhotoCard = lastPhoto ? (cardById.get(lastPhoto.momentId ?? '') ?? null) : null
   const showPhoto =
-    !ringing && !!lastPhoto && dismissedPhoto !== lastPhoto.id && (!lastCharacter || lastPhoto.createdAt >= lastCharacter.createdAt) && settled
+    !ringing &&
+    !!lastPhoto &&
+    lastPhotoCard?.status !== 'UNLOCKED' &&
+    dismissedPhoto !== lastPhoto.id &&
+    (!lastCharacter || lastPhoto.createdAt >= lastCharacter.createdAt) &&
+    settled
   // Answering him puts the photo away; it is in Moments if they want it back.
   useEffect(() => {
     if (yours && lastPhoto) setDismissedPhoto(lastPhoto.id)
   }, [yours, lastPhoto])
 
   const heroPortrait = character.data?.portraits[0] ?? null
-  const hero = heroPortrait?.url ?? null
+  /**
+   * The scene cut: the stage is the last picture the story gave, from the page
+   * that gave it onward. Before that page, and before any photo, it is him.
+   */
+  const stageImage = useMemo(() => {
+    const reached = page?.kind === 'photo' || pages.every((p) => p.kind !== 'photo') || pageIndex >= pages.findIndex((p) => p.kind === 'photo')
+    const given = [...messages]
+      .filter((m) => !!m.momentId && (reached || m.id !== lastPhoto?.id))
+      .map((m) => cardById.get(m.momentId!))
+      .filter((c): c is MomentCard => !!c && c.status === 'UNLOCKED' && !!c.imageUrl)
+    return given.at(-1)?.imageUrl ?? heroPortrait?.url ?? null
+  }, [messages, cardById, heroPortrait, page, pages, pageIndex, lastPhoto?.id])
+  const hero = stageImage
   /** Geometry from the portrait, live set from the beat: both must agree for a spot to exist. */
   const liveHotspots: HotspotRect[] = useMemo(() => {
     const live = new Set(choices?.beat.hotspots ?? [])
@@ -380,6 +404,7 @@ export default function StoryScreen() {
             )}
             {page?.kind === 'narration' && <Text style={styles.narration}>{visible}</Text>}
             {page?.kind === 'line' && <LineText text={visible} name={name ?? ''} />}
+            {page?.kind === 'photo' && <LineText text={visible} name={name ?? ''} />}
             {!page && <Text style={styles.narration}>{scene?.setting ?? ''}</Text>}
             {waiting && <Text style={styles.tapHint}>…</Text>}
           </Animated.View>
