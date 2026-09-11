@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Beat, BeatKind, BillingStatus, Character, ContentRating, Tier, CharacterProfile, DryRun, Episode, EpisodeCard, EpisodeDraft, EpisodeLifecycle, Hotspot, MomentCard, Relationship, RelationshipStage, ReportReason, Scene } from './domain.js'
+import { Beat, BeatKind, BillingStatus, Character, ContentRating, Tier, CharacterProfile, DryRun, Episode, EpisodeCard, EpisodeDraft, EpisodeLifecycle, Hotspot, Message, MomentCard, Relationship, RelationshipStage, ReportReason, Scene } from './domain.js'
 
 /**
  * REST shapes. The client validates every response against these, so a server
@@ -55,6 +55,8 @@ export const TonightItem = z.object({
   character: CharacterListItem,
   /** In progress, else the first available, else the next locked, else the last played. Null when he has no episodes. */
   episode: EpisodeCard.nullable(),
+  /** What he wrote while they were gone, waiting unanswered (ARCHITECTURE.md section 8). */
+  reachOut: Message.nullable().default(null),
 })
 export type TonightItem = z.infer<typeof TonightItem>
 

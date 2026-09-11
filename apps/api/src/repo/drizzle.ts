@@ -168,6 +168,7 @@ function toRelationship(row: RelationshipRow, conversationId: string, sceneId: s
     lastActiveDate: row.lastActiveDate,
     messageGainsToday: row.messageGainsToday,
     factGainsToday: row.factGainsToday,
+    reachedOutOn: row.reachedOutOn,
   }
 }
 

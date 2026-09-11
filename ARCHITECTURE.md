@@ -336,6 +336,16 @@ The strongest retention lever, and also the biggest source of complaints.
 - **Rate limiting is mandatory**: daily cap, quiet hours, user can disable
 - Content must carry context (reference something recently discussed) or it reads as spam, not care
 
+**Status (2026-09-11, "互动玩法").** He reaches out first, without push yet:
+`relationship/reachout.ts`, run on demand when the home screen loads. Due only when they have
+not written today, at most once a day per man, and never twice unanswered (`reached_out_on`,
+migration 0013). The message is written on the STORY route from what he remembers, the rolling
+summary, how many nights they have been gone, and the episode they left in the middle, with a
+prompt that forbids "I miss you", guilt, and lists. It lands in the conversation as his message
+and the tonight card shows it ("He wrote while you were gone"), so it is waiting when they
+open the app. Push delivery, quiet hours, and the user's off switch are still owed before this
+becomes a notification.
+
 ## 9. Repository Layout
 
 pnpm workspaces + Turborepo monorepo:

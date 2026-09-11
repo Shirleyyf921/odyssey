@@ -21,6 +21,7 @@ import { evaluateUnlocks } from '../moments/unlocks.js'
 import { toEpisodeCard, tonight as tonight_, type CardCredit } from '../episodes/availability.js'
 import { rankCommunity, statusAfterReport } from '../episodes/community.js'
 import { visibleRatings } from '../episodes/rating.js'
+import type { ReachOutService } from '../relationship/reachout.js'
 import type { AppRepository, EpisodeRecord, RunCounts } from '../repo/types.js'
 
 const Params = z.object({ id: z.string().uuid() })
@@ -34,7 +35,7 @@ async function authorNames(repo: AppRepository, episodes: EpisodeRecord[]): Prom
 
 export async function characterRoutes(
   app: FastifyInstance,
-  opts: { repo: AppRepository; devTools?: boolean; billing?: { tierOf(userId: string): Promise<Tier> } }
+  opts: { repo: AppRepository; devTools?: boolean; billing?: { tierOf(userId: string): Promise<Tier> }; reachOut?: ReachOutService }
 ) {
   const { repo } = opts
   const tierOf = (userId: string) => opts.billing?.tierOf(userId) ?? Promise.resolve<Tier>('FREE')
@@ -68,7 +69,7 @@ export async function characterRoutes(
         const cards = all
           .filter((e) => e.origin === 'OFFICIAL' && ratings.includes(e.rating))
           .map((e) => toEpisodeCard(e, relationship, tier, runs, all))
-        return { character: { ...c, portraitUrl: portraits[0]?.url ?? null, relationship }, episode: tonight_(cards) }
+        return { character: { ...c, portraitUrl: portraits[0]?.url ?? null, relationship }, episode: tonight_(cards), reachOut: null }
       })
     )
     return { items }
@@ -123,7 +124,16 @@ export async function characterRoutes(
       }
 
       const ours = visible.filter((e) => e.origin === 'OFFICIAL').map((e) => home(e))
-      tonight.push({ character: { ...c, portraitUrl, relationship }, episode: tonight_(ours) })
+      // He may have written while they were gone; if not yet today, he does now.
+      let reachOut = null
+      if (relationship && opts.reachOut) {
+        reachOut = await opts.reachOut.maybeReachOut(relationship)
+        if (!reachOut && relationship.reachedOutOn && (!relationship.lastActiveDate || relationship.reachedOutOn > relationship.lastActiveDate)) {
+          const recent = await repo.listRecentMessages(relationship.conversationId, 1)
+          reachOut = recent.at(-1)?.role === 'CHARACTER' ? (recent.at(-1) ?? null) : null
+        }
+      }
+      tonight.push({ character: { ...c, portraitUrl, relationship }, episode: tonight_(ours), reachOut })
       episodes.push(...ours)
       const open = ours.find((e) => e.status === 'IN_PROGRESS')
       if (open && !resume) resume = open

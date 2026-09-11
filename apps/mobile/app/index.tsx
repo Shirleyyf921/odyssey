@@ -102,6 +102,11 @@ export default function Home() {
   )
 }
 
+/** His message without the leading action beat, for a card; the chat shows the beat. */
+function stripBeat(text: string): string {
+  return text.replace(/^\*[^*]*\*\s*/, '').trim() || text
+}
+
 function statusLine(item: TonightItem): string {
   const { episode, character } = item
   if (!episode) return character.relationship ? 'Nothing new tonight. He is still up.' : 'Say hello.'
@@ -133,10 +138,15 @@ function usePlay(characterId: string, characterName: string) {
 }
 
 function TonightCard({ item }: { item: TonightItem }) {
-  const { character, episode } = item
+  const { character, episode, reachOut } = item
   const playable = episode?.status === 'AVAILABLE' || episode?.status === 'IN_PROGRESS'
   const play = usePlay(character.id, character.name)
   const open = () => {
+    // He wrote first: the card goes to where his words are waiting.
+    if (reachOut && character.relationship) {
+      router.push({ pathname: '/chat/[conversationId]', params: { conversationId: character.relationship.conversationId, name: character.name, characterId: character.id } })
+      return
+    }
     if (playable && episode) play.mutate(episode.id)
     else router.push({ pathname: '/character/[id]', params: { id: character.id } })
   }
@@ -150,15 +160,24 @@ function TonightCard({ item }: { item: TonightItem }) {
       <View style={styles.scrim} />
       <View style={styles.cardText}>
         <Text style={styles.name}>{character.name}</Text>
-        {episode ? (
+        {reachOut ? (
+          <>
+            <Text style={styles.wrote}>He wrote while you were gone</Text>
+            <Text style={styles.reachOut} numberOfLines={3}>{stripBeat(reachOut.content)}</Text>
+            <Text style={styles.status}>Answer him</Text>
+          </>
+        ) : episode ? (
           <>
             <Text style={styles.title}>{episode.title}</Text>
             <Text style={styles.premise} numberOfLines={2}>{episode.premise}</Text>
+            <Text style={[styles.status, !playable && styles.statusMuted]}>{statusLine(item)}</Text>
           </>
         ) : (
-          <Text style={styles.premise} numberOfLines={2}>{character.tagline}</Text>
+          <>
+            <Text style={styles.premise} numberOfLines={2}>{character.tagline}</Text>
+            <Text style={[styles.status, !playable && styles.statusMuted]}>{statusLine(item)}</Text>
+          </>
         )}
-        <Text style={[styles.status, !playable && styles.statusMuted]}>{statusLine(item)}</Text>
       </View>
     </Pressable>
   )
@@ -255,6 +274,8 @@ const styles = StyleSheet.create({
   cardText: { padding: spacing.lg, gap: 2 },
   name: { color: colors.textMuted, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' },
   title: { color: colors.text, fontSize: 22, fontWeight: '700' },
+  wrote: { color: colors.accent, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', marginTop: 2 },
+  reachOut: { color: colors.text, fontSize: 17, lineHeight: 23, fontWeight: '600' },
   premise: { color: colors.textMuted, fontSize: 14, lineHeight: 19 },
   status: { color: colors.accent, fontSize: 13, fontWeight: '600', marginTop: spacing.sm },
   statusMuted: { color: colors.textFaint, fontWeight: '400' },

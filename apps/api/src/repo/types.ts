@@ -54,6 +54,8 @@ export interface RelationshipProgress {
   lastActiveDate: string | null
   messageGainsToday: number
   factGainsToday: number
+  /** YYYY-MM-DD (UTC) of the last time he reached out first; null never. */
+  reachedOutOn: string | null
 }
 
 export interface RelationshipRecord extends Relationship, RelationshipProgress {
