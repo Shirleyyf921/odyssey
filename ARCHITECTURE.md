@@ -697,8 +697,11 @@ player can report a user-made episode once; three reports take it off the shelf 
 has read it. The review queue (step 6) is `/review/episodes` behind `REVIEW_SECRET` and a web
 page that shows the whole draft with the dry-run transcript and the report reasons; MATURE, a
 creator's first three, and anything the screen was unsure about wait for a person, and a mail
-goes out for each; a creator's fourth clean SFW episode goes LIVE at submit. The editor and the
-Plus-day credits are steps 7–8.
+goes out for each; a creator's fourth clean SFW episode goes LIVE at submit. The editor (step 7)
+is `/write` on the web build: our episodes as skeletons with the words taken out, an AI draft that
+fills a skeleton we wire (the model writes briefs, options, and the opener; never the wiring, so
+what comes back always passes the integrity rule), the rule itself running as they type, and the
+dry-run transcript under each beat. The Plus-day credits are step 8.
 
 ## 15. Relationship Progression
 

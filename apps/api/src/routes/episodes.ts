@@ -1,11 +1,12 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { EpisodeDraft, type AuthoredEpisodeResponse, type MyEpisodesResponse, type SubmitEpisodeResponse } from '@odyssey/shared'
+import { AiDraftRequest, EpisodeDraft, type AiDraftResponse, type AuthoredEpisodeResponse, type MyEpisodesResponse, type SkeletonsResponse, type SubmitEpisodeResponse } from '@odyssey/shared'
 import type { AppRepository, EpisodeRecord } from '../repo/types.js'
 import type { LlmGateway } from '../llm/gateway.js'
 import { ScreenerUnavailable, unitsOf, type EpisodeScreener } from '../safety/episode-screen.js'
 import { DryRunUnavailable, dryRun } from '../story/dry-run.js'
 import type { ReviewNotifier } from '../review/notify.js'
+import { DraftUnavailable, draftEpisode, skeletonOf } from '../story/draft.js'
 
 /** After this many LIVE episodes a clean SFW submission goes straight to the shelf. The first three are read. */
 export const FAST_LANE_AFTER = 3
@@ -35,6 +36,35 @@ export async function authorRoutes(app: FastifyInstance, opts: AuthorRouteDeps) 
 
   app.get('/me/episodes', async (req): Promise<MyEpisodesResponse> => {
     return { episodes: await repo.listEpisodesByAuthor(req.user.id) }
+  })
+
+  /** Our episodes for this man as shapes to start from (docs/ugc-pipeline.md, "Skeleton"). Words stay ours. */
+  app.get('/me/skeletons/:id', async (req, reply): Promise<SkeletonsResponse | void> => {
+    const { id } = Params.parse(req.params)
+    const character = await repo.getCharacter(id)
+    if (!character) return reply.code(404).send({ error: 'character not found' })
+    const ours = (await repo.listEpisodes(id)).filter((e) => e.origin === 'OFFICIAL')
+    return { characterId: id, skeletons: ours.map(skeletonOf) }
+  })
+
+  /**
+   * "Draft beats from this premise." Nothing is saved: the draft comes back to
+   * the editor and is submitted like anything typed. Free for now (docs/ugc-pipeline.md, "Open").
+   */
+  app.post('/me/episodes/ai-draft', async (req, reply): Promise<AiDraftResponse | void> => {
+    const parsed = AiDraftRequest.safeParse(req.body)
+    if (!parsed.success) return reply.code(400).send({ error: issues(parsed.error) })
+    const character = await repo.getCharacter(parsed.data.characterId)
+    if (!character) return reply.code(404).send({ error: 'character not found' })
+    if (character.kind !== 'EXPLORE') return reply.code(403).send({ error: `${character.name} is not open to authors` })
+    try {
+      const out = await draftEpisode({ gateway, log: req.log }, character, parsed.data)
+      req.log.info({ userId: req.user.id, characterId: character.id, model: out.model, beats: out.draft.beats.length }, 'ai draft')
+      return out
+    } catch (err) {
+      if (err instanceof DraftUnavailable) return reply.code(503).send({ error: err.message })
+      throw err
+    }
   })
 
   app.post('/me/episodes', async (req, reply): Promise<AuthoredEpisodeResponse | void> => {

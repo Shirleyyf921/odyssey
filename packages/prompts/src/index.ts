@@ -2,6 +2,7 @@ import type { RelationshipStage } from '@odyssey/shared'
 
 export * from './styles.js'
 export * from './story.js'
+export * from './draft.js'
 
 /**
  * Persona and prompt templates.
@@ -13,7 +14,7 @@ export * from './story.js'
  * See ARCHITECTURE.md section 9.
  */
 
-export const PROMPT_VERSION = '0.4.0'
+export const PROMPT_VERSION = '0.5.0'
 
 // ---------------------------------------------------------------- relationship copy
 

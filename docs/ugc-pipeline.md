@@ -155,6 +155,12 @@ Each line is a PR. None of it touches the turn.
    screen was unsure about; a creator's fourth clean SFW episode goes LIVE at submit. A mail per
    waiting submission through Resend (`RESEND_API_KEY`, `REVIEW_NOTIFY_EMAIL`), else a log line.
 7. **Editor**: the web form, skeletons, the AI draft button, dry-run playback in the stage.
+   *Built 2026-09-10:* `/write` (the author's shelf) and `/write/:id` on the web build; our
+   episodes as skeletons (`GET /me/skeletons/:characterId`, positions in place of ids, no words
+   of ours); "Draft the beats from the premise" (`POST /me/episodes/ai-draft`, STORY model fills a
+   skeleton we wire, so the result always hangs together or is refused); the integrity rule runs as
+   they type; the dry-run transcript sits under each beat rather than in the stage; submit needs
+   the attestation, whose text is a draft until counsel has read it.
 8. **Credits**: completions → Plus days, shown on the creator's episode card.
 
 Cut list: custom faces, custom voices, image upload, new characters, a mobile editor,

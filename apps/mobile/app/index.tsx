@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Stack, router, useFocusEffect } from 'expo-router'
 import { useCallback } from 'react'
-import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, FlatList, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { TonightItem } from '@odyssey/shared'
 import { api } from '../src/lib/api'
 import { colors, radius, spacing } from '../src/theme'
@@ -35,9 +35,16 @@ export default function Home() {
       <Stack.Screen
         options={{
           headerRight: () => (
-            <Link href="/account" asChild>
-              <Pressable hitSlop={8}><Text style={styles.headerLink}>Account</Text></Pressable>
-            </Link>
+            <View style={styles.headerLinks}>
+              {Platform.OS === 'web' && (
+                <Link href="/write" asChild>
+                  <Pressable hitSlop={8}><Text style={styles.headerLink}>Write</Text></Pressable>
+                </Link>
+              )}
+              <Link href="/account" asChild>
+                <Pressable hitSlop={8}><Text style={styles.headerLink}>Account</Text></Pressable>
+              </Link>
+            </View>
           ),
         }}
       />
@@ -125,6 +132,7 @@ function Centered({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   list: { padding: spacing.lg },
   tonight: { color: colors.text, fontSize: 28, fontWeight: '700', marginBottom: spacing.lg },
+  headerLinks: { flexDirection: 'row', gap: 16 },
   headerLink: { color: colors.accent, fontSize: 15, fontWeight: '600' },
   section: { color: colors.textFaint, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, marginBottom: spacing.md, marginTop: spacing.sm },
   card: { height: 320, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.surface, justifyContent: 'flex-end' },
