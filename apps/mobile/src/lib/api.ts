@@ -9,6 +9,7 @@ import {
   TonightResponse,
   GRANT_SECRET_HEADER,
   MeResponse,
+  ProfileResponse,
   MomentsResponse,
   AiDraftResponse,
   AuthoredEpisodeResponse,
@@ -28,6 +29,7 @@ import {
   type DevSetStageRequest,
   type ReportEpisodeRequest,
   type ReviewDecisionRequest,
+  type RenameRequest,
   type AiDraftRequest,
   type EpisodeDraft,
   type SignInRequest,
@@ -104,6 +106,8 @@ export const api = {
   /** Flag a user-made episode. One per player; enough of them take it down pending review. */
   reportEpisode: (id: string, body: ReportEpisodeRequest) => request('POST', `/episodes/${id}/report`, ReportEpisodeResponse, body),
   me: () => request('GET', '/me', MeResponse),
+  profile: () => request('GET', '/me/profile', ProfileResponse),
+  rename: (body: RenameRequest) => request('POST', '/me/name', MeResponse, body),
   /** Age declaration; MATURE episodes stay hidden until it passes. */
   declareAge: (body: AgeGateRequest) => request('POST', '/me/age', MeResponse, body),
   /** Server re-reads RevenueCat for the caller. After a purchase, a restore, or a sign-in. */

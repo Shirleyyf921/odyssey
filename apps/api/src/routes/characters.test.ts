@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import Fastify from 'fastify'
-import { CharacterDetail, CharactersResponse, EpisodesResponse, HomeResponse, MeResponse, MomentsResponse, StartRelationshipResponse, TonightResponse } from '@odyssey/shared'
+import { CharacterDetail, CharactersResponse, EpisodesResponse, HomeResponse, MeResponse, MomentsResponse, ProfileResponse, StartRelationshipResponse, TonightResponse } from '@odyssey/shared'
 import { requireIdentity } from '../auth/identity.js'
 import { devVerifier } from '../auth/providers.js'
 import { AuthService } from '../auth/service.js'
@@ -276,4 +276,38 @@ test('home: tonight at the head, every episode across the roster, the run to res
   assert.equal(later.resume?.id, ep.id)
   assert.equal(later.resume?.status, 'IN_PROGRESS')
   assert.equal(later.tonight.find((t) => t.character.id === rafe.character.id)?.episode?.id, ep.id)
+})
+
+test('profile: each man in words, what you have of his, what you wrote; the name he calls you', async () => {
+  const { app, repo } = await build()
+  const device = randomUUID()
+  const h = { 'x-device-id': device }
+  const profile = async () => ProfileResponse.parse((await app.inject({ method: 'GET', url: '/me/profile', headers: h })).json())
+
+  const before = await profile()
+  assert.equal(before.men.length, 3)
+  assert.ok(before.men.every((m) => m.line === 'Not yet' && m.since === null && m.momentsTotal > 0 && m.episodesTotal > 0))
+  assert.deepEqual(before.creator, { episodes: 0, live: 0, completions: 0, creditedDays: 0 })
+  assert.ok(!JSON.stringify(before.men).includes('"stage"'), 'no stage name anywhere on the profile')
+
+  const ash = before.men.find((m) => m.character.kind === 'PRIMARY')!
+  const { relationship } = StartRelationshipResponse.parse((await app.inject({ method: 'POST', url: `/characters/${ash.character.id}/start`, headers: h })).json())
+  await repo.updateRelationship(relationship.id, { stage: 'CLOSE', affinity: 60, activeDays: 12, stageChangedAt: new Date() })
+  await app.inject({ method: 'GET', url: `/characters/${ash.character.id}/moments`, headers: h }) // FREE and CLOSE cards unlock on first read
+  const [ep] = await repo.listEpisodes(ash.character.id)
+  await repo.createRun({ relationshipId: relationship.id, episodeId: ep!.id, currentBeatId: ep!.firstBeatId, episodeVersion: 1 })
+
+  const after = await profile()
+  const him = after.men.find((m) => m.character.id === ash.character.id)!
+  assert.equal(him.line, 'He tells you things')
+  assert.equal(him.nights, 12)
+  assert.ok(him.momentsUnlocked >= 2, `free and stage cards: ${him.momentsUnlocked}`)
+  assert.equal(him.inProgress, ep!.title)
+  assert.equal(him.episodesPlayed, 0)
+
+  const renamed = MeResponse.parse((await app.inject({ method: 'POST', url: '/me/name', headers: h, payload: { displayName: '  Mara  ' } })).json())
+  assert.equal(renamed.user.displayName, 'Mara')
+  assert.equal((await app.inject({ method: 'POST', url: '/me/name', headers: h, payload: { displayName: 'x'.repeat(41) } })).statusCode, 400)
+  const cleared = MeResponse.parse((await app.inject({ method: 'POST', url: '/me/name', headers: h, payload: { displayName: '' } })).json())
+  assert.equal(cleared.user.displayName, null)
 })
