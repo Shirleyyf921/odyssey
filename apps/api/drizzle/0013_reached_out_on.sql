@@ -1,0 +1,1 @@
+ALTER TABLE "relationships" ADD COLUMN "reached_out_on" text;

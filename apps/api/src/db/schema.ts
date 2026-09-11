@@ -178,6 +178,8 @@ export const relationships = pgTable(
     messageGainsToday: integer('message_gains_today').notNull().default(0),
     factGainsToday: integer('fact_gains_today').notNull().default(0),
     stageChangedAt: timestamptz('stage_changed_at'),
+    /** YYYY-MM-DD (UTC) of the last time he reached out first (ARCHITECTURE.md section 8). One a day, and never twice unanswered. */
+    reachedOutOn: text('reached_out_on'),
   },
   (t) => [uniqueIndex('relationships_user_character_uq').on(t.userId, t.characterId)]
 )

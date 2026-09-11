@@ -373,6 +373,7 @@ export class MemoryRepository implements AppRepository {
       lastActiveDate: null,
       messageGainsToday: 0,
       factGainsToday: 0,
+      reachedOutOn: null,
     }
     this.relationships.set(relationship.id, relationship)
     this.conversations.set(relationship.conversationId, {

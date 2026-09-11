@@ -9,6 +9,7 @@ const fresh = (): ProgressState => ({
   lastActiveDate: null,
   messageGainsToday: 0,
   factGainsToday: 0,
+  reachedOutOn: null,
 })
 
 test('the first message ever counts a day and a message, but no return bonus', () => {

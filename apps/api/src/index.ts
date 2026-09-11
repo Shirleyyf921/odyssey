@@ -6,6 +6,7 @@ import { healthRoutes } from './routes/health.js'
 import { characterRoutes } from './routes/characters.js'
 import { authorRoutes } from './routes/episodes.js'
 import { reviewRoutes } from './routes/review.js'
+import { ReachOutService } from './relationship/reachout.js'
 import { serveWeb } from './web.js'
 import { LogNotifier, ResendNotifier, type ReviewNotifier } from './review/notify.js'
 import { chatWebsocket } from './ws/chat.js'
@@ -123,7 +124,7 @@ if (billing.enabled && env.REVENUECAT_WEBHOOK_SECRET) {
 }
 await app.register(async (scoped) => {
   requireIdentity(scoped, repo)
-  await scoped.register(characterRoutes, { repo, devTools: env.NODE_ENV !== 'production', billing })
+  await scoped.register(characterRoutes, { repo, devTools: env.NODE_ENV !== 'production', billing, reachOut: new ReachOutService(repo, gateway, memory, app.log) })
   await scoped.register(authorRoutes, { repo, screener, gateway, notifier })
   const reviewSecret = env.NODE_ENV !== 'production' ? 'open' : (env.REVIEW_SECRET ?? null)
   if (reviewSecret !== null) await scoped.register(reviewRoutes, { repo, secret: reviewSecret })
