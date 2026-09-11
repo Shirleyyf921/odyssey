@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { renderStoryTurn, type StoryTurnVariables } from './story.js'
 
 const base: StoryTurnVariables = {
+  rating: 'SFW',
   characterName: 'Elliot',
   userName: 'Shirley',
   personaNotes: 'Sound engineer, works nights.',
@@ -56,4 +57,15 @@ test('the beat after an answered call is written as a voice on a phone, with no 
   assert.ok(p.includes('You are on the phone'))
   assert.ok(p.includes('nothing he turns toward'))
   assert.ok(!renderStoryTurn(base).includes('You are on the phone'), 'only after a ring')
+})
+
+test('the episode sets how far tonight goes; the stage only says how well they know each other', async () => {
+  const sfw = renderStoryTurn(base)
+  assert.ok(sfw.includes('How far tonight goes'))
+  assert.ok(sfw.includes('above the waist'), 'the store line')
+  assert.ok(!sfw.includes('door can close'))
+  const mature = renderStoryTurn({ ...base, rating: 'MATURE' })
+  assert.ok(mature.includes('door can close'))
+  assert.ok(mature.includes('fades before sex itself'), 'the cut')
+  assert.ok(!sfw.includes('hold back'), 'STRANGER no longer holds back')
 })

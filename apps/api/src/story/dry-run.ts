@@ -97,6 +97,7 @@ async function playBeat(
   const expectOptions = beat.kind === 'STORY'
   const system = renderStoryTurn({
     characterName: character.name,
+    rating: episode.rating,
     userName: null,
     personaNotes: character.personaNotes,
     stage: 'CLOSE',
