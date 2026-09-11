@@ -29,7 +29,7 @@ export default function WriteIndex() {
       <Text style={styles.title}>Write for him</Text>
       <Text style={styles.body}>
         You write the episode: where it opens, what he wants, what the reader can do. He stays himself. Nothing you write
-        goes on his page until a person has read it.
+        goes on his page until a person has read it. Every time someone else finishes one of yours, you get a day of Plus.
       </Text>
       <View style={styles.row}>
         {open.map((c) => (
@@ -49,6 +49,12 @@ export default function WriteIndex() {
             </Text>
             <Text style={styles.cardTitle}>{e.title}</Text>
             <Text style={styles.muted}>{e.premise}</Text>
+            {e.status === 'LIVE' ? (
+              <Text style={styles.credit}>
+                {e.completions === 0 ? 'Nobody has finished it yet' : `Finished ${e.completions} ${e.completions === 1 ? 'time' : 'times'}`}
+                {e.creditedDays ? ` · ${e.creditedDays} ${e.creditedDays === 1 ? 'day' : 'days'} of Plus earned` : ''}
+              </Text>
+            ) : null}
             {e.reviewNote ? <Text style={styles.warn}>{e.reviewNote}</Text> : null}
           </Pressable>
         </Link>
@@ -71,4 +77,5 @@ const styles = StyleSheet.create({
   cardTitle: { color: colors.text, fontSize: 17, fontWeight: '700' },
   muted: { color: colors.textMuted, fontSize: 14, lineHeight: 19 },
   warn: { color: colors.danger, fontSize: 14, lineHeight: 19 },
+  credit: { color: colors.accent, fontSize: 13, marginTop: 4 },
 })

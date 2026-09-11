@@ -445,3 +445,27 @@ export const episodeReports = pgTable(
   },
   (t) => [uniqueIndex('episode_reports_episode_reporter_uq').on(t.episodeId, t.reporterId)]
 )
+
+/**
+ * What a creator earned: one row per finished run of their episode by someone
+ * else (docs/ugc-pipeline.md, section 3). The days are also written onto the
+ * author's `creator_plus` subscription row; this is the ledger behind it.
+ */
+export const creatorCredits = pgTable(
+  'creator_credits',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    authorId: uuid('author_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    episodeId: uuid('episode_id')
+      .notNull()
+      .references(() => episodes.id, { onDelete: 'cascade' }),
+    runId: uuid('run_id')
+      .notNull()
+      .references(() => episodeRuns.id, { onDelete: 'cascade' }),
+    days: integer('days').notNull(),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('creator_credits_run_uq').on(t.runId), index('creator_credits_author_idx').on(t.authorId, t.createdAt)]
+)

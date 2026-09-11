@@ -279,6 +279,13 @@ export interface AppRepository extends ChatRepository {
   /** SUBMITTED and UNLISTED, oldest first: what a person still has to read. */
   listEpisodesForReview(): Promise<EpisodeRecord[]>
   listReports(episodeId: string): Promise<ReviewReport[]>
+  // creator credits (docs/ugc-pipeline.md, section 3)
+  /** One per run. False when that run was already credited. */
+  insertCredit(input: { authorId: string; episodeId: string; runId: string; days: number }): Promise<boolean>
+  /** Days credited to an author since a moment; the daily cap reads this. */
+  creditedDaysSince(authorId: string, since: Date): Promise<number>
+  /** Days credited per episode. Episodes with none are absent. */
+  creditedDaysOf(episodeIds: string[]): Promise<Map<string, number>>
 
   // billing — written only by the RevenueCat reconcile path
   /** Upsert on (userId, entitlement). */

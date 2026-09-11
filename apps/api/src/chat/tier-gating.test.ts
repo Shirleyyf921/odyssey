@@ -36,7 +36,7 @@ async function setup(tier: Tier) {
     relationship: new RelationshipService(repo, silent),
     crisis: new NoopCrisisDetector(),
     channel: 'store',
-    billing: { async tierOf() { return tier } },
+    billing: { async tierOf() { return tier }, async credit() {} },
     user: { id: demo.userId, displayName: null, locale: 'en-US', ageVerifiedAt: null },
     log: silent,
   }

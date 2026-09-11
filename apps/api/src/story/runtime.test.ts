@@ -31,7 +31,7 @@ async function setup() {
     relationship: new RelationshipService(repo, silent),
     crisis: new NoopCrisisDetector(),
     channel: 'store',
-    billing: { async tierOf() { return 'PLUS' } },
+    billing: { async tierOf() { return 'PLUS' }, async credit() {} },
     user: { id: demo.userId, displayName: 'Shirley', locale: 'en-US', ageVerifiedAt: null },
     log: silent,
   }
@@ -204,7 +204,7 @@ test('the ring: a clip reaches Plus and never a free caller, and letting it ring
   const clip = 'https://cdn.example.com/calls/ash-ep1.m4a'
   const withClip = async (tier: 'FREE' | 'PLUS') => {
     const t = await setup()
-    t.deps.billing = { async tierOf() { return tier } }
+    t.deps.billing = { async tierOf() { return tier }, async credit() {} }
     const ep = await t.deps.repo.getEpisode(t.episode.id)
     const call = ep!.beats.find((b) => b.kind === 'CALL')!
     call.callUrl = clip
@@ -301,7 +301,7 @@ test('a story turn goes to the STORY route, not the chat model', async () => {
     relationship: new RelationshipService(repo, silent),
     crisis: new NoopCrisisDetector(),
     channel: 'store',
-    billing: { async tierOf() { return 'PLUS' } },
+    billing: { async tierOf() { return 'PLUS' }, async credit() {} },
     user: { id: demo.userId, displayName: 'Shirley', locale: 'en-US', ageVerifiedAt: null },
     log: silent,
   }

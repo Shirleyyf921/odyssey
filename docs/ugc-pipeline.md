@@ -117,9 +117,10 @@ Honest version: in v1 creators are not paid in money.
 
 - Playing a user-made episode costs the player nothing beyond what they already pay. It
   counts against the free cap like any turn.
-- Creators earn **credits**: a completion of their episode by someone else earns days of
-  Plus. Enough completions and they are never paying. This needs no tax, no KYC, no payout
-  rail, and it rewards the thing we want, which is episodes people finish.
+- Creators earn **credits**: a completion of their episode by someone else earns a day of
+  Plus (signed-in players only, three days per author per day). Enough completions and they are
+  never paying. This needs no tax, no KYC, no payout rail, and it rewards the thing we want,
+  which is episodes people finish.
 - The measurable question for v2 is whether photos placed inside user-made episodes sell.
   If they do, a revenue share on those is the payout that makes sense, because it is a share
   of a thing the creator actually caused. That is when KYC and a payout provider are worth
@@ -161,7 +162,12 @@ Each line is a PR. None of it touches the turn.
    skeleton we wire, so the result always hangs together or is refused); the integrity rule runs as
    they type; the dry-run transcript sits under each beat rather than in the stage; submit needs
    the attestation, whose text is a draft until counsel has read it.
-8. **Credits**: completions → Plus days, shown on the creator's episode card.
+8. **Credits**: completions → Plus days, shown on the creator's episode card. *Built 2026-09-11:*
+   `episodes/credits.ts`, called once when a run reaches an END. One day of Plus per finished run
+   by someone else who is signed in (a device id is free; an identity is not), at most three days
+   per author per day, one credit per run (`creator_credits`, migration 0011). The days live on
+   their own `creator_plus` entitlement row so a store reconcile cannot eat them, and they start
+   when whatever Plus the author already holds runs out. The shelf shows finishes and days earned.
 
 Cut list: custom faces, custom voices, image upload, new characters, a mobile editor,
 individual sale of episodes, money payouts.
