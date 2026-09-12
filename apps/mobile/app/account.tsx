@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Stack } from 'expo-router'
 import * as AppleAuthentication from 'expo-apple-authentication'
 import type { ProfileMan } from '@odyssey/shared'
 import { api } from '../src/lib/api'
@@ -18,6 +21,8 @@ import { colors, radius, spacing } from '../src/theme'
  */
 export default function AccountScreen() {
   const qc = useQueryClient()
+  const insets = useSafeAreaInsets()
+  const { width } = useWindowDimensions()
   const profile = useQuery({ queryKey: ['profile'], queryFn: api.profile })
   const [error, setError] = useState<string | null>(null)
   const [apple, setApple] = useState(false)
@@ -49,10 +54,21 @@ export default function AccountScreen() {
   const { user, billing: status, men, creator } = profile.data
   const known = men.filter((m) => m.since)
   const devTools = __DEV__ || !!process.env.EXPO_PUBLIC_BILLING_GRANT_SECRET
+  const primary = men.find((m) => m.character.kind === 'PRIMARY') ?? men[0] ?? null
+  const paid = status.tier !== 'FREE'
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
-      {/* Who you are here */}
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <Stack.Screen options={{ headerShown: false }} />
+      {/* His art as the header, then who you are here. */}
+      <View style={[styles.hero, { height: Math.round(width * 0.8) }]}>
+        {primary?.character.portraitUrl ? <Image source={{ uri: primary.character.portraitUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
+        <LinearGradient pointerEvents="none" colors={['rgba(5,5,7,0.4)', 'rgba(5,5,7,0.1)', colors.ground]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
+        <Pressable style={[styles.back, { top: insets.top + 12 }]} onPress={() => router.back()} hitSlop={10}>
+          <Text style={styles.backText}>‹</Text>
+          <Text style={styles.backLabel}>You</Text>
+        </Pressable>
+      </View>
       <View style={styles.head}>
         {editingName ? (
           <View style={styles.row}>
@@ -65,36 +81,33 @@ export default function AccountScreen() {
             <Text style={styles.link}>{user.displayName ? 'Change what he calls you' : 'Tell him what to call you'}</Text>
           </Pressable>
         )}
-        <Text style={styles.sub}>
-          {user.signedIn ? `Signed in with ${user.providers.join(', ')}` : 'On this phone only. Sign in and it follows you.'}
-        </Text>
-      </View>
-
-      {/* Your plan */}
-      <View style={styles.box}>
-        <Text style={styles.label}>Your plan</Text>
-        <Text style={styles.plan}>{planLine(status.tier, status.expiresAt, status.willRenew)}</Text>
+        <View style={styles.planRow}>
+          <View style={[styles.planPill, paid && styles.planPillPaid]}>
+            <Text style={[styles.planPillText, paid && styles.planPillTextPaid]}>{planLine(status.tier, status.expiresAt, status.willRenew)}</Text>
+          </View>
+          <Text style={styles.faint}>{user.signedIn ? `Signed in with ${user.providers.join(', ')}` : 'On this phone only'}</Text>
+        </View>
         <Text style={styles.muted}>
-          {status.tier === 'FREE'
-            ? 'Fifteen messages a night, the stories, the pictures he gives. Plus opens his calls, longer nights, and everything he remembers.'
-            : 'His calls, long nights, and everything he remembers.'}
+          {paid ? 'His calls, long nights, and everything he remembers.' : 'Fifteen messages a night, the stories, the pictures he gives. Plus opens his calls, longer nights, and everything he remembers.'}
         </Text>
         {status.enabled && billing.available ? (
-          <Pressable style={styles.secondary} onPress={() => restore.mutate()} disabled={restore.isPending}>
-            <Text style={styles.secondaryText}>{restore.isPending ? 'Restoring…' : 'Restore purchases'}</Text>
+          <Pressable onPress={() => restore.mutate()} disabled={restore.isPending} hitSlop={8}>
+            <Text style={styles.link}>{restore.isPending ? 'Restoring…' : 'Restore purchases'}</Text>
           </Pressable>
         ) : null}
       </View>
 
       {/* Where you are with each of them */}
-      <Text style={styles.label}>Them</Text>
-      {men.map((m) => <ManRow key={m.character.id} man={m} />)}
-      {known.length === 0 ? <Text style={styles.muted}>Nobody yet. Go home and say hello.</Text> : null}
+      <View style={styles.section}><Text style={styles.label}>Them</Text></View>
+      <View style={{ marginTop: -spacing.md }}>
+        {men.map((m) => <ManRow key={m.character.id} man={m} />)}
+        {known.length === 0 ? <Text style={[styles.muted, { paddingHorizontal: spacing.xl, paddingTop: spacing.sm }]}>Nobody yet. Go home and say hello.</Text> : null}
+      </View>
 
       {/* What you wrote */}
       {Platform.OS === 'web' ? (
         <Link href="/write" asChild>
-          <Pressable style={styles.box}>
+          <Pressable style={styles.section}>
             <Text style={styles.label}>What you wrote</Text>
             {creator.episodes ? (
               <Text style={styles.plan}>
@@ -201,7 +214,7 @@ function ManRow({ man }: { man: ProfileMan }) {
       {c.portraitUrl ? <Image source={{ uri: c.portraitUrl }} style={styles.face} resizeMode="cover" /> : <View style={[styles.face, styles.faceEmpty]} />}
       <View style={styles.grow}>
         <Text style={styles.manName}>{c.name}</Text>
-        <Text style={styles.manLine}>{man.line}{man.inProgress ? ` · in "${man.inProgress}"` : ''}</Text>
+        <Text style={[styles.manLine, { color: c.accent }]}>{man.line}{man.inProgress ? ` · in "${man.inProgress}"` : ''}</Text>
         <Text style={styles.muted} numberOfLines={2}>{facts}</Text>
       </View>
     </Pressable>
@@ -227,30 +240,42 @@ function GoogleButton({ onSignedIn, onError }: { onSignedIn: () => void; onError
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.xl, gap: spacing.lg, paddingBottom: spacing.xxl },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  head: { gap: 4 },
-  title: { color: colors.text, fontSize: 26, fontWeight: '700' },
-  sub: { color: colors.textMuted, fontSize: 14, lineHeight: 20 },
-  link: { color: colors.accent, fontSize: 14, fontWeight: '600' },
-  box: { gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.lg },
-  label: { color: colors.textFaint, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
-  plan: { color: colors.text, fontSize: 16, lineHeight: 22 },
-  muted: { color: colors.textMuted, fontSize: 14, lineHeight: 20 },
-  man: { flexDirection: 'row', gap: spacing.md, alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md },
-  face: { width: 56, height: 72, borderRadius: radius.md },
-  faceEmpty: { backgroundColor: colors.surfaceRaised },
-  manName: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  manLine: { color: colors.accent, fontSize: 13, fontWeight: '600', marginBottom: 2 },
+  screen: { flex: 1, backgroundColor: colors.ground },
+  content: { paddingBottom: spacing.xxl, gap: spacing.xl },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ground },
+  hero: { width: '100%', backgroundColor: '#0f0e12' },
+  back: { position: 'absolute', left: spacing.xl, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  backText: { color: colors.ink, fontSize: 28, lineHeight: 28, marginTop: -4 },
+  backLabel: { color: colors.ink, fontSize: 15, fontWeight: '600' },
+  head: { paddingHorizontal: spacing.xl, gap: 6, marginTop: -spacing.xl },
+  title: { color: colors.ink, fontSize: 30, fontWeight: '800', letterSpacing: -0.6 },
+  sub: { color: colors.muted, fontSize: 13 },
+  link: { color: colors.ink, fontSize: 13, fontWeight: '600', textDecorationLine: 'underline' },
+  planRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
+  planPill: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, borderWidth: 1, borderColor: 'rgba(244,241,236,0.18)' },
+  planPillPaid: { backgroundColor: 'rgba(217,179,106,0.16)', borderColor: 'rgba(217,179,106,0.5)' },
+  planPillText: { color: colors.muted, fontSize: 12, fontWeight: '700' },
+  planPillTextPaid: { color: '#d9b36a' },
+  section: { paddingHorizontal: spacing.xl, gap: spacing.sm },
+  box: { paddingHorizontal: spacing.xl, gap: spacing.sm },
+  label: { color: colors.faint, fontSize: 11, textTransform: 'uppercase', letterSpacing: 2 },
+  plan: { color: colors.ink, fontSize: 15, lineHeight: 21 },
+  muted: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+  faint: { color: colors.faint, fontSize: 12 },
+  man: { flexDirection: 'row', gap: 14, alignItems: 'center', paddingVertical: 10, marginHorizontal: spacing.xl, borderBottomWidth: 1, borderBottomColor: colors.hairline },
+  face: { width: 52, height: 64, borderRadius: 8 },
+  faceEmpty: { backgroundColor: '#0f0e12' },
+  manName: { color: colors.ink, fontSize: 16, fontWeight: '700' },
+  manLine: { fontSize: 13, fontWeight: '600', marginBottom: 2 },
   grow: { flex: 1 },
   row: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
-  input: { color: colors.text, fontSize: 16, backgroundColor: colors.surface, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 10 },
-  chip: { borderWidth: 1, borderColor: colors.border, paddingVertical: 10, paddingHorizontal: 14, borderRadius: radius.pill, alignItems: 'center' },
-  chipText: { color: colors.text, fontSize: 14, fontWeight: '600' },
+  input: { color: colors.ink, fontSize: 16, backgroundColor: 'rgba(244,241,236,0.06)', borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 10 },
+  chip: { borderWidth: 1, borderColor: 'rgba(244,241,236,0.18)', paddingVertical: 10, paddingHorizontal: 14, borderRadius: radius.pill, alignItems: 'center' },
+  chipText: { color: colors.ink, fontSize: 14, fontWeight: '600' },
   appleButton: { width: '100%', height: 48 },
-  primary: { backgroundColor: colors.accent, paddingVertical: 14, borderRadius: radius.pill, alignItems: 'center' },
-  primaryText: { color: '#1a0a10', fontSize: 16, fontWeight: '700' },
-  secondary: { borderWidth: 1, borderColor: colors.border, paddingVertical: 12, borderRadius: radius.pill, alignItems: 'center' },
-  secondaryText: { color: colors.text, fontSize: 15, fontWeight: '600' },
-  error: { color: colors.danger },
+  primary: { backgroundColor: colors.ink, paddingVertical: 14, borderRadius: radius.pill, alignItems: 'center' },
+  primaryText: { color: '#0b0a0c', fontSize: 16, fontWeight: '700' },
+  secondary: { borderWidth: 1, borderColor: 'rgba(244,241,236,0.18)', paddingVertical: 12, borderRadius: radius.pill, alignItems: 'center' },
+  secondaryText: { color: colors.ink, fontSize: 15, fontWeight: '600' },
+  error: { color: colors.danger, paddingHorizontal: spacing.xl },
 })
