@@ -12,3 +12,6 @@ autoInstallPeers: true
 
 allowBuilds:
   esbuild: true
+
+minimumReleaseAgeExclude:
+  - expo-linear-gradient@57.0.2

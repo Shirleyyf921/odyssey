@@ -1,0 +1,1 @@
+ALTER TABLE "characters" ADD COLUMN "accent" text DEFAULT '#e0748a' NOT NULL;

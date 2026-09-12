@@ -57,6 +57,8 @@ export const Character = z.object({
   tagline: z.string().max(140),
   avatarUrl: z.string().url().nullable(),
   voiceId: z.string().nullable(),
+  /** His one colour on the client: his name, his tag, nothing else (docs/art-prompts.md, roster table). */
+  accent: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#e0748a'),
 })
 export type Character = z.infer<typeof Character>
 
