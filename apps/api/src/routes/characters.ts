@@ -116,6 +116,7 @@ export async function characterRoutes(
         return {
           ...toEpisodeCard(e, relationship, tier, runs, all, credit),
           characterName: c.name,
+          accent: c.accent,
           portraitUrl,
           coverUrl: cover?.status === 'UNLOCKED' ? cover.imageUrl : null,
           hasCall: e.beats.some((b) => b.kind === 'CALL'),
