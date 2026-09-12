@@ -99,6 +99,13 @@
       "when": 1789118794016,
       "tag": "0013_reached_out_on",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789189872897,
+      "tag": "0014_character_accent",
+      "breakpoints": true
     }
   ]
 }

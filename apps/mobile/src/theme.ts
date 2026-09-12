@@ -1,5 +1,18 @@
-/** One dark palette for the framework. Real design comes with the assets. */
+/**
+ * Direction B (2026-09-12, the design canvas): the ground is near-black, the
+ * ink is warm off-white, and the only colour on a screen is the man's own
+ * accent, which comes with him from the server. Art is full-bleed and words
+ * sit on a gradient, never in a box. The older keys stay for screens not yet
+ * moved over.
+ */
 export const colors = {
+  ground: '#050507',
+  ink: '#f4f1ec',
+  muted: 'rgba(244,241,236,0.62)',
+  faint: 'rgba(244,241,236,0.38)',
+  hairline: 'rgba(244,241,236,0.1)',
+  glass: 'rgba(12,10,12,0.62)',
+  glassSoft: 'rgba(12,10,12,0.45)',
   bg: '#0d0d12',
   surface: '#16161f',
   surfaceRaised: '#1f1f2b',

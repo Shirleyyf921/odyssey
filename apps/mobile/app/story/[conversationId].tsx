@@ -15,6 +15,7 @@ import {
   useWindowDimensions,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { LinearGradient } from 'expo-linear-gradient'
 import { parseReply, parseStoryOutput, type Hotspot, type HotspotRect, type MomentCard } from '@odyssey/shared'
 import { CallScreen } from '../../src/components/CallScreen'
 import { PhotoBubble } from '../../src/components/MessageBubble'
@@ -237,6 +238,10 @@ export default function StoryScreen() {
     if (yours && lastPhoto) setDismissedPhoto(lastPhoto.id)
   }, [yours, lastPhoto])
 
+  const { width } = useWindowDimensions()
+  /** Where a 3:4 portrait lands when it covers the screen: the hotspot map is in its coordinates. */
+  const cover = useMemo(() => coverRect(width, height, 3 / 4), [width, height])
+  const accent = character.data?.accent ?? colors.accent
   const heroPortrait = character.data?.portraits[0] ?? null
   /**
    * The scene cut: the stage is the last picture the story gave, from the page
@@ -322,30 +327,25 @@ export default function StoryScreen() {
         }}
       />
 
-      {/* The scene, then him in it. */}
-      {scene?.backdropUrl ? <Image source={{ uri: scene.backdropUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={6} /> : null}
-      <View style={[StyleSheet.absoluteFill, styles.dim]} />
-      <View style={[styles.portraitWrap, { height: height * 0.62, paddingTop: insets.top + 44 }]}>
-        <View style={styles.portrait}>
-          {hero ? <Image source={{ uri: hero }} style={styles.portraitImage} resizeMode="cover" /> : <View style={[styles.portraitImage, styles.portraitEmpty]} />}
-          {/* Touch: invisible, and only where the beat and the relationship both allow it. */}
-          {liveHotspots.map((h) => (
-            <Pressable
-              key={h.hotspot}
-              accessibilityLabel={h.hotspot}
-              onPress={() => touch(h.hotspot)}
-              style={{
-                position: 'absolute',
-                left: `${h.x * 100}%`,
-                top: `${h.y * 100}%`,
-                width: `${h.w * 100}%`,
-                height: `${h.h * 100}%`,
-              }}
-            />
-          ))}
-        </View>
-        <View style={styles.portraitFade} />
-      </View>
+      {/* Him, full-bleed; the words sit on a gradient, never in a box. */}
+      {hero ? <Image source={{ uri: hero }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : <View style={[StyleSheet.absoluteFill, styles.portraitEmpty]} />}
+      <LinearGradient pointerEvents="none" colors={['rgba(5,5,7,0.6)', 'rgba(5,5,7,0)']} style={[styles.scrimTop, { height: insets.top + 120 }]} />
+      <LinearGradient pointerEvents="none" colors={['rgba(5,5,7,0)', 'rgba(5,5,7,0.82)', 'rgba(5,5,7,0.97)']} locations={[0, 0.45, 1]} style={styles.scrimBottom} />
+      {/* Touch: invisible, and only where the beat and the relationship both allow it. The map is drawn on the portrait; the portrait is cropped to cover the screen, so the rects follow the cropped image. */}
+      {liveHotspots.map((h) => (
+        <Pressable
+          key={h.hotspot}
+          accessibilityLabel={h.hotspot}
+          onPress={() => touch(h.hotspot)}
+          style={{
+            position: 'absolute',
+            left: cover.x + h.x * cover.w,
+            top: cover.y + h.y * cover.h,
+            width: h.w * cover.w,
+            height: h.h * cover.h,
+          }}
+        />
+      ))}
 
       {status !== 'open' && <Text style={[styles.banner, { top: insets.top + 44 }]}>{status === 'connecting' ? 'Connecting…' : 'Reconnecting…'}</Text>}
 
@@ -354,7 +354,7 @@ export default function StoryScreen() {
 
       {/* The lower third: one sentence at a time. */}
       <Pressable style={styles.stageTap} onPress={advance} disabled={!page || (!revealing && atEnd)}>
-        <View style={[styles.panelWrap, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+        <View style={[styles.panelWrap, { paddingBottom: Math.max(insets.bottom, spacing.lg) + 4 }]}>
           {/* The options rise only once the last sentence has landed. */}
       {ended ? (
         <Choices visible={settled}>
@@ -394,7 +394,7 @@ export default function StoryScreen() {
         </Choices>
       )}
 
-          <Animated.View style={[styles.panel, { opacity: fade }]}>
+          <Animated.View style={[styles.words, { opacity: fade }]}>
             {page?.kind === 'prologue' && <Text style={styles.prologue}>{visible}</Text>}
             {page?.kind === 'you' && (
               <View style={styles.lineWrap}>
@@ -403,8 +403,8 @@ export default function StoryScreen() {
               </View>
             )}
             {page?.kind === 'narration' && <Text style={styles.narration}>{visible}</Text>}
-            {page?.kind === 'line' && <LineText text={visible} name={name ?? ''} />}
-            {page?.kind === 'photo' && <LineText text={visible} name={name ?? ''} />}
+            {page?.kind === 'line' && <LineText text={visible} name={name ?? ''} accent={accent} />}
+            {page?.kind === 'photo' && <LineText text={visible} name={name ?? ''} accent={accent} />}
             {!page && <Text style={styles.narration}>{scene?.setting ?? ''}</Text>}
             {waiting && <Text style={styles.tapHint}>…</Text>}
           </Animated.View>
@@ -498,13 +498,13 @@ function Choices({ visible, children }: { visible: boolean; children: ReactNode 
 }
 
 /** His line on the stage: the action beat small and muted, the speech large. */
-function LineText({ text, name }: { text: string; name: string }) {
+function LineText({ text, name, accent }: { text: string; name: string; accent: string }) {
   // A page is one segment; while it types, a beat is recognised by its opening asterisk.
   const action = text.startsWith('*')
   const body = action ? text.replace(/^\*|\*$/g, '') : text
   return (
     <View style={styles.lineWrap}>
-      {name ? <Text style={styles.speaker}>{name}</Text> : null}
+      {name ? <Text style={[styles.speaker, { color: accent }]}>{name}</Text> : null}
       <Text style={action ? styles.action : styles.speech}>{body}</Text>
     </View>
   )
@@ -512,44 +512,52 @@ function LineText({ text, name }: { text: string; name: string }) {
 
 const FILL = { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0 }
 
+/** The rect a `cover`-fitted image of the given aspect occupies on a w×h screen (it overflows one axis, centred). */
+function coverRect(w: number, h: number, aspect: number): { x: number; y: number; w: number; h: number } {
+  const screen = w / h
+  if (screen > aspect) {
+    const ih = w / aspect
+    return { x: 0, y: (h - ih) / 2, w, h: ih }
+  }
+  const iw = h * aspect
+  return { x: (w - iw) / 2, y: 0, w: iw, h }
+}
+
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
-  dim: { backgroundColor: 'rgba(8, 6, 12, 0.45)' },
-  headerLink: { color: colors.textMuted, fontSize: 15 },
-  banner: { position: 'absolute', alignSelf: 'center', color: colors.textMuted, fontSize: 12, paddingVertical: 4, paddingHorizontal: 12, backgroundColor: 'rgba(22,22,31,0.8)', borderRadius: radius.pill },
-  portraitWrap: { alignItems: 'center', justifyContent: 'flex-start' },
-  portrait: { width: '78%', height: '100%', borderRadius: radius.lg, overflow: 'hidden' },
-  portraitImage: { width: '100%', height: '100%' },
-  portraitEmpty: { backgroundColor: colors.surfaceRaised },
-  portraitFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 120, backgroundColor: 'rgba(13, 13, 18, 0.55)' },
+  screen: { flex: 1, backgroundColor: colors.ground },
+  headerLink: { color: colors.muted, fontSize: 14 },
+  banner: { position: 'absolute', alignSelf: 'center', color: colors.muted, fontSize: 12, paddingVertical: 4, paddingHorizontal: 12, backgroundColor: colors.glass, borderRadius: radius.pill },
+  portraitEmpty: { backgroundColor: '#0f0e12' },
+  scrimTop: { position: 'absolute', top: 0, left: 0, right: 0 },
+  scrimBottom: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '58%' },
   stageTap: { flex: 1 },
-  panelWrap: { flex: 1, justifyContent: 'flex-end', paddingHorizontal: spacing.lg, gap: spacing.sm },
-  panel: { minHeight: 132, backgroundColor: 'rgba(13, 13, 18, 0.86)', borderRadius: radius.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border, gap: spacing.sm },
-  prologue: { color: colors.textMuted, fontSize: 15, lineHeight: 23 },
-  speakerYou: { color: colors.textFaint, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', textAlign: 'right' },
-  you: { color: colors.text, fontSize: 16, lineHeight: 24, textAlign: 'right' },
-  ring: { position: 'absolute', width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.8)', alignItems: 'center', justifyContent: 'center', shadowColor: '#fff', shadowOpacity: 0.6, shadowRadius: 10 },
-  ringInner: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' },
-  narration: { color: colors.textMuted, fontSize: 16, lineHeight: 24, fontStyle: 'italic' },
+  panelWrap: { flex: 1, justifyContent: 'flex-end', paddingHorizontal: spacing.xl, gap: spacing.md },
+  words: { minHeight: 120, gap: 6 },
+  prologue: { color: colors.muted, fontSize: 15, lineHeight: 23 },
+  speakerYou: { color: colors.faint, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', textAlign: 'right' },
+  you: { color: colors.ink, fontSize: 17, lineHeight: 24, textAlign: 'right', fontWeight: '500' },
+  ring: { position: 'absolute', width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: 'rgba(244,241,236,0.85)', alignItems: 'center', justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.5, shadowRadius: 10 },
+  ringInner: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(244,241,236,0.35)' },
+  narration: { color: colors.muted, fontSize: 16, lineHeight: 24, fontStyle: 'italic', textShadowColor: 'rgba(0,0,0,0.6)', textShadowRadius: 10 },
   lineWrap: { gap: 4 },
-  speaker: { color: colors.accent, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' },
-  action: { color: colors.textMuted, fontSize: 14, lineHeight: 19, fontStyle: 'italic' },
-  speech: { color: colors.text, fontSize: 18, lineHeight: 26 },
-  tapHint: { color: colors.textFaint, fontSize: 11, alignSelf: 'flex-end', letterSpacing: 1, textTransform: 'uppercase' },
+  speaker: { fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' },
+  action: { color: colors.muted, fontSize: 13, lineHeight: 19, fontStyle: 'italic' },
+  speech: { color: colors.ink, fontSize: 19, lineHeight: 27, fontWeight: '500', textShadowColor: 'rgba(0,0,0,0.6)', textShadowRadius: 12 },
+  tapHint: { color: colors.faint, fontSize: 12, alignSelf: 'flex-end', letterSpacing: 2 },
   choices: { gap: spacing.sm },
-  choice: { borderWidth: 1, borderColor: colors.accent, borderRadius: radius.lg, paddingVertical: 12, paddingHorizontal: 14, backgroundColor: 'rgba(13, 13, 18, 0.86)' },
-  choiceText: { color: colors.text, fontSize: 15 },
-  choiceFree: { borderColor: colors.border },
-  choiceFreeText: { color: colors.textMuted, fontSize: 15 },
+  choice: { borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14, backgroundColor: colors.glass },
+  choiceText: { color: colors.ink, fontSize: 14, textAlign: 'center' },
+  choiceFree: { backgroundColor: colors.glassSoft },
+  choiceFreeText: { color: colors.muted, fontSize: 14, textAlign: 'center' },
   composer: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm },
-  input: { flex: 1, minHeight: 44, maxHeight: 120, color: colors.text, fontSize: 16, backgroundColor: colors.surface, borderRadius: radius.lg, paddingHorizontal: 14, paddingVertical: 10 },
-  sendButton: { backgroundColor: colors.accent, paddingHorizontal: 18, paddingVertical: 12, borderRadius: radius.pill },
-  sendText: { color: '#1a0a10', fontWeight: '700' },
+  input: { flex: 1, minHeight: 44, maxHeight: 120, color: colors.ink, fontSize: 16, backgroundColor: colors.glass, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 },
+  sendButton: { backgroundColor: colors.ink, paddingHorizontal: 18, paddingVertical: 12, borderRadius: radius.pill },
+  sendText: { color: '#0b0a0c', fontWeight: '700' },
   disabled: { opacity: 0.4 },
   error: { color: colors.danger, fontSize: 13, textAlign: 'center' },
-  photoVeil: { ...FILL, backgroundColor: 'rgba(8, 6, 12, 0.92)', alignItems: 'center', justifyContent: 'center', gap: spacing.lg, padding: spacing.xl },
-  dismiss: { color: colors.textMuted, fontSize: 14 },
-  intervention: { position: 'absolute', left: spacing.md, right: spacing.md, bottom: spacing.xl, padding: spacing.lg, backgroundColor: colors.surfaceRaised, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.accent, gap: spacing.sm },
-  interventionBody: { color: colors.text, fontSize: 15, lineHeight: 21 },
-  resource: { color: colors.accent, fontSize: 15, fontWeight: '600' },
+  photoVeil: { ...FILL, backgroundColor: 'rgba(5, 5, 7, 0.92)', alignItems: 'center', justifyContent: 'center', gap: spacing.lg, padding: spacing.xl },
+  dismiss: { color: colors.muted, fontSize: 14 },
+  intervention: { position: 'absolute', left: spacing.md, right: spacing.md, bottom: spacing.xl, padding: spacing.lg, backgroundColor: '#0f0e12', borderRadius: radius.lg, borderWidth: 1, borderColor: colors.hairline, gap: spacing.sm },
+  interventionBody: { color: colors.ink, fontSize: 15, lineHeight: 21 },
+  resource: { color: colors.ink, fontSize: 15, fontWeight: '600', textDecorationLine: 'underline' },
 })

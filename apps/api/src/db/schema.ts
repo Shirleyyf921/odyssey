@@ -117,6 +117,8 @@ export const characters = pgTable('characters', {
   tagline: text('tagline').notNull().default(''),
   avatarUrl: text('avatar_url'),
   voiceId: text('voice_id'),
+  /** His one colour on the client. */
+  accent: text('accent').notNull().default('#e0748a'),
   /** Injected into the persona prompt. Product content, versioned with the row. */
   personaNotes: text('persona_notes').notNull().default(''),
   createdAt: timestamptz('created_at').notNull().defaultNow(),
