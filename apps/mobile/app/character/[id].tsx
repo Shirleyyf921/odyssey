@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import type { EpisodeCard, ReportReason } from '@odyssey/shared'
 import { Portrait } from '../../src/components/Portrait'
 import { api } from '../../src/lib/api'
+import { usePaywall } from '../../src/store/paywall'
 import { colors, radius, spacing } from '../../src/theme'
 
 /** Character page: identity images, who he is, and the way into the conversation. */
@@ -88,8 +89,8 @@ export default function CharacterScreen() {
               <Pressable
                 key={e.id}
                 style={[styles.episode, !playable && styles.episodeLocked]}
-                disabled={!playable || play.isPending}
-                onPress={() => play.mutate(e.id)}
+                disabled={(!playable && e.unlock.kind !== 'PLUS') || play.isPending}
+                onPress={() => (e.status === 'LOCKED' && e.unlock.kind === 'PLUS' ? usePaywall.getState().open('EPISODE') : play.mutate(e.id))}
               >
                 <Text style={styles.episodeTitle}>{e.title}</Text>
                 <Text style={styles.episodePremise}>{e.premise}</Text>

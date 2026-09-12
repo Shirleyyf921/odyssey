@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { Ringing } from '../store/chat'
+import { usePaywall } from '../store/paywall'
 import { colors, radius, spacing } from '../theme'
 
 /**
@@ -63,7 +64,11 @@ export function CallScreen({
         <Text style={styles.sub}>
           {answered ? 'Connected' : `Calling… ${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`}
         </Text>
-        {!answered && ringing.silent === 'NEEDS_PLUS' && <Text style={styles.note}>You will read this one. Plus hears his voice.</Text>}
+        {!answered && ringing.silent === 'NEEDS_PLUS' && (
+          <Pressable onPress={() => usePaywall.getState().open('CALL')} hitSlop={8}>
+            <Text style={styles.note}>You will read this one. <Text style={styles.noteLink}>Plus hears his voice.</Text></Text>
+          </Pressable>
+        )}
       </View>
       {!answered && (
         <View style={styles.actions}>
@@ -89,6 +94,7 @@ const styles = StyleSheet.create({
   name: { color: colors.text, fontSize: 26, fontWeight: '700', marginTop: spacing.lg },
   sub: { color: colors.textMuted, fontSize: 15 },
   note: { color: colors.textFaint, fontSize: 13, marginTop: spacing.sm, textAlign: 'center' },
+  noteLink: { color: colors.accent, fontWeight: '600' },
   actions: { flexDirection: 'row', gap: spacing.lg },
   button: { paddingVertical: 16, paddingHorizontal: 28, borderRadius: radius.pill, minWidth: 140, alignItems: 'center' },
   decline: { borderWidth: 1, borderColor: colors.border },

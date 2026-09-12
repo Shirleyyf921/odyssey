@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Message, ServerEvent } from '@odyssey/shared'
 import type { SocketStatus } from '../lib/socket'
+import { usePaywall } from './paywall'
 
 export interface PendingMessage {
   clientMsgId: string
@@ -169,8 +170,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           next = { ...c, streaming: null, pending: [], intervention: { body: event.body, resources: event.resources } }
           break
         case 'error':
-          // A quota refusal happened before the message was stored: drop its bubble.
+          // A quota refusal happened before the message was stored: drop its bubble, and this is the moment for Plus.
           next = { ...c, streaming: null, error: event.message, pending: event.code === 'QUOTA_EXCEEDED' ? [] : c.pending }
+          if (event.code === 'QUOTA_EXCEEDED') usePaywall.getState().open('CAP')
           break
         case 'relationship_updated':
           if (event.previousStage) {
