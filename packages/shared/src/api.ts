@@ -70,6 +70,8 @@ export type TonightResponse = z.infer<typeof TonightResponse>
  */
 export const HomeEpisode = EpisodeCard.extend({
   characterName: z.string(),
+  /** His one colour, for the tile. */
+  accent: z.string(),
   /** His portrait, for the tile. */
   portraitUrl: z.string().url().nullable(),
   /** The picture the story gives at its ending, once earned; null until then. */
