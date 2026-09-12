@@ -18,6 +18,19 @@ difference is not subtle. What they fix, as rules:
 3. **Sheets, not singles.** Two of the four are turnarounds with expression heads. That is the
    consistency infrastructure the stage needs (his face should change when his line lands) and
    it is still owed.
+5. **Living skin, and light on the face (2026-09-12).** A friend's word for the first round was
+   "horror story", and it was right: the monochrome wash took the blood out of the skin and the
+   low key put the eyes in shadow. The line stays; the colour does not. Every man has warm skin
+   (peach, rose in the lips), the face is the brightest thing in the frame, both eyes have a
+   catchlight. This was applied as an EDIT of the existing drawings ("keep every line, change
+   only colour and light"), so composition and the hotspot maps did not move. Two things that
+   went wrong on the way and are not the answer: a soft redraw read as feminine; a hard redraw
+   (square jaw, stubble, 28) read as the wrong man for this market. The face stays the face.
+   Relit ids: heroes Ash `cvmf6SbrPSG406w8`, Rafe `NWzeW1axpBGMKi6R`, Jun `vwYDX02l0I21JKud`;
+   cards mug `s2TA7z21NaKkGqRd`, four in the morning `CgCfWrM4o2nipNY8`, when it finally breaks
+   `eaIRzRBll6EYmVhD`, the roof `7o9jK5ezbPIY7xXl`, the piano `ccY6vitNpLECiaVF`, Noted
+   `34FM8RhMNG2gM6BR`. The reaching cards and the paid cards are still the grey originals.
+
 4. **An open shirt is the baseline.** Two of the four have it. The SFW line moves up to match:
    bare torso and an open shirt are SFW, the MATURE line starts where "Paid moments" already
    draws it. Fully buttoned reads as celibate, which the first round taught us.
