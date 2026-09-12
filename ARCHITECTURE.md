@@ -297,6 +297,16 @@ Data model additions: `subscriptions` (already listed in §5, synced from Revenu
 entitlements) and `purchases` (moment SKUs, store transaction id, restored-at). Both are
 written only by the RevenueCat webhook and the restore path, never by the client.
 
+**The paywall (2026-09-11, "商业化", the part that does not wait for the store).** One sheet,
+`apps/mobile/src/components/Paywall.tsx`, mounted once at the root and opened at the moments
+that matter and nowhere else: the daily cap (`QUOTA_EXCEEDED`), a call FREE only reads
+(`NEEDS_PLUS`), a Plus-locked episode. It says what just happened in his terms, what Plus
+opens, and the list price. With RevenueCat wired it buys the offering package; on a demo build
+carrying the grant secret it grants; otherwise it says Plus is bought in the app. No countdown,
+no fake discount. The reason it opened is what to log first once purchases are real. Still owed
+before money moves: the products in the RevenueCat dashboard, the secret key on Railway, and
+the app store listing.
+
 **Status (2026-09-06).** Both tables exist (`drizzle/0005_billing.sql`) and
 `apps/api/src/billing` is their only writer. Every signal — the webhook at
 `POST /billing/revenuecat`, the client's `POST /billing/restore`, a guest signing in — ends in

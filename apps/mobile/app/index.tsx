@@ -4,6 +4,7 @@ import { useCallback, type ReactNode } from 'react'
 import { ActivityIndicator, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import type { HomeEpisode, MomentCard, TonightItem } from '@odyssey/shared'
 import { api } from '../src/lib/api'
+import { usePaywall } from '../src/store/paywall'
 import { colors, radius, spacing } from '../src/theme'
 
 /**
@@ -142,6 +143,7 @@ function TonightCard({ item }: { item: TonightItem }) {
   const playable = episode?.status === 'AVAILABLE' || episode?.status === 'IN_PROGRESS'
   const play = usePlay(character.id, character.name)
   const open = () => {
+    if (episode?.status === 'LOCKED' && episode.unlock.kind === 'PLUS') return usePaywall.getState().open('EPISODE')
     // He wrote first: the card goes to where his words are waiting.
     if (reachOut && character.relationship) {
       router.push({ pathname: '/chat/[conversationId]', params: { conversationId: character.relationship.conversationId, name: character.name, characterId: character.id } })
@@ -211,6 +213,7 @@ function EpisodeTile({ episode, community }: { episode: HomeEpisode; community?:
   const playable = episode.status === 'AVAILABLE' || episode.status === 'IN_PROGRESS'
   const play = usePlay(episode.characterId, episode.characterName)
   const open = () => {
+    if (episode.status === 'LOCKED' && episode.unlock.kind === 'PLUS') return usePaywall.getState().open('EPISODE')
     if (playable) play.mutate(episode.id)
     else router.push({ pathname: '/character/[id]', params: { id: episode.characterId } })
   }

@@ -4,6 +4,8 @@ import { StatusBar } from 'expo-status-bar'
 import { useEffect } from 'react'
 import { api } from '../src/lib/api'
 import { billing } from '../src/lib/billing'
+import { Paywall } from '../src/components/Paywall'
+import { usePaywall } from '../src/store/paywall'
 import { colors } from '../src/theme'
 
 const queryClient = new QueryClient({
@@ -20,11 +22,15 @@ function BillingIdentity() {
   return null
 }
 
+// The web preview can open the sheet by hand: window.__odyssey.paywall('CAP').
+if (__DEV__ && typeof window !== 'undefined') (window as unknown as { __odyssey?: unknown }).__odyssey = { paywall: (r: 'CAP' | 'CALL' | 'EPISODE' | 'MEMORY' | 'GENERIC') => usePaywall.getState().open(r) }
+
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <StatusBar style="light" />
       <BillingIdentity />
+      <Paywall />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: colors.bg },
