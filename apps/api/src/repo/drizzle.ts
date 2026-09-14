@@ -137,6 +137,7 @@ function toRun(r: RunRow): EpisodeRun {
     path: r.path,
     startedAt: r.startedAt.toISOString(),
     endedAt: r.endedAt?.toISOString() ?? null,
+    plays: r.plays,
   }
 }
 

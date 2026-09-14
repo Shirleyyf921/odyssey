@@ -92,13 +92,21 @@ export async function handleStartEpisode(
     return send({ type: 'error', code: 'INVALID_PAYLOAD', message: 'Unknown episode' })
   }
   const state = availability(episode, ctx.relationship, tier, runs, all)
-  if (state.status === 'LOCKED') return send({ type: 'error', code: 'QUOTA_EXCEEDED', message: state.lockReason ?? 'Not yet' })
-  if (state.status === 'DONE') return send({ type: 'error', code: 'INVALID_PAYLOAD', message: 'Already played' })
+  if (state.status === 'LOCKED' || (state.status === 'DONE' && state.lockReason)) {
+    return send({ type: 'error', code: 'QUOTA_EXCEEDED', message: state.lockReason ?? 'Not yet' })
+  }
 
   let run = open ?? null
   let message = null
   if (!run) {
-    run = await repo.createRun({ relationshipId: ctx.relationship.id, episodeId: episode.id, currentBeatId: episode.firstBeatId, episodeVersion: episode.version })
+    const played = runs.find((r) => r.episodeId === episode.id) ?? null
+    if (played) {
+      // A replay: the same row, back at the first beat on the version that is
+      // live now. The relationship keeps what the first night gave it.
+      run = await repo.updateRun(played.id, { currentBeatId: episode.firstBeatId, path: [episode.firstBeatId], endedAt: null, episodeVersion: episode.version, plays: played.plays + 1 })
+    } else {
+      run = await repo.createRun({ relationshipId: ctx.relationship.id, episodeId: episode.id, currentBeatId: episode.firstBeatId, episodeVersion: episode.version })
+    }
     message = await repo.insertMessage({
       conversationId: ctx.conversation.id,
       role: 'CHARACTER',
@@ -106,9 +114,9 @@ export async function handleStartEpisode(
       clientMsgId: null,
       inReplyTo: null,
     })
-    log.info({ conversationId: ctx.conversation.id, episodeId: episode.id, runId: run.id }, 'episode started')
+    log.info({ conversationId: ctx.conversation.id, episodeId: episode.id, runId: run.id, plays: run.plays }, played ? 'episode replayed' : 'episode started')
   }
-  const runsNow = run === open ? runs : [...runs, run]
+  const runsNow = run === open ? runs : [...runs.filter((r) => r.id !== run!.id), run]
   send({ type: 'episode_started', conversationId: ctx.conversation.id, episode: toEpisodeCard(episode, ctx.relationship, tier, runsNow, all), message })
   const beat = episode.beats.find((b) => b.id === run.currentBeatId)!
   const lastCharacter = message ?? (await repo.listRecentMessages(ctx.conversation.id, 20)).filter((m) => m.role === 'CHARACTER').at(-1)
@@ -156,7 +164,8 @@ export async function runStoryTurn(deps: ChatDeps, input: StoryTurnInput, send: 
   let userAction = touch ? TOUCH_PHRASE[touch] : event.content
   if (chosen) {
     userAction = `chose: ${event.content}`
-    const rel = await relationship.onChoice(ctx.relationship, chosen.affinity, `story:${story.episode.id}:${story.beat.position}:${event.choice}`)
+    // A replay is the story again, not the night again: nothing moves between them.
+    const rel = await relationship.onChoice(ctx.relationship, story.run.plays > 1 ? 0 : chosen.affinity, `story:${story.episode.id}:${story.beat.position}:${event.choice}`)
     ctx = { ...ctx, relationship: rel }
     target = chosen.next ? (story.episode.beats.find((b) => b.id === chosen.next) ?? null) : null
     if (!target) {
@@ -255,14 +264,14 @@ export async function runStoryTurn(deps: ChatDeps, input: StoryTurnInput, send: 
     send(choicesEvent(conversationId, messageId, story.episode, beat, result.turn.options.length >= 2 ? result.turn.options : [], ctx.relationship.stage))
   }
 
-  // A photo written into this beat goes out locked, once.
-  if (moved && beat.photoMomentId) await offerBeatPhoto(deps, ctx, beat.photoMomentId, send)
+  // A photo written into this beat goes out, once per play.
+  if (moved && beat.photoMomentId) await offerBeatPhoto(deps, ctx, beat.photoMomentId, story.run.plays > 1, send)
 
   log.info({ conversationId, episodeId: story.episode.id, beat: beat.position, moved, touch, repaired: result.repaired }, 'story turn')
   return { replyId: reply.id, model: result.model, usage: result.usage }
 }
 
-async function offerBeatPhoto(deps: ChatDeps, ctx: ConversationContext, momentId: string, send: Send): Promise<void> {
+async function offerBeatPhoto(deps: ChatDeps, ctx: ConversationContext, momentId: string, replay: boolean, send: Send): Promise<void> {
   const { repo, log } = deps
   const [moments, unlocks, offered] = await Promise.all([
     repo.listMoments(ctx.character.id),
@@ -270,7 +279,9 @@ async function offerBeatPhoto(deps: ChatDeps, ctx: ConversationContext, momentId
     repo.listOfferedMoments(ctx.conversation.id),
   ])
   const moment = moments.find((m) => m.id === momentId)
-  if (!moment || offered.some((o) => o.momentId === momentId)) return
+  if (!moment) return
+  // First play: once per conversation. A replay shows it again; it is theirs already.
+  if (!replay && offered.some((o) => o.momentId === momentId)) return
   let unlock = unlocks.find((u) => u.momentId === momentId) ?? null
   // An everyday card placed on a beat is the story's to give: reaching the beat
   // unlocks it, and the stage becomes that picture. A paid card stays veiled;

@@ -74,8 +74,11 @@ export default function CharacterScreen() {
 
   const [hero, ...rest] = data.portraits
   const rel = data.relationship
-  const openEpisode = (e: EpisodeCard) =>
-    e.status === 'LOCKED' && e.unlock.kind === 'PLUS' ? usePaywall.getState().open('EPISODE') : play.mutate(e.id)
+  const openEpisode = (e: EpisodeCard) => {
+    if (e.status === 'LOCKED' && e.unlock.kind === 'PLUS') return usePaywall.getState().open('EPISODE')
+    if (e.status === 'DONE' && e.lockReason) return usePaywall.getState().open('REPLAY')
+    play.mutate(e.id)
+  }
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -134,7 +137,7 @@ export default function CharacterScreen() {
         <View style={styles.section}>
           <Text style={styles.label}>Written for him</Text>
           {episodes.data.community.map((e) => (
-            <EpisodeRow key={e.id} episode={e} busy={play.isPending} onPlay={() => play.mutate(e.id)} onReport={(reason) => report.mutateAsync({ id: e.id, reason })} />
+            <EpisodeRow key={e.id} episode={e} busy={play.isPending} onPlay={() => openEpisode(e)} onReport={(reason) => report.mutateAsync({ id: e.id, reason })} />
           ))}
         </View>
       ) : null}
@@ -188,8 +191,9 @@ function EpisodeRow({
 }) {
   const [reporting, setReporting] = useState(false)
   const [outcome, setOutcome] = useState<string | null>(null)
-  const playable = e.status === 'AVAILABLE' || e.status === 'IN_PROGRESS'
-  const plusLocked = e.status === 'LOCKED' && e.unlock.kind === 'PLUS'
+  const playable = e.status === 'AVAILABLE' || e.status === 'IN_PROGRESS' || e.status === 'DONE'
+  // Rows that open the paywall stay live; only what nothing can open tonight is dim.
+  const plusLocked = (e.status === 'LOCKED' && e.unlock.kind === 'PLUS') || (e.status === 'DONE' && !!e.lockReason)
   const shut = !playable && !plusLocked
   const meta =
     e.status === 'IN_PROGRESS' ? `Continue · ${e.currentBeat}/${e.beatCount}` : e.status === 'DONE' ? 'Again' : e.status === 'LOCKED' ? e.lockReason : 'Play'
@@ -217,7 +221,7 @@ function EpisodeRow({
           ) : null}
         </View>
         <View style={styles.rowMeta}>
-          {e.status === 'LOCKED' ? <Lock size={12} color={plusLocked ? colors.ink : colors.faint} /> : null}
+          {e.status === 'LOCKED' || (e.status === 'DONE' && e.lockReason) ? <Lock size={12} color={plusLocked ? colors.ink : colors.faint} /> : null}
           <Text style={[styles.rowMetaText, e.status === 'LOCKED' && !plusLocked && styles.rowMetaShut]}>{meta}</Text>
         </View>
       </Pressable>

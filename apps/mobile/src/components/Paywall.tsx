@@ -21,12 +21,13 @@ const COPY: Record<PaywallReason, { title: string; body: string }> = {
   CAP: { title: "That's fifteen for tonight.", body: 'He would keep talking. Plus takes the cap off the night.' },
   CALL: { title: "He's calling.", body: 'You will read this one. Plus hears his voice.' },
   EPISODE: { title: 'This one is Plus.', body: 'Some nights are his to give only to Plus.' },
+  REPLAY: { title: 'Once was yours.', body: 'Plus plays his stories again, and takes the other door.' },
   MEMORY: { title: 'He is starting to forget.', body: 'Plus keeps everything you have told him, for good.' },
   GENERIC: { title: 'Plus', body: 'The whole of him.' },
 }
 
 /** What Plus opens, in the order a person cares. Prices are the v1 list in ARCHITECTURE section 7. */
-const OPENS = ['Unmetered nights, no fifteen-message cap', 'His calls, in his voice', 'Everything he remembers, kept for good', 'Three men, not one']
+const OPENS = ['Unmetered nights, no fifteen-message cap', 'His calls, in his voice', 'Every story again, every other door', 'Everything he remembers, kept for good']
 const PRICE_MONTH = '$9.99 / month'
 const PRICE_YEAR = '$59.99 / year'
 

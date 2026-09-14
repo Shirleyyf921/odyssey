@@ -166,6 +166,9 @@ export interface EpisodeRunPatch {
   currentBeatId?: string
   path?: string[]
   endedAt?: Date | null
+  /** A replay pins the current version and counts itself. */
+  episodeVersion?: number
+  plays?: number
 }
 
 export interface NewMessage {

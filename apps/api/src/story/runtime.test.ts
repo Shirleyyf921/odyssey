@@ -316,3 +316,48 @@ test('a story turn goes to the STORY route, not the chat model', async () => {
   assert.ok(hits.includes('STORY'), `story turn hit ${hits.join(',')}`)
   assert.ok(!hits.includes('EVERYDAY') || hits.indexOf('EVERYDAY') > hits.indexOf('STORY'), 'the chat model is at most the options repair, after the turn')
 })
+
+test('a replay resets the same run at the first beat, sends the opener again, and moves nothing in the relationship', async () => {
+  const { repo, deps, demo, episode, sent, start, say, run, last } = await setup()
+  await start()
+  await say('sit', 0) // B1 -> B2, credited
+  await say('ask', 0) // B2 -> B4
+  await say('stay', 0) // B4 -> B5
+  await say('Answer', 0) // B5 -> B6 END
+  const first = (await run())!
+  assert.ok(first.endedAt)
+  const storyCredits = () => repo.relationshipEvents.filter((e) => e.reason.startsWith('story:')).length
+  const creditsAfterFirst = storyCredits()
+  assert.ok(creditsAfterFirst > 0, 'the first night credited its choices')
+  const photosAfterFirst = (await repo.listUnlocks(demo.relationshipId)).length
+
+  // Free cannot: the door is Plus.
+  deps.billing = { async tierOf() { return 'FREE' }, async credit() {} }
+  sent.length = 0
+  await start()
+  assert.equal(last('error')?.code, 'QUOTA_EXCEEDED')
+  assert.equal(last('error')?.message, 'Play it again with Plus.')
+  assert.ok((await run())!.endedAt, 'nothing moved')
+
+  // Plus can: same row, back at the first beat, counted.
+  deps.billing = { async tierOf() { return 'PLUS' }, async credit() {} }
+  sent.length = 0
+  await start()
+  const again = (await run())!
+  assert.equal(again.id, first.id, 'one run per relationship and episode, reset')
+  assert.equal(again.plays, 2)
+  assert.equal(again.endedAt, null)
+  assert.equal(again.currentBeatId, episode.firstBeatId)
+  assert.deepEqual(again.path, [episode.firstBeatId])
+  assert.equal(last('episode_started')?.message?.content, episode.opener, 'his opener again')
+  assert.equal(last('episode_started')?.episode.status, 'IN_PROGRESS')
+  assert.equal((await repo.listRuns(demo.relationshipId)).length, 1)
+
+  sent.length = 0
+  await say('sit', 0) // the credited choice, credited no more
+  assert.equal(storyCredits(), creditsAfterFirst, 'a replay credits no choice')
+  await say('ask', 0) // the photo beat again
+  assert.equal(last('moment_offer')?.moment.status, 'UNLOCKED', 'the picture is shown again')
+  assert.ok(!last('moment_unlocked'), 'and not unlocked again')
+  assert.equal((await repo.listUnlocks(demo.relationshipId)).length, photosAfterFirst)
+})

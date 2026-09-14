@@ -404,6 +404,8 @@ export const EpisodeRun = z.object({
   path: z.array(z.string().uuid()),
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime().nullable(),
+  /** Times this run has been started. Above one it is a replay: the story again, the relationship unchanged. */
+  plays: z.number().int().min(1).default(1),
 })
 export type EpisodeRun = z.infer<typeof EpisodeRun>
 
