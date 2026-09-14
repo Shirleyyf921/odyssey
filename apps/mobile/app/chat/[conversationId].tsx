@@ -8,6 +8,8 @@ import { MessageBubble } from '../../src/components/MessageBubble'
 import { SceneCard } from '../../src/components/SceneCard'
 import { api } from '../../src/lib/api'
 import { useAskPhoto } from '../../src/lib/askPhoto'
+import { canMature } from '../../src/lib/levels'
+import { PhotoMenu } from '../../src/components/PhotoMenu'
 import { billing } from '../../src/lib/billing'
 import { ChatSocket } from '../../src/lib/socket'
 import { useChatStore } from '../../src/store/chat'
@@ -150,9 +152,7 @@ export default function ChatScreen() {
         </View>
       )}
 
-      <Pressable style={[styles.ask, photo.taking && styles.disabled]} onPress={photo.ask} disabled={photo.taking || status !== 'open'} hitSlop={6}>
-        <Text style={styles.askText}>{photo.taking ? 'He is taking one…' : photo.line ?? 'Ask him for a picture'}</Text>
-      </Pressable>
+      <PhotoMenu taking={photo.taking} line={photo.line} mature={canMature(me.data, character.data?.relationship?.stage)} disabled={status !== 'open'} onAsk={photo.ask} tone="faint" />
       <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
         <TextInput
           style={styles.input}
@@ -181,8 +181,6 @@ const styles = StyleSheet.create({
   sendButton: { backgroundColor: colors.ink, paddingHorizontal: 18, paddingVertical: 12, borderRadius: radius.pill },
   sendText: { color: '#0b0a0c', fontWeight: '700' },
   disabled: { opacity: 0.4 },
-  ask: { alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 14 },
-  askText: { color: colors.faint, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase' },
   intervention: { margin: spacing.lg, padding: spacing.lg, backgroundColor: colors.glass, borderRadius: radius.lg, borderWidth: 1, borderColor: 'rgba(244,241,236,0.18)', gap: spacing.sm },
   interventionBody: { color: colors.ink, fontSize: 15, lineHeight: 21 },
   resource: { color: colors.ink, fontSize: 15, fontWeight: '600', textDecorationLine: 'underline' },

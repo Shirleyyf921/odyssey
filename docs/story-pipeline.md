@@ -233,7 +233,13 @@ chat show it the way they show every photo. Migration 0016.
 Who may: a bought credit first (`photo_credits`; the RevenueCat consumable is not wired, the
 dev route `/billing/dev/photo-credits` stands in), else Plus's `PHOTOS_PER_DAY_PLUS` (one) per
 UTC day, else the paywall with reason `PHOTO`. A failed generation gives the credit back.
-Rating follows the open story, SFW when none is open. Price list: single $1.99, five $6.99
+
+The menu (2026-09-14, the boss's "创建 + 分级"): three kinds, never a typed prompt. `NOW`
+(where he is) is SFW and offered anywhere; `MORNING` (just up, shirt open) and `ONLY_YOU` (the
+one he would not send anyone else) are MATURE and given only at the MATURE level
+(`apps/api/src/levels.ts`: the web build, the age declaration, Plus, and CLOSE or past; the
+store build never shows them). The kind sets what the scene model is told she asked for and
+how far the image prompt may reach; a refusal is 403 `LEVEL` and spends nothing. Price list: single $1.99, five $6.99
 (ARCHITECTURE.md section 7). Measured on the spike: 25 to 32 seconds a picture; the client
 says "he is taking it" and waits.
 
