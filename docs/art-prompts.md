@@ -323,3 +323,24 @@ drop is one new paid beat per man, retired at month end.
 Name files `elliot-portrait-01.jpg`, `elliot-scene-studio-backdrop.jpg`,
 `elliot-moment-first-coffee.jpg`, and so on. Hand them over as files; wiring them into
 the seed and hosting is engineering's job.
+
+## Generated moments, a spike (2026-09-14)
+
+Tipsy sells "generate an image from this message". Could we, with our faces? Ten scenes,
+Seedream 4.0 on Novita (`POST /v3/seedream-4.0`, synchronous, `images: [<his hero URL>]` as
+the reference, the style rules in words, 1536×2048), one pass each, no cherry-picking
+(`scratchpad/spike/generated-moments.py`). Every call came back in 25 to 32 seconds.
+
+What came back: the style held in all ten (ink line, hatching, loose hair) and the man was
+recognisable in eight or nine: Ash's four all read as Ash, glasses on or off; Jun's three read
+as Jun, the car one with heavier brows; Rafe's lift and rain ones are a broader, happier face
+than the hero, the couch one hides the face. Two things drifted: four of ten came back pure
+monochrome, no warm skin and no accent, because the prompt still said "mostly monochrome grey
+wash" and the model took it literally; and the smile: the model reaches for a grin the
+hero never wears. Both are prompt fixes, not model limits.
+
+Verdict: feasible as "ask him for a picture" on a beat, prompt assembled server-side from the
+beat, the persona, the style block and his hero; the user never types the prompt. Rating
+follows the story. Not yet: the colour rule in the prompt must change to "grey ink wash, warm
+skin, one accent colour", and the expression should come from the beat, never left to the
+model. Price per image on Novita is cents; Tipsy charges 40 gems for the same act.
