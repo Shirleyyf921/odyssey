@@ -27,7 +27,7 @@ for (const seed of SEED_CHARACTERS) {
     })
     .onConflictDoUpdate({
       target: characters.id,
-      set: { name: c.name, tagline: c.tagline, personaNotes: c.personaNotes },
+      set: { name: c.name, tagline: c.tagline, personaNotes: c.personaNotes, accent: c.accent },
     })
   for (const p of seed.portraits) {
     await db
