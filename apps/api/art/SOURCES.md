@@ -27,3 +27,9 @@ for a card whose art is not made yet.
 | jun-noted.jpg | https://a.lovart.ai/artifacts/agent/34FM8RhMNG2gM6BR.png |
 | jun-glasses-off.jpg | https://a.lovart.ai/artifacts/agent/qpIM8XPKyQJLVLEO.png |
 | jun-closer.jpg | https://a.lovart.ai/artifacts/agent/giVvn31cg5DlwRPf.png |
+| rafe-key.jpg | https://a.lovart.ai/artifacts/agent/PWqj6mnNUwwHdPEJ.png |
+| rafe-lobby.jpg | https://a.lovart.ai/artifacts/agent/irLfgH9LBcCnMURi.png |
+| rafe-unbuttoned.jpg | https://a.lovart.ai/artifacts/agent/2qckJUlIO99PfMGy.png |
+| jun-corner.jpg | https://a.lovart.ai/artifacts/agent/TwMHCaXLbtE6VzuA.png |
+| jun-door.jpg | https://a.lovart.ai/artifacts/agent/cGAdJE0mim8Tcudk.png |
+| jun-shirt.jpg | https://a.lovart.ai/artifacts/agent/Z55B0w8KrGBBHIWH.png |

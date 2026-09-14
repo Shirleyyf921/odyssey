@@ -58,6 +58,12 @@ pass absolute paths or upload them first. The hero URL alone carried the style.
 
 The paid cards and backdrops from earlier in the day are still in the old style and are next.
 
+Season cards (2026-09-14, for docs/season-1-drafts.md), generated in one pass each from the
+style rules in words plus the relit hero on our own domain as the character reference, fast
+mode, no edits needed: Rafe "The key" `PWqj6mnNUwwHdPEJ`, "The lobby" `irLfgH9LBcCnMURi`,
+"Unbuttoned" (paid) `2qckJUlIO99PfMGy`; Jun "The corner" `TwMHCaXLbtE6VzuA`, "The door"
+`cGAdJE0mim8Tcudk`, "His shirt" (paid) `Z55B0w8KrGBBHIWH`. Served from `apps/api/art`.
+
 ## Style (the earlier prompt, superseded above)
 
 One look for the whole roster. Generate a **style anchor** first, pick the best frame, and
