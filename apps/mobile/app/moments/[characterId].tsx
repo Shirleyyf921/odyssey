@@ -1,15 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router'
+import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useCallback, useState } from 'react'
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MomentTile } from '../../src/components/MomentTile'
 import { api } from '../../src/lib/api'
 import { billing } from '../../src/lib/billing'
 import { colors, spacing } from '../../src/theme'
 
-/** Collectibles grid. Locked and unlocked share one layout so the user sees what is there to earn. */
+/**
+ * What you have of his, direction B: a title, a count in words, and a grid of
+ * pictures with lines under them. Locked and unlocked share one layout so the
+ * user sees what there is to earn.
+ */
 export default function MomentsScreen() {
   const { characterId, name } = useLocalSearchParams<{ characterId: string; name?: string }>()
+  const insets = useSafeAreaInsets()
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['moments', characterId],
     queryFn: () => api.moments(characterId),
@@ -36,23 +42,38 @@ export default function MomentsScreen() {
   // Purchase UI needs both the store SDK in this build and RevenueCat configured on the server.
   const canBuy = billing.available && me.data?.billing.enabled === true && !!data?.relationship
 
-  if (isLoading) return <View style={styles.centered}><ActivityIndicator color={colors.accent} /></View>
+  if (isLoading) return <View style={styles.centered}><ActivityIndicator color={colors.ink} /></View>
   if (error || !data) return <View style={styles.centered}><Text style={styles.error}>{String(error ?? 'Not found')}</Text></View>
 
   const unlocked = data.moments.filter((m) => m.status === 'UNLOCKED').length
+  const line = !data.relationship
+    ? 'Say hello and he starts giving you these.'
+    : unlocked === 0
+      ? `Nothing yet. He has ${data.moments.length} to give.`
+      : unlocked === data.moments.length
+        ? 'All of them. Every one.'
+        : `${unlocked} of ${data.moments.length} are yours.`
 
   return (
     <View style={styles.screen}>
-      <Stack.Screen options={{ title: name ? `${name} · Moments` : 'Moments' }} />
-      <Text style={styles.count}>{unlocked} of {data.moments.length} unlocked</Text>
-      {!data.relationship && <Text style={styles.hint}>Start talking to begin unlocking.</Text>}
-      {purchaseError && <Text style={styles.purchaseError}>{purchaseError}</Text>}
+      <Stack.Screen options={{ headerShown: false }} />
       <FlatList
         data={data.moments}
         keyExtractor={(m) => m.id}
         numColumns={2}
         columnWrapperStyle={styles.column}
-        contentContainerStyle={styles.grid}
+        contentContainerStyle={[styles.grid, { paddingTop: insets.top + 12 }]}
+        ListHeaderComponent={
+          <View style={styles.head}>
+            <Pressable style={styles.back} onPress={() => router.back()} hitSlop={10}>
+              <Text style={styles.backText}>‹</Text>
+              <Text style={styles.backLabel}>{name ?? 'Him'}</Text>
+            </Pressable>
+            <Text style={styles.title}>Photos</Text>
+            <Text style={styles.muted}>{line}</Text>
+            {purchaseError && <Text style={styles.purchaseError}>{purchaseError}</Text>}
+          </View>
+        }
         renderItem={({ item }) => (
           <MomentTile
             card={item}
@@ -66,12 +87,16 @@ export default function MomentsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
-  count: { color: colors.textMuted, fontSize: 13, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
-  hint: { color: colors.textFaint, fontSize: 13, paddingHorizontal: spacing.lg, paddingTop: spacing.xs },
-  purchaseError: { color: colors.danger, fontSize: 13, paddingHorizontal: spacing.lg, paddingTop: spacing.xs },
-  grid: { padding: spacing.lg, gap: spacing.lg },
+  screen: { flex: 1, backgroundColor: colors.ground },
+  head: { gap: 6, marginBottom: spacing.sm },
+  back: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.md },
+  backText: { color: colors.ink, fontSize: 28, lineHeight: 28, marginTop: -4 },
+  backLabel: { color: colors.ink, fontSize: 15, fontWeight: '600' },
+  title: { color: colors.ink, fontSize: 30, fontWeight: '800', letterSpacing: -0.6 },
+  muted: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+  purchaseError: { color: colors.ink, fontSize: 13 },
+  grid: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl, gap: spacing.lg },
   column: { gap: spacing.md },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  error: { color: colors.danger, textAlign: 'center' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, backgroundColor: colors.ground },
+  error: { color: colors.ink, textAlign: 'center' },
 })

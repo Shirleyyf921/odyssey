@@ -24,10 +24,10 @@ export function SceneCard({ scene }: { scene: Scene }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginHorizontal: spacing.lg, marginTop: spacing.md, marginBottom: spacing.lg, gap: spacing.xs },
-  backdrop: { width: '100%', aspectRatio: 16 / 9, borderRadius: radius.lg, backgroundColor: colors.surfaceRaised },
-  placeholder: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
-  placeholderText: { color: colors.textFaint, fontSize: 14, letterSpacing: 1, textTransform: 'uppercase' },
-  title: { color: colors.text, fontSize: 15, fontWeight: '600', marginTop: spacing.sm },
-  setting: { color: colors.textMuted, fontSize: 14, lineHeight: 20 },
+  wrap: { marginHorizontal: spacing.lg, marginTop: spacing.md, marginBottom: spacing.lg, gap: 2 },
+  backdrop: { width: '100%', aspectRatio: 16 / 9, borderRadius: radius.md, backgroundColor: '#0f0e12' },
+  placeholder: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.hairline },
+  placeholderText: { color: colors.faint, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' },
+  title: { color: colors.ink, fontSize: 15, fontWeight: '700', marginTop: spacing.sm },
+  setting: { color: colors.muted, fontSize: 13, lineHeight: 19 },
 })
