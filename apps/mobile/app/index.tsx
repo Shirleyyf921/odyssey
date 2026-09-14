@@ -5,6 +5,7 @@ import { useCallback, type ReactNode } from 'react'
 import { ActivityIndicator, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { HomeEpisode, MomentCard, TonightItem } from '@odyssey/shared'
+import { Lock } from '../src/components/Lock'
 import { api } from '../src/lib/api'
 import { usePaywall } from '../src/store/paywall'
 import { colors, radius, spacing } from '../src/theme'
@@ -285,14 +286,6 @@ function MomentThumb({ card }: { card: MomentCard }) {
 }
 
 /** A lock drawn with two views, so no emoji ever ships. */
-function Lock() {
-  return (
-    <View style={styles.lock}>
-      <View style={styles.lockShackle} />
-      <View style={styles.lockBody} />
-    </View>
-  )
-}
 
 function Section({ label, aside, children }: { label: string; aside?: string; children: ReactNode }) {
   return (
@@ -362,9 +355,6 @@ const styles = StyleSheet.create({
   thumbLock: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   thumbTitle: { color: colors.ink, fontSize: 12, fontWeight: '600' },
   thumbSub: { color: colors.faint, fontSize: 10, lineHeight: 13 },
-  lock: { width: 16, height: 18, alignItems: 'center', justifyContent: 'flex-end' },
-  lockShackle: { width: 10, height: 9, borderWidth: 1.6, borderColor: colors.ink, borderBottomWidth: 0, borderTopLeftRadius: 6, borderTopRightRadius: 6 },
-  lockBody: { width: 16, height: 10, borderRadius: 2, backgroundColor: colors.ink },
   writeRow: { marginHorizontal: spacing.xl, paddingVertical: 14, borderTopWidth: 1, borderTopColor: colors.hairline, borderBottomWidth: 1, borderBottomColor: colors.hairline, flexDirection: 'row', alignItems: 'center', gap: 12 },
   writeTitle: { color: colors.ink, fontSize: 16, fontWeight: '700', marginBottom: 2 },
   muted: { color: colors.muted, fontSize: 13, lineHeight: 18 },

@@ -154,7 +154,7 @@ export default function ChatScreen() {
           value={draft}
           onChangeText={setDraft}
           placeholder="Say something"
-          placeholderTextColor={colors.textFaint}
+          placeholderTextColor={colors.faint}
           multiline
           onSubmitEditing={send}
           blurOnSubmit
@@ -168,20 +168,20 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
-  banner: { color: colors.textMuted, fontSize: 12, textAlign: 'center', paddingVertical: 4, backgroundColor: colors.surface },
+  screen: { flex: 1, backgroundColor: colors.ground },
+  banner: { color: colors.faint, fontSize: 12, textAlign: 'center', paddingVertical: 4 },
   list: { paddingVertical: spacing.md },
-  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, paddingHorizontal: spacing.md, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.bg },
-  input: { flex: 1, minHeight: 42, maxHeight: 120, color: colors.text, fontSize: 16, backgroundColor: colors.surface, borderRadius: radius.lg, paddingHorizontal: 14, paddingVertical: 10 },
-  sendButton: { backgroundColor: colors.accent, paddingHorizontal: 18, paddingVertical: 12, borderRadius: radius.pill },
-  sendText: { color: '#1a0a10', fontWeight: '700' },
+  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.hairline, backgroundColor: colors.ground },
+  input: { flex: 1, minHeight: 44, maxHeight: 120, color: colors.ink, fontSize: 16, backgroundColor: 'rgba(244,241,236,0.06)', borderRadius: radius.pill, paddingHorizontal: 16, paddingVertical: 12 },
+  sendButton: { backgroundColor: colors.ink, paddingHorizontal: 18, paddingVertical: 12, borderRadius: radius.pill },
+  sendText: { color: '#0b0a0c', fontWeight: '700' },
   disabled: { opacity: 0.4 },
-  intervention: { margin: spacing.md, padding: spacing.lg, backgroundColor: colors.surfaceRaised, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.accent, gap: spacing.sm },
-  interventionBody: { color: colors.text, fontSize: 15, lineHeight: 21 },
-  resource: { color: colors.accent, fontSize: 15, fontWeight: '600' },
-  dismiss: { color: colors.textMuted, fontSize: 13, marginTop: spacing.xs },
-  error: { color: colors.danger, fontSize: 13, textAlign: 'center', paddingVertical: 4 },
-  choices: { gap: spacing.sm, paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
-  choice: { borderWidth: 1, borderColor: colors.accent, borderRadius: radius.lg, paddingVertical: 12, paddingHorizontal: 14 },
-  choiceText: { color: colors.text, fontSize: 15 },
+  intervention: { margin: spacing.lg, padding: spacing.lg, backgroundColor: colors.glass, borderRadius: radius.lg, borderWidth: 1, borderColor: 'rgba(244,241,236,0.18)', gap: spacing.sm },
+  interventionBody: { color: colors.ink, fontSize: 15, lineHeight: 21 },
+  resource: { color: colors.ink, fontSize: 15, fontWeight: '600', textDecorationLine: 'underline' },
+  dismiss: { color: colors.muted, fontSize: 13, marginTop: spacing.xs },
+  error: { color: colors.ink, fontSize: 13, textAlign: 'center', paddingVertical: 4 },
+  choices: { gap: spacing.sm, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
+  choice: { borderWidth: 1, borderColor: 'rgba(244,241,236,0.18)', borderRadius: radius.pill, paddingVertical: 12, paddingHorizontal: 18 },
+  choiceText: { color: colors.ink, fontSize: 15 },
 })

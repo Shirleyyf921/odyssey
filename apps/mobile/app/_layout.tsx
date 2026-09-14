@@ -33,10 +33,11 @@ export default function RootLayout() {
       <Paywall />
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: colors.bg },
-          headerTintColor: colors.text,
+          headerStyle: { backgroundColor: colors.ground },
+          headerTintColor: colors.ink,
+          headerTitleStyle: { fontWeight: '700' },
           headerShadowVisible: false,
-          contentStyle: { backgroundColor: colors.bg },
+          contentStyle: { backgroundColor: colors.ground },
         }}
       >
         <Stack.Screen name="index" options={{ title: 'odyssey' }} />

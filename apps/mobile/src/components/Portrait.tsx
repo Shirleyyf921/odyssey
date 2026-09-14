@@ -18,7 +18,7 @@ export function Portrait({ url, name, style }: Props) {
 }
 
 const styles = StyleSheet.create({
-  image: { width: '100%', aspectRatio: 3 / 4, borderRadius: radius.lg, backgroundColor: colors.surfaceRaised },
-  placeholder: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
-  initial: { color: colors.textFaint, fontSize: 64, fontWeight: '700' },
+  image: { width: '100%', aspectRatio: 3 / 4, borderRadius: radius.md, backgroundColor: '#0f0e12' },
+  placeholder: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.hairline },
+  initial: { color: colors.faint, fontSize: 64, fontWeight: '700' },
 })

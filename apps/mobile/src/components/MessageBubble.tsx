@@ -1,5 +1,6 @@
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { STORY_MARKERS, parseReply, parseStoryOutput, type MomentCard } from '@odyssey/shared'
+import { Lock } from './Lock'
 import { colors, radius, spacing } from '../theme'
 
 interface Props {
@@ -85,11 +86,11 @@ export function PhotoBubble({
             )}
             <View style={styles.veil} />
             <View style={styles.veilContent}>
-              <Text style={styles.lockGlyph}>🔒</Text>
+              <Lock />
               <Text style={styles.veilTitle}>{card?.title ?? 'A photo'}</Text>
               {sku && onUnlock ? (
                 <Pressable style={styles.unlock} onPress={() => onUnlock(sku)} disabled={unlocking}>
-                  {unlocking ? <ActivityIndicator size="small" color="#1a0a10" /> : <Text style={styles.unlockText}>Unlock</Text>}
+                  {unlocking ? <ActivityIndicator size="small" color="#0b0a0c" /> : <Text style={styles.unlockText}>Unlock</Text>}
                 </Pressable>
               ) : (
                 <Text style={styles.veilHint}>Unlock it from his Moments</Text>
@@ -127,28 +128,27 @@ const styles = StyleSheet.create({
   rowMine: { justifyContent: 'flex-end' },
   rowTheirs: { justifyContent: 'flex-start' },
   bubble: { maxWidth: '82%', paddingVertical: 10, paddingHorizontal: 14, borderRadius: radius.lg },
-  mine: { backgroundColor: colors.bubbleUser, borderBottomRightRadius: 6 },
-  theirs: { backgroundColor: colors.bubbleCharacter, borderBottomLeftRadius: 6 },
+  mine: { backgroundColor: colors.ink, borderBottomRightRadius: 6 },
+  theirs: { backgroundColor: 'rgba(244,241,236,0.07)', borderBottomLeftRadius: 6 },
   pending: { opacity: 0.6 },
   segments: { gap: 6 },
-  text: { color: colors.text, fontSize: 16, lineHeight: 22 },
-  textMine: { color: '#1a0a10' },
-  action: { color: colors.textMuted, fontSize: 14, lineHeight: 19, fontStyle: 'italic' },
+  text: { color: colors.ink, fontSize: 16, lineHeight: 22 },
+  textMine: { color: '#0b0a0c' },
+  action: { color: colors.muted, fontSize: 14, lineHeight: 19, fontStyle: 'italic' },
   photo: { maxWidth: '82%', gap: spacing.xs },
-  photoFrame: { width: 240, aspectRatio: 3 / 4, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.surfaceRaised },
+  photoFrame: { width: 240, aspectRatio: 3 / 4, borderRadius: radius.md, overflow: 'hidden', backgroundColor: '#0f0e12' },
   photoImage: { width: '100%', height: '100%' },
-  photoEmpty: { backgroundColor: colors.surfaceRaised },
-  veil: { ...{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, backgroundColor: 'rgba(10, 6, 12, 0.72)' },
-  veilContent: { ...{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, padding: spacing.lg },
-  lockGlyph: { fontSize: 26 },
-  veilTitle: { color: colors.text, fontSize: 15, fontWeight: '600', textAlign: 'center' },
-  veilHint: { color: colors.textMuted, fontSize: 12, textAlign: 'center' },
-  unlock: { backgroundColor: colors.accent, paddingVertical: 10, paddingHorizontal: 22, borderRadius: radius.pill, marginTop: spacing.xs },
-  unlockText: { color: '#1a0a10', fontSize: 14, fontWeight: '700' },
-  caption: { color: colors.textMuted, fontSize: 14, lineHeight: 19, paddingHorizontal: 4 },
+  photoEmpty: { backgroundColor: '#0f0e12' },
+  veil: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(5,5,7,0.7)' },
+  veilContent: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, padding: spacing.lg },
+  veilTitle: { color: colors.ink, fontSize: 15, fontWeight: '600', textAlign: 'center' },
+  veilHint: { color: colors.muted, fontSize: 12, textAlign: 'center' },
+  unlock: { backgroundColor: colors.ink, paddingVertical: 10, paddingHorizontal: 22, borderRadius: radius.pill, marginTop: spacing.xs },
+  unlockText: { color: '#0b0a0c', fontSize: 14, fontWeight: '700' },
+  caption: { color: colors.muted, fontSize: 14, lineHeight: 19, paddingHorizontal: 4 },
   storyWrap: { gap: spacing.sm, marginVertical: spacing.sm },
-  narration: { color: colors.textMuted, fontSize: 15, lineHeight: 22, fontStyle: 'italic', paddingHorizontal: spacing.xl },
+  narration: { color: colors.muted, fontSize: 15, lineHeight: 22, fontStyle: 'italic', paddingHorizontal: spacing.xl },
   storyLine: { marginTop: spacing.xs },
   systemWrap: { alignItems: 'center', paddingHorizontal: spacing.xl, marginVertical: spacing.sm },
-  systemText: { color: colors.textMuted, fontSize: 13, textAlign: 'center' },
+  systemText: { color: colors.faint, fontSize: 13, textAlign: 'center' },
 })
