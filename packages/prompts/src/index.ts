@@ -4,6 +4,7 @@ export * from './styles.js'
 export * from './story.js'
 export * from './draft.js'
 export * from './reachout.js'
+export * from './photo.js'
 
 /**
  * Persona and prompt templates.

@@ -24,10 +24,11 @@ for (const seed of SEED_CHARACTERS) {
       avatarUrl: c.avatarUrl,
       voiceId: c.voiceId,
       personaNotes: c.personaNotes,
+      look: c.look,
     })
     .onConflictDoUpdate({
       target: characters.id,
-      set: { name: c.name, tagline: c.tagline, personaNotes: c.personaNotes, accent: c.accent },
+      set: { name: c.name, tagline: c.tagline, personaNotes: c.personaNotes, accent: c.accent, look: c.look },
     })
   for (const p of seed.portraits) {
     await db

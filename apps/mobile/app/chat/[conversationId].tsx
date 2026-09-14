@@ -7,6 +7,7 @@ import type { MomentCard } from '@odyssey/shared'
 import { MessageBubble } from '../../src/components/MessageBubble'
 import { SceneCard } from '../../src/components/SceneCard'
 import { api } from '../../src/lib/api'
+import { useAskPhoto } from '../../src/lib/askPhoto'
 import { billing } from '../../src/lib/billing'
 import { ChatSocket } from '../../src/lib/socket'
 import { useChatStore } from '../../src/store/chat'
@@ -46,6 +47,7 @@ export default function ChatScreen() {
   const skuOf = (card: MomentCard | null | undefined) => (card?.unlock.kind === 'PURCHASE' ? card.unlock.sku : null)
   const insets = useSafeAreaInsets()
   const [draft, setDraft] = useState('')
+  const photo = useAskPhoto(conversationId, characterId)
   const socketRef = useRef<ChatSocket | null>(null)
 
   const status = useChatStore((s) => s.status)
@@ -148,6 +150,9 @@ export default function ChatScreen() {
         </View>
       )}
 
+      <Pressable style={[styles.ask, photo.taking && styles.disabled]} onPress={photo.ask} disabled={photo.taking || status !== 'open'} hitSlop={6}>
+        <Text style={styles.askText}>{photo.taking ? 'He is taking one…' : photo.line ?? 'Ask him for a picture'}</Text>
+      </Pressable>
       <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
         <TextInput
           style={styles.input}
@@ -176,6 +181,8 @@ const styles = StyleSheet.create({
   sendButton: { backgroundColor: colors.ink, paddingHorizontal: 18, paddingVertical: 12, borderRadius: radius.pill },
   sendText: { color: '#0b0a0c', fontWeight: '700' },
   disabled: { opacity: 0.4 },
+  ask: { alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 14 },
+  askText: { color: colors.faint, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase' },
   intervention: { margin: spacing.lg, padding: spacing.lg, backgroundColor: colors.glass, borderRadius: radius.lg, borderWidth: 1, borderColor: 'rgba(244,241,236,0.18)', gap: spacing.sm },
   interventionBody: { color: colors.ink, fontSize: 15, lineHeight: 21 },
   resource: { color: colors.ink, fontSize: 15, fontWeight: '600', textDecorationLine: 'underline' },

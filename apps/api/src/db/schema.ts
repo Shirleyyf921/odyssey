@@ -1,4 +1,5 @@
 import {
+  customType,
   index,
   integer,
   jsonb,
@@ -31,6 +32,7 @@ export const relationshipStage = pgEnum('relationship_stage', [
 ])
 export const messageRole = pgEnum('message_role', ['USER', 'CHARACTER', 'SYSTEM'])
 export const momentUnlockSource = pgEnum('moment_unlock_source', [
+  'ASKED',
   'FREE',
   'STAGE',
   'AFFINITY',
@@ -121,6 +123,8 @@ export const characters = pgTable('characters', {
   accent: text('accent').notNull().default('#e0748a'),
   /** Injected into the persona prompt. Product content, versioned with the row. */
   personaNotes: text('persona_notes').notNull().default(''),
+  /** How he looks, one line, for the image prompt (photos/service.ts). Empty: no pictures of him can be asked for. */
+  look: text('look').notNull().default(''),
   createdAt: timestamptz('created_at').notNull().defaultNow(),
 })
 
@@ -215,9 +219,11 @@ export const moments = pgTable(
     teaserUrl: text('teaser_url'),
     position: integer('position').notNull().default(0),
     unlockRule: jsonb('unlock_rule').$type<MomentUnlockRule>().notNull(),
+    /** Set on a picture he took for one user (2026-09-14). The catalogue rows are null. */
+    ownerUserId: uuid('owner_user_id').references(() => users.id, { onDelete: 'cascade' }),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
   },
-  (t) => [index('moments_character_idx').on(t.characterId, t.position)]
+  (t) => [index('moments_character_idx').on(t.characterId, t.position), index('moments_owner_idx').on(t.ownerUserId)]
 )
 
 export const conversations = pgTable(
@@ -476,3 +482,32 @@ export const creatorCredits = pgTable(
   },
   (t) => [uniqueIndex('creator_credits_run_uq').on(t.runId), index('creator_credits_author_idx').on(t.authorId, t.createdAt)]
 )
+
+/**
+ * The bytes of a picture he took on request (2026-09-14), served at /photos/:id.jpg.
+ * In the database for now: a few hundred kilobytes each, hundreds of them; a
+ * bucket behind a CDN when it is thousands, and only the URL changes.
+ */
+export const photoBlobs = pgTable('photo_blobs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  momentId: uuid('moment_id')
+    .notNull()
+    .references(() => moments.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  /** The one-line scene the model wrote and the full prompt sent, kept for review. */
+  scene: text('scene').notNull(),
+  prompt: text('prompt').notNull(),
+  contentType: text('content_type').notNull().default('image/jpeg'),
+  image: customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => 'bytea' })('image').notNull(),
+  createdAt: timestamptz('created_at').notNull().defaultNow(),
+}, (t) => [index('photo_blobs_user_idx').on(t.userId, t.createdAt)])
+
+/** Pictures bought and not yet asked for. Plus's one a day is not kept here; it is counted. */
+export const photoCredits = pgTable('photo_credits', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  remaining: integer('remaining').notNull().default(0),
+})

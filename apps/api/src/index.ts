@@ -8,6 +8,9 @@ import { authorRoutes } from './routes/episodes.js'
 import { reviewRoutes } from './routes/review.js'
 import { ReachOutService } from './relationship/reachout.js'
 import { serveArt, serveWeb } from './web.js'
+import { PhotoService } from './photos/service.js'
+import { SeedreamProvider } from './photos/provider.js'
+import { photoFileRoutes, photoRoutes } from './routes/photos.js'
 import { LogNotifier, ResendNotifier, type ReviewNotifier } from './review/notify.js'
 import { chatWebsocket } from './ws/chat.js'
 import { requireIdentity } from './auth/identity.js'
@@ -112,11 +115,18 @@ if (billing.enabled && !env.REVENUECAT_WEBHOOK_SECRET) {
   app.log.warn('REVENUECAT_SECRET_KEY set without REVENUECAT_WEBHOOK_SECRET: webhook not registered, only restore syncs')
 }
 
+// ---------------------------------------------------------------- pictures (docs/story-pipeline.md, "Ask him for a picture")
+const photoKey = env.PHOTO_API_KEY ?? env.NOVITA_API_KEY ?? null
+const photos = new PhotoService(photoKey ? new SeedreamProvider(photoKey, env.PHOTO_URL) : null, { perDayPlus: env.PHOTOS_PER_DAY_PLUS })
+if (photos.enabled) app.log.info({ url: env.PHOTO_URL, perDayPlus: env.PHOTOS_PER_DAY_PLUS }, 'pictures on')
+else app.log.warn('no PHOTO_API_KEY or NOVITA_API_KEY: nobody can ask him for a picture')
+
 // ---------------------------------------------------------------- http + ws
 // The native client has no origin; CORS only matters for the web preview build.
 if (env.NODE_ENV !== 'production') await app.register(cors, { origin: true })
 await app.register(websocket)
 await app.register(healthRoutes)
+await app.register(photoFileRoutes, { repo })
 await app.register(publicAuthRoutes, { repo, auth })
 await app.register(authRoutes, { repo, auth, billing })
 if (billing.enabled && env.REVENUECAT_WEBHOOK_SECRET) {
@@ -133,6 +143,12 @@ await app.register(async (scoped) => {
     grant: env.NODE_ENV !== 'production' ? 'open' : (env.BILLING_GRANT_SECRET ?? null),
   })
 if (env.NODE_ENV === 'production' && env.BILLING_GRANT_SECRET) app.log.warn('BILLING_GRANT_SECRET set: /billing/dev/grant is live in production')
+  await scoped.register(photoRoutes, {
+    repo,
+    photos,
+    deps: { repo, gateway, memory, relationship, crisis, billing, log: app.log },
+    grant: env.NODE_ENV !== 'production' ? 'open' : (env.BILLING_GRANT_SECRET ?? null),
+  })
   await scoped.register(chatWebsocket, {
     repo,
     gateway,

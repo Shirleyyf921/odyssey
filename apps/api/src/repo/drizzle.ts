@@ -1,4 +1,4 @@
-import { and, asc, cosineDistance, count, desc, eq, gt, gte, inArray, isNotNull, isNull, notInArray, sql } from 'drizzle-orm'
+import { and, asc, cosineDistance, count, desc, eq, gt, gte, inArray, isNotNull, isNull, notInArray, or, sql } from 'drizzle-orm'
 import type {
   AuthProvider,
   Beat,
@@ -29,6 +29,8 @@ import {
   messages,
   momentUnlocks,
   moments,
+  photoBlobs,
+  photoCredits,
   portraits,
   purchases,
   relationshipEvents,
@@ -59,6 +61,7 @@ import type {
   SessionRecord,
   SubscriptionRecord,
   UserRecord,
+  NewPhotoBlob,
 } from './types.js'
 
 const userColumns = { id: users.id, displayName: users.displayName, locale: users.locale, ageVerifiedAt: users.ageVerifiedAt }
@@ -124,6 +127,20 @@ function toEpisode(r: EpisodeRow, beatRows: BeatRow[]): EpisodeRecord {
     reviewNote: r.reviewNote,
     dryRun: r.dryRun ?? null,
     beats: beatRows.sort((a, b) => a.position - b.position).map(toBeat),
+  }
+}
+
+function toMoment(r: typeof moments.$inferSelect): Moment {
+  return {
+    id: r.id,
+    characterId: r.characterId,
+    title: r.title,
+    caption: r.caption,
+    imageUrl: r.imageUrl,
+    teaserUrl: r.teaserUrl,
+    position: r.position,
+    unlock: r.unlockRule,
+    ownerUserId: r.ownerUserId ?? null,
   }
 }
 
@@ -393,22 +410,82 @@ export class DrizzleRepository implements AppRepository {
 
   // ---------------------------------------------------------------- moments
 
-  async listMoments(characterId: string): Promise<Moment[]> {
+  async listMoments(characterId: string, viewerUserId?: string): Promise<Moment[]> {
+    const own = viewerUserId ? or(isNull(moments.ownerUserId), eq(moments.ownerUserId, viewerUserId)) : isNull(moments.ownerUserId)
     const rows = await this.db
       .select()
       .from(moments)
-      .where(eq(moments.characterId, characterId))
+      .where(and(eq(moments.characterId, characterId), own))
       .orderBy(asc(moments.position))
-    return rows.map((r) => ({
-      id: r.id,
-      characterId: r.characterId,
-      title: r.title,
-      caption: r.caption,
-      imageUrl: r.imageUrl,
-      teaserUrl: r.teaserUrl,
-      position: r.position,
-      unlock: r.unlockRule,
-    }))
+    return rows.map(toMoment)
+  }
+
+  async insertMoment(input: Omit<Moment, 'id'>): Promise<Moment> {
+    const [row] = await this.db
+      .insert(moments)
+      .values({
+        characterId: input.characterId,
+        title: input.title,
+        caption: input.caption,
+        imageUrl: input.imageUrl,
+        teaserUrl: input.teaserUrl ?? null,
+        position: input.position,
+        unlockRule: input.unlock,
+        ownerUserId: input.ownerUserId ?? null,
+      })
+      .returning()
+    if (!row) throw new Error('moment insert returned no row')
+    return toMoment(row)
+  }
+
+  async updateMomentImage(momentId: string, imageUrl: string): Promise<Moment> {
+    const [row] = await this.db.update(moments).set({ imageUrl }).where(eq(moments.id, momentId)).returning()
+    if (!row) throw new Error(`unknown moment ${momentId}`)
+    return toMoment(row)
+  }
+
+  async insertPhotoBlob(input: NewPhotoBlob): Promise<void> {
+    await this.db.insert(photoBlobs).values(input)
+  }
+
+  async getPhotoBlob(momentId: string) {
+    const [row] = await this.db
+      .select({ image: photoBlobs.image, contentType: photoBlobs.contentType })
+      .from(photoBlobs)
+      .where(eq(photoBlobs.momentId, momentId))
+      .limit(1)
+    return row ?? null
+  }
+
+  async countAskedSince(userId: string, since: Date): Promise<number> {
+    const [row] = await this.db
+      .select({ n: count() })
+      .from(photoBlobs)
+      .where(and(eq(photoBlobs.userId, userId), gte(photoBlobs.createdAt, since)))
+    return row?.n ?? 0
+  }
+
+  async photoCredits(userId: string): Promise<number> {
+    const [row] = await this.db.select().from(photoCredits).where(eq(photoCredits.userId, userId)).limit(1)
+    return row?.remaining ?? 0
+  }
+
+  async addPhotoCredits(userId: string, n: number): Promise<number> {
+    const [row] = await this.db
+      .insert(photoCredits)
+      .values({ userId, remaining: n })
+      .onConflictDoUpdate({ target: photoCredits.userId, set: { remaining: sql`${photoCredits.remaining} + ${n}` } })
+      .returning()
+    return row?.remaining ?? n
+  }
+
+  async spendPhotoCredit(userId: string): Promise<boolean> {
+    const rows = await this.db
+      .update(photoCredits)
+      .set({ remaining: sql`${photoCredits.remaining} - 1` })
+      .where(and(eq(photoCredits.userId, userId), gt(photoCredits.remaining, 0)))
+      .returning()
+    return rows.length > 0
   }
 
   async listUnlocks(relationshipId: string): Promise<MomentUnlock[]> {

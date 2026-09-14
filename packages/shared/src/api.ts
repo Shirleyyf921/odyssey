@@ -39,6 +39,21 @@ export const StartRelationshipResponse = z.object({
 })
 export type StartRelationshipResponse = z.infer<typeof StartRelationshipResponse>
 
+/** Ask him for a picture (docs/story-pipeline.md, "Ask him for a picture"). */
+export const AskPhotoResponse = z.object({
+  moment: MomentCard,
+  message: Message,
+})
+export type AskPhotoResponse = z.infer<typeof AskPhotoResponse>
+
+/** Why a picture was refused; the client maps these to the paywall or to a line. */
+export const AskPhotoRefusal = z.enum(['NEEDS_PLUS', 'USED_TODAY', 'UNAVAILABLE'])
+export type AskPhotoRefusal = z.infer<typeof AskPhotoRefusal>
+
+/** Development only: pictures to add to the caller's balance. */
+export const DevPhotoCreditsRequest = z.object({ count: z.number().int().min(1).max(50) })
+export type DevPhotoCreditsRequest = z.infer<typeof DevPhotoCreditsRequest>
+
 export const MomentsResponse = z.object({
   characterId: z.string().uuid(),
   relationship: RelationshipSummary.nullable(),

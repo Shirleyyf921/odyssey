@@ -54,7 +54,7 @@ export function MomentTile({ card, onUnlock, unlocking }: Props) {
         </Pressable>
       ) : (
         <Text style={styles.sub} numberOfLines={2}>
-          {locked ? unlockHint(card) : card.caption}
+          {locked ? unlockHint(card) : card.asked ? `For you${card.unlockedAt ? ` · ${new Date(card.unlockedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}` : card.caption}
         </Text>
       )}
     </View>

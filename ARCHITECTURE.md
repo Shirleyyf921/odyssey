@@ -228,6 +228,7 @@ engaged user can spend lives in moments.
 | Exploration characters | 1 slot, LIGHT | 3 slots, LIGHT | All, LIGHT |
 | Proactive messages (§8) | ❌ | ✅ | ✅ |
 | Replaying a story (2026-09-14) | ❌ once each | ✅ again, any door | ✅ |
+| Asking him for a picture (2026-09-14) | ❌ bought only | ✅ one a day, plus bought | ✅ one a day, plus bought |
 | Voice (v2) | ❌ | ❌ | ✅ |
 | Moments | FREE tier only | FREE + STAGE + AFFINITY | Same, plus one monthly moment included |
 
@@ -259,6 +260,7 @@ the App Store review boring. Gacha is a v2 question if measured spend justifies 
 | Single moment | $2.99 | Permanent catalogue, `PURCHASE` rule on the card |
 | Monthly limited set (3 moments, one per character) | $7.99 | On sale for the calendar month, then retired from purchase |
 | Character set (all purchasable moments of one character) | $14.99 | Discounted bundle, catalogue only |
+| A picture he takes for you (2026-09-14) | $1.99, five for $6.99 | Consumable credits; generated on request from where the night is (docs/story-pipeline.md, "Ask him for a picture") |
 
 - Earned and bought moments are the same table; `momentUnlocks` records the source so the
   paywall A/B in §14 can read conversion by unlock kind.
