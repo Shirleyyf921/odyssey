@@ -124,7 +124,7 @@ export default function WriteEpisode() {
   const editable = status === 'DRAFT' || status === 'REJECTED'
 
   if (Platform.OS !== 'web') return <View style={styles.centered}><Text style={styles.muted}>Writing happens on the web.</Text></View>
-  if (!draft) return <View style={styles.centered}>{existing.error ? <Text style={styles.error}>{String(existing.error)}</Text> : <ActivityIndicator color={colors.accent} />}</View>
+  if (!draft) return <View style={styles.centered}>{existing.error ? <Text style={styles.error}>{String(existing.error)}</Text> : <ActivityIndicator color={colors.ink} />}</View>
   const him = character.data?.name ?? 'him'
   const update = (patch: Partial<EpisodeDraft>) => setDraft({ ...draft, ...patch })
   const updateBeat = (i: number, patch: Partial<DraftBeat>) => update({ beats: draft.beats.map((b, k) => (k === i ? { ...b, ...patch } : b)) })
@@ -134,7 +134,7 @@ export default function WriteEpisode() {
   return (
     <>
       <Stack.Screen options={{ title: isNew ? `New episode for ${him}` : draft.title || 'Untitled' }} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         {character.data ? <Text style={styles.muted}>{him}. {character.data.tagline}</Text> : null}
         {!editable ? <Text style={styles.warn}>This one is {status.toLowerCase()}; it cannot be edited now.</Text> : null}
         {note ? <Text style={styles.warn}>{note}</Text> : null}
@@ -192,11 +192,11 @@ export default function WriteEpisode() {
                 ))}
               </View>
             </View>
-            <TextInput style={[styles.input, styles.multiline]} value={b.brief} editable={editable} multiline placeholder="To the actor, not the reader: what happens here, what he wants, what he must not do yet." placeholderTextColor={colors.textFaint} onChangeText={(brief) => updateBeat(i, { brief })} />
-            <TextInput style={styles.input} value={b.setting ?? ''} editable={editable} placeholder="Setting, only if the scene moves" placeholderTextColor={colors.textFaint} onChangeText={(v) => updateBeat(i, { setting: v.trim() ? v : null })} />
+            <TextInput style={[styles.input, styles.multiline]} value={b.brief} editable={editable} multiline placeholder="To the actor, not the reader: what happens here, what he wants, what he must not do yet." placeholderTextColor={colors.faint} onChangeText={(brief) => updateBeat(i, { brief })} />
+            <TextInput style={styles.input} value={b.setting ?? ''} editable={editable} placeholder="Setting, only if the scene moves" placeholderTextColor={colors.faint} onChangeText={(v) => updateBeat(i, { setting: v.trim() ? v : null })} />
             {b.options.map((o, k) => (
               <View key={k} style={styles.option}>
-                <TextInput style={[styles.input, styles.grow]} value={o.intent} editable={editable && b.kind !== 'CALL'} placeholder={`Option ${k + 1}: what the reader does`} placeholderTextColor={colors.textFaint} onChangeText={(intent) => updateBeat(i, { options: b.options.map((x, j) => (j === k ? { ...x, intent } : x)) })} />
+                <TextInput style={[styles.input, styles.grow]} value={o.intent} editable={editable && b.kind !== 'CALL'} placeholder={`Option ${k + 1}: what the reader does`} placeholderTextColor={colors.faint} onChangeText={(intent) => updateBeat(i, { options: b.options.map((x, j) => (j === k ? { ...x, intent } : x)) })} />
                 <Goes to={positionOf(o.next)} beats={draft.beats} editable={editable} onChange={(p) => updateBeat(i, { options: b.options.map((x, j) => (j === k ? { ...x, next: idAt(p) } : x)) })} />
               </View>
             ))}
@@ -300,7 +300,7 @@ function Field({ label, value, onChange, editable, multiline }: { label: string;
   return (
     <View style={styles.box}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput style={[styles.input, multiline && styles.multiline]} value={value} onChangeText={onChange} editable={editable} multiline={multiline} placeholderTextColor={colors.textFaint} />
+      <TextInput style={[styles.input, multiline && styles.multiline]} value={value} onChangeText={onChange} editable={editable} multiline={multiline} placeholderTextColor={colors.faint} />
     </View>
   )
 }
@@ -340,37 +340,38 @@ function Played({ beat }: { beat: DryRun['beats'][number] }) {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl, maxWidth: 760, width: '100%', alignSelf: 'center' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
+  screen: { flex: 1, backgroundColor: colors.ground },
+  content: { padding: spacing.xl, gap: spacing.md, paddingBottom: spacing.xxl, maxWidth: 760, width: '100%', alignSelf: 'center' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, backgroundColor: colors.ground },
   box: { gap: spacing.sm },
-  label: { color: colors.textFaint, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
-  kicker: { color: colors.textFaint, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
-  input: { color: colors.text, fontSize: 15, backgroundColor: colors.surface, borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 10 },
+  label: { color: colors.faint, fontSize: 11, textTransform: 'uppercase', letterSpacing: 2 },
+  kicker: { color: colors.faint, fontSize: 11, textTransform: 'uppercase', letterSpacing: 2 },
+  input: { color: colors.ink, fontSize: 15, backgroundColor: 'rgba(244,241,236,0.06)', borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 10 },
   multiline: { minHeight: 72 },
   grow: { flex: 1 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, alignItems: 'center' },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
   rowStart: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
-  beat: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm, borderWidth: 1, borderColor: colors.border },
+  beat: { paddingTop: spacing.md, gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.hairline },
   option: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', flexWrap: 'wrap' },
-  chip: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 6 },
+  chip: { borderWidth: 1, borderColor: 'rgba(244,241,236,0.18)', borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 6 },
   chipSmall: { paddingHorizontal: 9, paddingVertical: 3 },
-  chipActive: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
-  chipText: { color: colors.textMuted, fontSize: 13 },
-  chipTextActive: { color: colors.accent },
-  checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1, borderColor: colors.border, marginTop: 2 },
-  checkboxOn: { backgroundColor: colors.accent, borderColor: colors.accent },
-  primary: { flex: 1, backgroundColor: colors.accent, paddingVertical: 12, borderRadius: radius.pill, alignItems: 'center' },
-  primaryText: { color: '#1a0a10', fontSize: 15, fontWeight: '700' },
-  secondary: { flex: 1, borderWidth: 1, borderColor: colors.border, paddingVertical: 12, borderRadius: radius.pill, alignItems: 'center' },
-  secondaryText: { color: colors.text, fontSize: 15, fontWeight: '600' },
+  chipActive: { backgroundColor: colors.ink, borderColor: colors.ink },
+  chipText: { color: colors.muted, fontSize: 13 },
+  chipTextActive: { color: '#0b0a0c', fontWeight: '600' },
+  checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1, borderColor: 'rgba(244,241,236,0.18)', marginTop: 2 },
+  checkboxOn: { backgroundColor: colors.ink, borderColor: colors.ink },
+  primary: { flex: 1, backgroundColor: colors.ink, paddingVertical: 12, borderRadius: radius.pill, alignItems: 'center' },
+  primaryText: { color: '#0b0a0c', fontSize: 15, fontWeight: '700' },
+  secondary: { flex: 1, borderWidth: 1, borderColor: 'rgba(244,241,236,0.18)', paddingVertical: 12, borderRadius: radius.pill, alignItems: 'center' },
+  secondaryText: { color: colors.ink, fontSize: 15, fontWeight: '600' },
   disabled: { opacity: 0.5 },
-  link: { color: colors.textFaint, fontSize: 13, textDecorationLine: 'underline' },
-  muted: { color: colors.textMuted, fontSize: 14, lineHeight: 19 },
+  link: { color: colors.faint, fontSize: 13, textDecorationLine: 'underline' },
+  muted: { color: colors.muted, fontSize: 14, lineHeight: 19 },
   warn: { color: colors.danger, fontSize: 14, lineHeight: 19 },
-  message: { color: colors.accent, fontSize: 14, lineHeight: 19 },
+  message: { color: colors.ink, fontSize: 14, lineHeight: 19 },
   error: { color: colors.danger },
-  played: { backgroundColor: colors.bg, borderRadius: radius.md, padding: spacing.sm, gap: 4 },
-  narration: { color: colors.textMuted, fontSize: 14, lineHeight: 20 },
-  line: { color: colors.text, fontSize: 14, lineHeight: 20 },
+  played: { backgroundColor: 'rgba(244,241,236,0.05)', borderRadius: radius.md, padding: spacing.sm, gap: 4 },
+  narration: { color: colors.muted, fontSize: 14, lineHeight: 20 },
+  line: { color: colors.ink, fontSize: 14, lineHeight: 20 },
 })
