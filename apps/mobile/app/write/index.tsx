@@ -21,11 +21,11 @@ export default function WriteIndex() {
   const mine = useQuery({ queryKey: ['my-episodes'], queryFn: api.myEpisodes, enabled: Platform.OS === 'web' })
   const roster = useQuery({ queryKey: ['characters'], queryFn: api.characters, enabled: Platform.OS === 'web' })
   if (Platform.OS !== 'web') return <View style={styles.centered}><Text style={styles.muted}>Writing happens on the web.</Text></View>
-  if (mine.isLoading || roster.isLoading) return <View style={styles.centered}><ActivityIndicator color={colors.accent} /></View>
+  if (mine.isLoading || roster.isLoading) return <View style={styles.centered}><ActivityIndicator color={colors.ink} /></View>
   const open = (roster.data?.characters ?? []).filter((c) => c.kind === 'EXPLORE')
   const byId = new Map((roster.data?.characters ?? []).map((c) => [c.id, c.name]))
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Write for him</Text>
       <Text style={styles.body}>
         You write the episode: where it opens, what he wants, what the reader can do. He stays himself. Nothing you write
@@ -64,18 +64,19 @@ export default function WriteIndex() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl, maxWidth: 760, width: '100%', alignSelf: 'center' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  title: { color: colors.text, fontSize: 22, fontWeight: '700' },
-  body: { color: colors.textMuted, fontSize: 15, lineHeight: 21 },
+  screen: { flex: 1, backgroundColor: colors.ground },
+  content: { padding: spacing.xl, gap: spacing.md, paddingBottom: spacing.xxl, maxWidth: 760, width: '100%', alignSelf: 'center' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, backgroundColor: colors.ground },
+  title: { color: colors.ink, fontSize: 30, fontWeight: '800', letterSpacing: -0.6 },
+  body: { color: colors.muted, fontSize: 15, lineHeight: 21 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  newButton: { backgroundColor: colors.accent, paddingVertical: 12, paddingHorizontal: 18, borderRadius: radius.pill },
-  newText: { color: '#1a0a10', fontSize: 15, fontWeight: '700' },
-  sectionLabel: { color: colors.textFaint, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, marginTop: spacing.md },
-  card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, gap: 4, borderWidth: 1, borderColor: colors.border },
-  kicker: { color: colors.textFaint, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
-  cardTitle: { color: colors.text, fontSize: 17, fontWeight: '700' },
-  muted: { color: colors.textMuted, fontSize: 14, lineHeight: 19 },
+  newButton: { backgroundColor: colors.ink, paddingVertical: 12, paddingHorizontal: 20, borderRadius: radius.pill },
+  newText: { color: '#0b0a0c', fontSize: 15, fontWeight: '700' },
+  sectionLabel: { color: colors.faint, fontSize: 11, textTransform: 'uppercase', letterSpacing: 2, marginTop: spacing.md },
+  card: { paddingVertical: 14, gap: 4, borderBottomWidth: 1, borderBottomColor: colors.hairline },
+  kicker: { color: colors.faint, fontSize: 11, textTransform: 'uppercase', letterSpacing: 2 },
+  cardTitle: { color: colors.ink, fontSize: 17, fontWeight: '700' },
+  muted: { color: colors.muted, fontSize: 14, lineHeight: 19 },
   warn: { color: colors.danger, fontSize: 14, lineHeight: 19 },
-  credit: { color: colors.accent, fontSize: 13, marginTop: 4 },
+  credit: { color: colors.ink, fontSize: 13, marginTop: 4 },
 })

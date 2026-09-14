@@ -14,11 +14,11 @@ export default function ReviewScreen() {
   const qc = useQueryClient()
   const queue = useQuery({ queryKey: ['review'], queryFn: api.reviewQueue, enabled: Platform.OS === 'web' })
   if (Platform.OS !== 'web') return <View style={styles.centered}><Text style={styles.muted}>Review happens on the web.</Text></View>
-  if (queue.isLoading) return <View style={styles.centered}><ActivityIndicator color={colors.accent} /></View>
+  if (queue.isLoading) return <View style={styles.centered}><ActivityIndicator color={colors.ink} /></View>
   if (queue.error) return <View style={styles.centered}><Text style={styles.error}>{String(queue.error)}</Text></View>
   const items = queue.data?.items ?? []
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.title}>{items.length ? `${items.length} to read` : 'Nothing waiting'}</Text>
       {items.map((item) => (
         <ReviewCard key={item.id} item={item} onDone={() => qc.invalidateQueries({ queryKey: ['review'] })} />
@@ -97,7 +97,7 @@ function ReviewCard({ item, onDone }: { item: ReviewItem; onDone: () => void }) 
         value={note}
         onChangeText={setNote}
         placeholder="A note the author will read. Required for a no."
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.faint}
         multiline
       />
       <View style={styles.row}>
@@ -118,27 +118,28 @@ function ReviewCard({ item, onDone }: { item: ReviewItem; onDone: () => void }) 
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl, maxWidth: 760, width: '100%', alignSelf: 'center' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  title: { color: colors.text, fontSize: 22, fontWeight: '700' },
-  card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm, borderWidth: 1, borderColor: colors.border },
-  cardFlagged: { borderColor: colors.danger },
-  kicker: { color: colors.textFaint, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
-  cardTitle: { color: colors.text, fontSize: 18, fontWeight: '700' },
-  body: { color: colors.text, fontSize: 15, lineHeight: 21 },
-  muted: { color: colors.textMuted, fontSize: 14, lineHeight: 19 },
+  screen: { flex: 1, backgroundColor: colors.ground },
+  content: { padding: spacing.xl, gap: spacing.lg, paddingBottom: spacing.xxl, maxWidth: 760, width: '100%', alignSelf: 'center' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, backgroundColor: colors.ground },
+  title: { color: colors.ink, fontSize: 30, fontWeight: '800', letterSpacing: -0.6 },
+  card: { paddingTop: spacing.lg, gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.hairline },
+  cardFlagged: { borderTopColor: colors.danger },
+  kicker: { color: colors.faint, fontSize: 11, textTransform: 'uppercase', letterSpacing: 2 },
+  cardTitle: { color: colors.ink, fontSize: 20, fontWeight: '700' },
+  body: { color: colors.ink, fontSize: 15, lineHeight: 21 },
+  muted: { color: colors.muted, fontSize: 14, lineHeight: 19 },
   warn: { color: colors.danger, fontSize: 14, lineHeight: 19 },
-  link: { color: colors.accent, fontSize: 14, fontWeight: '600' },
-  beat: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: spacing.md, gap: 4, marginTop: spacing.sm },
-  brief: { color: colors.text, fontSize: 14, lineHeight: 20, fontStyle: 'italic' },
-  played: { backgroundColor: colors.bg, borderRadius: radius.md, padding: spacing.sm, gap: 4, marginTop: 4 },
-  narration: { color: colors.textMuted, fontSize: 14, lineHeight: 20 },
-  line: { color: colors.text, fontSize: 14, lineHeight: 20 },
-  input: { color: colors.text, fontSize: 14, backgroundColor: colors.bg, borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 10, minHeight: 60, marginTop: spacing.sm },
+  link: { color: colors.ink, fontSize: 14, fontWeight: '600', textDecorationLine: 'underline' },
+  beat: { borderLeftWidth: 1, borderLeftColor: 'rgba(244,241,236,0.18)', paddingLeft: spacing.md, gap: 4, marginTop: spacing.sm },
+  brief: { color: colors.ink, fontSize: 14, lineHeight: 20, fontStyle: 'italic' },
+  played: { backgroundColor: 'rgba(244,241,236,0.05)', borderRadius: radius.md, padding: spacing.sm, gap: 4, marginTop: 4 },
+  narration: { color: colors.muted, fontSize: 14, lineHeight: 20 },
+  line: { color: colors.ink, fontSize: 14, lineHeight: 20 },
+  input: { color: colors.ink, fontSize: 14, backgroundColor: 'rgba(244,241,236,0.06)', borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 10, minHeight: 60, marginTop: spacing.sm },
   row: { flexDirection: 'row', gap: spacing.sm },
-  button: { flex: 1, borderWidth: 1, borderColor: colors.border, paddingVertical: 12, borderRadius: radius.pill, alignItems: 'center' },
-  buttonText: { color: colors.text, fontSize: 15, fontWeight: '600' },
-  approve: { backgroundColor: colors.accent, borderColor: colors.accent },
-  approveText: { color: '#1a0a10', fontSize: 15, fontWeight: '700' },
+  button: { flex: 1, borderWidth: 1, borderColor: 'rgba(244,241,236,0.18)', paddingVertical: 12, borderRadius: radius.pill, alignItems: 'center' },
+  buttonText: { color: colors.ink, fontSize: 15, fontWeight: '600' },
+  approve: { backgroundColor: colors.ink, borderColor: colors.ink },
+  approveText: { color: '#0b0a0c', fontSize: 15, fontWeight: '700' },
   error: { color: colors.danger },
 })
