@@ -348,3 +348,10 @@ beat, the persona, the style block and his hero; the user never types the prompt
 follows the story. Not yet: the colour rule in the prompt must change to "grey ink wash, warm
 skin, one accent colour", and the expression should come from the beat, never left to the
 model. Price per image on Novita is cents; Tipsy charges 40 gems for the same act.
+
+Retest, twenty scenes with the three rules in the prompt (`scratchpad/spike/generated-moments-v2.py`):
+colour held in all twenty (warm skin, one accent), framing held in all twenty (the roof scene
+came back chest-up), the man held in all twenty by Shirley's read of the first ten and mine
+of the rest. Expression is the one rule the model still bends: asked for the smile gone, Rafe
+kept a small one. Approved 2026-09-14 as a feature, "ask him for a picture": one accent colour
+worth watching, the yellow of a lamp crept into Ash's eyes once.
