@@ -17,6 +17,7 @@
   "devDependencies": {
     "drizzle-kit": "^0.31.10",
     "prettier": "^3.4.2",
+    "railway": "^3.11.0",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2"
   }
