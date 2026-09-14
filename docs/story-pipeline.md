@@ -177,6 +177,9 @@ Each line is one PR. Nothing below depends on RevenueCat products existing.
 7. **Call beats**: `kind: call` on beats, the call screen, one rendered clip for Elliot's first
    episode ending. Voice casting happens in parallel with 1–5, it is not on the critical path.
 8. **Second and third episodes for Elliot**, first for Theo and Jun; then the season outlines.
+   Done 2026-09-14 as three-part arcs for Ash, Rafe and Jun (docs/season-1-drafts.md): part 1
+   free, part 2 Plus, part 3 after part 2 and MATURE. Nine episodes, sixty beats. Six new
+   cards wait on art (placeholders serve).
 
 Cut list from this change: `relationship_updated` on the client, the Moments count on the
 character page, exploration characters as parallel relationships (they become supporting cast

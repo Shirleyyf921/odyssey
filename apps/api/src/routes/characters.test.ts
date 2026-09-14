@@ -176,8 +176,9 @@ test('episodes: cards only, status follows the run, briefs stay on the server', 
 
   const before = EpisodesResponse.parse((await app.inject({ method: 'GET', url: `/characters/${primary.id}/episodes`, headers: { 'x-device-id': device } })).json())
   assert.equal(before.relationship, null)
-  assert.equal(before.episodes.length, 1)
+  assert.equal(before.episodes.length, 2, 'the free one and the Plus one; MATURE is not for the store build')
   assert.equal(before.episodes[0]!.status, 'AVAILABLE')
+  assert.equal(before.episodes[1]!.status, 'LOCKED', 'part 2 is Plus')
   const raw = (await app.inject({ method: 'GET', url: `/characters/${primary.id}/episodes`, headers: { 'x-device-id': device } })).body
   assert.ok(!raw.includes('brief'), 'the brief is not in the payload')
 
@@ -232,21 +233,22 @@ test('the rating rail: a store build never sees MATURE, and the web build only a
   const asDevice = { 'x-device-id': device }
   const asWeb = { ...asDevice, 'x-odyssey-channel': 'web' }
   const all = (await repo.listEpisodes(primary.id)).map((e) => e.title)
-  assert.equal(all.length, 2, 'the seed has one of each rating')
+  assert.equal(all.length, 3, 'the seed has two SFW and one MATURE')
+  const sfw = all.slice(0, 2)
 
-  assert.deepEqual(await titles(asDevice), [all[0]], 'no channel header is read as store')
-  assert.deepEqual(await titles({ ...asDevice, 'x-odyssey-channel': 'store' }), [all[0]])
-  assert.deepEqual(await titles(asWeb), [all[0]], 'the web build still needs the age gate')
+  assert.deepEqual(await titles(asDevice), sfw, 'no channel header is read as store')
+  assert.deepEqual(await titles({ ...asDevice, 'x-odyssey-channel': 'store' }), sfw)
+  assert.deepEqual(await titles(asWeb), sfw, 'the web build still needs the age gate')
 
   const under = await app.inject({ method: 'POST', url: '/me/age', headers: asWeb, payload: { bornOn: '2015-01-01' } })
   assert.equal(under.statusCode, 403)
-  assert.deepEqual(await titles(asWeb), [all[0]], 'a refused declaration changes nothing')
+  assert.deepEqual(await titles(asWeb), sfw, 'a refused declaration changes nothing')
 
   const ok = await app.inject({ method: 'POST', url: '/me/age', headers: asWeb, payload: { bornOn: '1992-01-05' } })
   assert.equal(ok.statusCode, 200)
   assert.equal(MeResponse.parse(ok.json()).user.ageVerified, true)
-  assert.deepEqual(await titles(asWeb), all, 'web plus age sees both')
-  assert.deepEqual(await titles(asDevice), [all[0]], 'the store build is unaffected by the same user being verified')
+  assert.deepEqual(await titles(asWeb), all, 'web plus age sees all three')
+  assert.deepEqual(await titles(asDevice), sfw, 'the store build is unaffected by the same user being verified')
 
   const tonight = TonightResponse.parse((await app.inject({ method: 'GET', url: '/tonight', headers: asDevice })).json())
   assert.equal(tonight.items.find((i) => i.character.kind === 'PRIMARY')?.episode?.title, all[0], 'tonight rides the same rail')

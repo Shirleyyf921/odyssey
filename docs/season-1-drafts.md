@@ -129,7 +129,11 @@ Rafe "The forty-second floor" (5 beats), Jun "Sixty floors of nothing" (7 beats)
 
 ---
 
-## What this needs when approved
+## Status
+
+Seeded 2026-09-14 (`apps/api/src/content/seed.ts`): every episode below is LIVE. The six NEW ART cards are placeholders until the pictures exist.
+
+## What this needed when approved
 
 - **Seed**: five new episode records and Ash part 3 re-wired (6 beats); new moment cards for the NEW ART photos (7 cards: The key, The lobby, Unbuttoned, The corner, The door, His shirt, plus "The roof" moving from CLOSE to Ash part 2; optional backdrops for the hotel roof, the lobby, her street, Jun's flat).
 - **Art**: those seven cards on Lovart, same rule as before: only colour and light change, the face stays. Placeholders serve until then.
