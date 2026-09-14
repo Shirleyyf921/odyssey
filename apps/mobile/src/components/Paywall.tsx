@@ -77,7 +77,10 @@ export function Paywall() {
         <Text style={styles.body}>{copy.body}</Text>
         <View style={styles.list}>
           {OPENS.map((line) => (
-            <Text key={line} style={styles.line}>· {line}</Text>
+            <View key={line} style={styles.row}>
+              <View style={styles.dot} />
+              <Text style={styles.line}>{line}</Text>
+            </View>
           ))}
         </View>
         {already ? (
@@ -98,7 +101,7 @@ export function Paywall() {
             <Text style={styles.muted}>{Platform.OS === 'web' ? 'Plus is bought in the app.' : 'Plus is not on sale in this build yet.'}</Text>
           </>
         )}
-        <View style={styles.row}>
+        <View style={styles.foot}>
           {billing.available ? (
             <Pressable onPress={() => restore.mutate()} hitSlop={8}><Text style={styles.link}>Restore purchases</Text></Pressable>
           ) : <View />}
@@ -113,20 +116,22 @@ export function Paywall() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
-  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(6, 5, 10, 0.72)' },
-  sheet: { backgroundColor: colors.surface, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, padding: spacing.xl, paddingBottom: spacing.xxl, gap: spacing.md, maxWidth: 560, width: '100%' },
-  kicker: { color: colors.accent, fontSize: 12, letterSpacing: 2, textTransform: 'uppercase' },
-  title: { color: colors.text, fontSize: 24, fontWeight: '700' },
-  body: { color: colors.textMuted, fontSize: 15, lineHeight: 21 },
-  list: { gap: 4, marginVertical: spacing.sm },
-  line: { color: colors.text, fontSize: 15, lineHeight: 21 },
-  primary: { backgroundColor: colors.accent, paddingVertical: 14, borderRadius: radius.pill, alignItems: 'center' },
-  primaryText: { color: '#1a0a10', fontSize: 16, fontWeight: '700' },
-  secondary: { borderWidth: 1, borderColor: colors.border, paddingVertical: 12, borderRadius: radius.pill, alignItems: 'center' },
-  secondaryText: { color: colors.text, fontSize: 15, fontWeight: '600' },
-  price: { color: colors.text, fontSize: 16, fontWeight: '600' },
-  muted: { color: colors.textFaint, fontSize: 13, lineHeight: 18 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.sm },
-  link: { color: colors.textMuted, fontSize: 14 },
+  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(5, 5, 7, 0.55)' },
+  sheet: { backgroundColor: 'rgba(5, 5, 7, 0.96)', borderTopWidth: 1, borderTopColor: colors.hairline, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: spacing.xl, paddingBottom: spacing.xxl + 4, gap: spacing.md, maxWidth: 560, width: '100%' },
+  kicker: { color: colors.muted, fontSize: 11, letterSpacing: 3, textTransform: 'uppercase' },
+  title: { color: colors.ink, fontSize: 26, fontWeight: '800', letterSpacing: -0.5, lineHeight: 30 },
+  body: { color: colors.muted, fontSize: 15, lineHeight: 22 },
+  list: { gap: 6, marginVertical: spacing.xs },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.ink },
+  line: { color: colors.ink, fontSize: 14, lineHeight: 20 },
+  primary: { backgroundColor: colors.ink, paddingVertical: 15, borderRadius: radius.pill, alignItems: 'center' },
+  primaryText: { color: '#0b0a0c', fontSize: 15, fontWeight: '800' },
+  secondary: { borderWidth: 1, borderColor: 'rgba(244,241,236,0.18)', paddingVertical: 13, borderRadius: radius.pill, alignItems: 'center' },
+  secondaryText: { color: colors.ink, fontSize: 14, fontWeight: '600' },
+  price: { color: colors.ink, fontSize: 16, fontWeight: '600' },
+  muted: { color: colors.faint, fontSize: 13, lineHeight: 18 },
+  foot: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xs },
+  link: { color: colors.faint, fontSize: 13 },
   error: { color: colors.danger, fontSize: 13 },
 })
