@@ -141,7 +141,8 @@ function state(item: TonightItem): string {
   if (!episode) return character.relationship ? 'he is up' : 'say hello'
   switch (episode.status) {
     case 'IN_PROGRESS':
-      return `continue · ${episode.currentBeat}/${episode.beatCount}`
+      // The pill says continue; the kicker keeps only the place, so it fits after his name.
+      return `${episode.currentBeat}/${episode.beatCount}`
     case 'AVAILABLE':
       return 'open'
     case 'DONE':
