@@ -18,7 +18,7 @@ export default defineRailway(() => {
     healthcheckTimeout: 30,
     // Restart policy stays on Railway's default (on failure); setting it here never converges in plan.
     replicas: { "sfo": 1 },
-    env: { BILLING_GRANT_SECRET: preserve(), DATABASE_URL: preserve(), EXPO_PUBLIC_BILLING_GRANT_SECRET: preserve(), EXPO_PUBLIC_REVIEW_SECRET: preserve(), MEMORY_TIER: preserve(), NODE_ENV: preserve(), NOVITA_API_KEY: preserve(), REVIEW_SECRET: preserve() },
+    env: { BILLING_GRANT_SECRET: preserve(), DATABASE_URL: preserve(), MEMORY_TIER: preserve(), NODE_ENV: preserve(), NOVITA_API_KEY: preserve(), REVIEW_SECRET: preserve() },
   });
 
   return project("odyssey", {

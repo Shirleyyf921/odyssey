@@ -102,13 +102,14 @@ gitignored; never commit it. On Railway, set the same variables in the service s
 from its own origin when that directory exists (`WEB_DIST`, default `../mobile/dist`), so the
 browser needs no CORS and the client no configured API URL. The mobile package's `build` script is that export, so the root `pnpm run build`
 that Railpack runs produces it; that is how the demo at the API's URL exists (native
-builds go through EAS, not turbo). A build that carries
-`EXPO_PUBLIC_BILLING_GRANT_SECRET` shows the dogfood grant button on the account page; keep that
-to demo builds and rotate the secret after.
+builds go through EAS, not turbo). The dogfood grant button on the account page and the
+review queue (`/review`, web build) need the operator secrets, `BILLING_GRANT_SECRET` and
+`REVIEW_SECRET` on the server. They are never compiled into a build: on the web an operator
+puts them in their own browser once (`localStorage.setItem('odyssey.grantSecret', …)` and
+`odyssey.reviewSecret`; see `apps/mobile/src/lib/secrets.ts`), and a store build cannot carry
+one. Both are open in development without a secret.
 
-The review queue for user-made episodes (`/review`, web build) is open in development and
-needs `REVIEW_SECRET` on the server and `EXPO_PUBLIC_REVIEW_SECRET` in the reviewer's web build
-in production. `RESEND_API_KEY` plus `REVIEW_NOTIFY_EMAIL` turn the "something is waiting"
+`RESEND_API_KEY` plus `REVIEW_NOTIFY_EMAIL` turn the "something is waiting"
 log line into a mail.
 
 ### Running the client
