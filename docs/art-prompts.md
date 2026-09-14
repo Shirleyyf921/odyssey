@@ -1,5 +1,9 @@
 # Art prompts — characters, scenes, moments
 
+> Since 2026-09-14 the app serves its own copies from `apps/api/art` (`/art/<file>`); the
+> Lovart links below are the sources and the record of what was chosen, not what the app
+> loads. `apps/api/art/SOURCES.md` maps each served file to its link.
+
 Working document for producing the v1 assets with Midjourney and Lovart. Everything here
 is a starting point; the face that wins the first round becomes the reference for the rest.
 

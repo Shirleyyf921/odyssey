@@ -10,6 +10,21 @@ import type { FastifyInstance } from 'fastify'
  * index.html and the router takes it from there. Registered only when the
  * build exists; the API is otherwise unchanged.
  */
+/**
+ * The art (portraits, backdrops, cards) from a directory in the repo, at /art.
+ * Nineteen files today; when it is hundreds this moves to a bucket behind a
+ * CDN and only publicUrl() changes. Immutable by name, so a year of caching.
+ */
+export async function serveArt(app: FastifyInstance, dir: string): Promise<void> {
+  await app.register(fastifyStatic, {
+    root: resolve(dir),
+    prefix: '/art/',
+    decorateReply: false,
+    maxAge: '365d',
+    immutable: true,
+  })
+}
+
 export async function serveWeb(app: FastifyInstance, dir: string): Promise<boolean> {
   const root = resolve(dir)
   if (!existsSync(resolve(root, 'index.html'))) return false

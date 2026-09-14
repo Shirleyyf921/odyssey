@@ -79,6 +79,8 @@ const Env = z.object({
 
   /** Where the exported web build lives (apps/mobile/dist). Served from this origin when present. */
   WEB_DIST: z.string().default('../mobile/dist'),
+  /** The art directory, served at /art. Absolute URLs into it come from public-url.ts. */
+  ART_DIR: z.string().default('./art'),
 
   // Review queue (docs/ugc-pipeline.md, "Moderation"). Required in production for /review; open outside it.
   REVIEW_SECRET: z.string().min(16).optional(),
