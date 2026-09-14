@@ -5,7 +5,7 @@ import { create } from 'zustand'
  * reason is also what gets logged when purchases are wired, so we learn which
  * moment converts (ARCHITECTURE.md section 7).
  */
-export type PaywallReason = 'CAP' | 'CALL' | 'EPISODE' | 'MEMORY' | 'GENERIC'
+export type PaywallReason = 'CAP' | 'CALL' | 'EPISODE' | 'REPLAY' | 'MEMORY' | 'GENERIC'
 
 interface PaywallStore {
   reason: PaywallReason | null

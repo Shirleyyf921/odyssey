@@ -127,9 +127,10 @@ function tags(e: HomeEpisode): string {
 function useOpen(item: TonightItem) {
   const { character, episode, reachOut } = item
   const play = usePlay(character.id, character.name)
-  const playable = episode?.status === 'AVAILABLE' || episode?.status === 'IN_PROGRESS'
+  const playable = episode?.status === 'AVAILABLE' || episode?.status === 'IN_PROGRESS' || (episode?.status === 'DONE' && !episode.lockReason)
   const open = () => {
     if (episode?.status === 'LOCKED' && episode.unlock.kind === 'PLUS') return usePaywall.getState().open('EPISODE')
+    if (episode?.status === 'DONE' && episode.lockReason) return usePaywall.getState().open('REPLAY')
     if (reachOut && character.relationship) {
       return router.push({ pathname: '/chat/[conversationId]', params: { conversationId: character.relationship.conversationId, name: character.name, characterId: character.id } })
     }
@@ -153,7 +154,7 @@ function statusLine(item: TonightItem): string {
     case 'AVAILABLE':
       return 'Open'
     case 'DONE':
-      return 'Played'
+      return 'Again'
     case 'LOCKED':
       return episode.lockReason ?? 'Not yet'
   }
@@ -243,15 +244,16 @@ function ResumeRow({ episode }: { episode: HomeEpisode }) {
 
 /** One episode in a rail: his portrait or the picture the ending gave, the title, what is in it, where you are. */
 function EpisodeTile({ episode, community }: { episode: HomeEpisode; community?: boolean }) {
-  const playable = episode.status === 'AVAILABLE' || episode.status === 'IN_PROGRESS'
+  const playable = episode.status === 'AVAILABLE' || episode.status === 'IN_PROGRESS' || (episode.status === 'DONE' && !episode.lockReason)
   const play = usePlay(episode.characterId, episode.characterName)
   const open = () => {
     if (episode.status === 'LOCKED' && episode.unlock.kind === 'PLUS') return usePaywall.getState().open('EPISODE')
+    if (episode.status === 'DONE' && episode.lockReason) return usePaywall.getState().open('REPLAY')
     if (playable) play.mutate(episode.id)
     else router.push({ pathname: '/character/[id]', params: { id: episode.characterId } })
   }
   const art = episode.coverUrl ?? episode.portraitUrl
-  const foot = episode.status === 'IN_PROGRESS' ? `Continue · ${episode.currentBeat}/${episode.beatCount}` : episode.status === 'DONE' ? 'Played' : episode.status === 'LOCKED' ? (episode.lockReason ?? 'Not yet') : 'Open'
+  const foot = episode.status === 'IN_PROGRESS' ? `Continue · ${episode.currentBeat}/${episode.beatCount}` : episode.status === 'DONE' ? 'Again' : episode.status === 'LOCKED' ? (episode.lockReason ?? 'Not yet') : 'Open'
   return (
     <Pressable style={[styles.card, !playable && episode.status !== 'DONE' && styles.cardShut]} onPress={open} disabled={play.isPending}>
       {art ? <Image source={{ uri: art }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : <View style={[StyleSheet.absoluteFill, styles.artEmpty]} />}

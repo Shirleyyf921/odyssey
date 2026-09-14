@@ -430,6 +430,8 @@ export const episodeRuns = pgTable(
     path: jsonb('path').$type<string[]>().notNull().default([]),
     startedAt: timestamptz('started_at').notNull().defaultNow(),
     endedAt: timestamptz('ended_at'),
+    /** Starts, including replays (2026-09-14). One row per relationship and episode; a replay resets it. */
+    plays: integer('plays').notNull().default(1),
   },
   (t) => [uniqueIndex('episode_runs_relationship_episode_uq').on(t.relationshipId, t.episodeId)]
 )

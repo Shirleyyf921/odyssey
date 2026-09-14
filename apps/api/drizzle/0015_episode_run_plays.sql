@@ -1,0 +1,1 @@
+ALTER TABLE "episode_runs" ADD COLUMN "plays" integer DEFAULT 1 NOT NULL;

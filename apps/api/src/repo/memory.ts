@@ -268,7 +268,7 @@ export class MemoryRepository implements AppRepository {
   }
   async createRun(input: CreateRunInput) {
     if (await this.findRun(input.relationshipId, input.episodeId)) throw new Error('run already exists')
-    const run: EpisodeRun = { id: randomUUID(), ...input, path: [input.currentBeatId], startedAt: new Date().toISOString(), endedAt: null }
+    const run: EpisodeRun = { id: randomUUID(), ...input, path: [input.currentBeatId], startedAt: new Date().toISOString(), endedAt: null, plays: 1 }
     this.runs.set(run.id, run)
     return { ...run }
   }
@@ -280,6 +280,8 @@ export class MemoryRepository implements AppRepository {
       ...(patch.currentBeatId ? { currentBeatId: patch.currentBeatId } : {}),
       ...(patch.path ? { path: patch.path } : {}),
       ...(patch.endedAt !== undefined ? { endedAt: patch.endedAt?.toISOString() ?? null } : {}),
+      ...(patch.episodeVersion ? { episodeVersion: patch.episodeVersion } : {}),
+      ...(patch.plays ? { plays: patch.plays } : {}),
     }
     this.runs.set(id, updated)
     return { ...updated }

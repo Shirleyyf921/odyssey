@@ -16,7 +16,9 @@ export interface Availability {
 /**
  * Whether an episode is open tonight. This is the hidden relationship showing
  * through: the copy says what to do, never a number. Rating is not decided here;
- * the route filters MATURE episodes by build (story pipeline, step 6).
+ * the route filters MATURE episodes by build (story pipeline, step 6). DONE
+ * carries a lockReason when the replay is not theirs to take; without one it
+ * can be started again.
  */
 export function availability(
   episode: EpisodeRecord,
@@ -26,7 +28,8 @@ export function availability(
   all: EpisodeRecord[]
 ): Availability {
   const run = runs.find((r) => r.episodeId === episode.id) ?? null
-  if (run?.endedAt) return { status: 'DONE', lockReason: null }
+  // Played once for everyone; playing it again, for the other door, is Plus (2026-09-14).
+  if (run?.endedAt) return { status: 'DONE', lockReason: tier === 'FREE' ? 'Play it again with Plus.' : null }
   if (run) return { status: 'IN_PROGRESS', lockReason: null }
   const rule = episode.unlock
   switch (rule.kind) {

@@ -188,7 +188,11 @@ inside episodes), any plan for realtime video. Runtime TTS stays v2.
   photos inside them are the consumable, cliffhanger continuation is Plus. Measure before
   adding "next episode" as a SKU.
 - Whether choices should ever be hidden behind Plus (Tipsy locks some). Default no; it breaks
-  the fiction the same way metering messages does.
+  the fiction the same way metering messages does. Decided 2026-09-14: the *replay* is Plus
+  instead. Everyone plays each story once; playing it again, for the other door, needs Plus.
+  A replay resets the same run at the first beat on the live version (`episode_runs.plays`
+  counts it), sends his opener again, shows the beat photos again, and moves nothing in the
+  relationship: no choice affinity, no new unlocks, no creator credit (one per run).
 - Mythological / "Odyssey" cast: keep as a season concept for later, not a character type.
 - User-made episodes: decided 2026-09-10, see `docs/ugc-pipeline.md`. Creators write scripts
   for our men; they do not make people.

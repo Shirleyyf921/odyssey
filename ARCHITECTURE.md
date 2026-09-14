@@ -227,6 +227,7 @@ engaged user can spend lives in moments.
 | Pivotal turns (§6) | ❌ everyday model only | ✅ | ✅ |
 | Exploration characters | 1 slot, LIGHT | 3 slots, LIGHT | All, LIGHT |
 | Proactive messages (§8) | ❌ | ✅ | ✅ |
+| Replaying a story (2026-09-14) | ❌ once each | ✅ again, any door | ✅ |
 | Voice (v2) | ❌ | ❌ | ✅ |
 | Moments | FREE tier only | FREE + STAGE + AFFINITY | Same, plus one monthly moment included |
 
