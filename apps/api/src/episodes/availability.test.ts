@@ -36,13 +36,22 @@ test('the seeded episode is well formed: first beat exists, every next resolves,
         if (b.photoMomentId) assert.ok(seed.moments.some((m) => m.id === b.photoMomentId), `${e.title}/${b.position}: photo exists`)
       }
       assert.deepEqual(
-        { authorId: e.authorId, origin: e.origin, status: e.status, version: e.version, reviewNote: e.reviewNote },
-        { authorId: null, origin: 'OFFICIAL', status: 'LIVE', version: 1, reviewNote: null },
+        { authorId: e.authorId, origin: e.origin, status: e.status, reviewNote: e.reviewNote },
+        { authorId: null, origin: 'OFFICIAL', status: 'LIVE', reviewNote: null },
         `${e.title}: ours, and on the shelf`
       )
+      assert.ok(e.version >= 1)
     }
+    // Every man has the three-part arc (docs/season-1-drafts.md): free, Plus, then MATURE after the Plus one.
+    const [p1, p2, p3] = [...seed.episodes].sort((a, b) => a.position - b.position)
+    assert.deepEqual(p1!.unlock, { kind: 'FREE' }, `${seed.character.name}: part 1 is free`)
+    assert.deepEqual(p2!.unlock, { kind: 'PLUS' }, `${seed.character.name}: part 2 is Plus`)
+    assert.deepEqual(p3!.unlock, { kind: 'EPISODE', episodeId: p2!.id }, `${seed.character.name}: part 3 follows part 2`)
+    assert.equal(p3!.rating, 'MATURE')
+    assert.equal(p1!.rating, 'SFW')
+    assert.equal(p2!.rating, 'SFW')
   }
-  assert.equal(primary.episodes.length, 2, 'one SFW, one MATURE')
+  assert.equal(primary.episodes.length, 3, 'free, Plus, MATURE')
 })
 
 test('FREE is available without a relationship; a run makes it in progress or done', () => {
