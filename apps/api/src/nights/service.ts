@@ -1,4 +1,5 @@
-import { STAGE_ORDER, type Channel, type ContentRating, type EpisodeCard, type Tier } from '@odyssey/shared'
+import type { Channel, ContentRating, EpisodeCard, Tier } from '@odyssey/shared'
+import { levelFor } from '../levels.js'
 import { utcDayStart } from '../billing/rules.js'
 import { toEpisodeCard } from '../episodes/availability.js'
 import type { LlmGateway } from '../llm/gateway.js'
@@ -43,17 +44,9 @@ export interface NightDeps {
 
 export const NIGHTS_PER_DAY_PLUS = 1
 export const NIGHT_BEATS = 5
-/** The stage from which he takes the second and third kinds of night. */
-export const MATURE_NIGHT_STAGE = 'CLOSE'
 
 export class NightService {
   constructor(private readonly deps: NightDeps) {}
-
-  /** Whether this caller may have the MATURE kind tonight: build, age, plan, and how close he is. */
-  static levelFor(input: { channel: Channel; ageVerified: boolean; tier: Tier; stage: string | null }): ContentRating {
-    const closeEnough = input.stage !== null && STAGE_ORDER.indexOf(input.stage as (typeof STAGE_ORDER)[number]) >= STAGE_ORDER.indexOf(MATURE_NIGHT_STAGE)
-    return input.channel === 'web' && input.ageVerified && input.tier !== 'FREE' && closeEnough ? 'MATURE' : 'SFW'
-  }
 
   async ask(user: UserRecord, channel: Channel, req: NightRequest, now = new Date()): Promise<EpisodeCard> {
     const { repo, gateway, screener, billing, log } = this.deps
@@ -64,7 +57,7 @@ export class NightService {
     const today = await repo.countPrivateEpisodesSince(user.id, utcDayStart(now))
     if (today >= NIGHTS_PER_DAY_PLUS) throw new NightRefused('USED_TODAY', 'He gave you one tonight already.')
     const relationship = await repo.findRelationship(user.id, character.id)
-    const level = NightService.levelFor({ channel, ageVerified: user.ageVerifiedAt !== null, tier, stage: relationship?.stage ?? null })
+    const level = levelFor({ channel, ageVerified: user.ageVerifiedAt !== null, tier, stage: relationship?.stage ?? null })
     if (req.heat === 'MATURE' && level !== 'MATURE') throw new NightRefused('LEVEL', 'Not that one yet. He will, when you are closer.')
 
     let draft

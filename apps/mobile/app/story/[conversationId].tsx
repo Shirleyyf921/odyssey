@@ -21,6 +21,8 @@ import { CallScreen } from '../../src/components/CallScreen'
 import { PhotoBubble } from '../../src/components/MessageBubble'
 import { api } from '../../src/lib/api'
 import { useAskPhoto } from '../../src/lib/askPhoto'
+import { canMature } from '../../src/lib/levels'
+import { PhotoMenu } from '../../src/components/PhotoMenu'
 import { billing } from '../../src/lib/billing'
 import { ChatSocket } from '../../src/lib/socket'
 import { useChatStore } from '../../src/store/chat'
@@ -395,9 +397,7 @@ export default function StoryScreen() {
           )}
           {/* Ask him for a picture: his caption and the card arrive like any photo he sends. */}
           {!typing ? (
-            <Pressable style={[styles.ask, photo.taking && styles.disabled]} onPress={photo.ask} disabled={photo.taking || status !== 'open'} hitSlop={6}>
-              <Text style={styles.askText}>{photo.taking ? 'He is taking one…' : photo.line ?? 'Ask him for a picture'}</Text>
-            </Pressable>
+            <PhotoMenu taking={photo.taking} line={photo.line} mature={canMature(me.data, character.data?.relationship?.stage)} disabled={status !== 'open'} onAsk={photo.ask} />
           ) : null}
         </Choices>
       )}
@@ -558,8 +558,6 @@ const styles = StyleSheet.create({
   choiceFree: { backgroundColor: colors.glassSoft },
   choiceFreeText: { color: colors.muted, fontSize: 14, textAlign: 'center' },
   composer: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm },
-  ask: { alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 14 },
-  askText: { color: colors.muted, fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase' },
   input: { flex: 1, minHeight: 44, maxHeight: 120, color: colors.ink, fontSize: 16, backgroundColor: colors.glass, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 },
   sendButton: { backgroundColor: colors.ink, paddingHorizontal: 18, paddingVertical: 12, borderRadius: radius.pill },
   sendText: { color: '#0b0a0c', fontWeight: '700' },

@@ -106,3 +106,23 @@ test('no provider: refused as unavailable, nothing spent', async () => {
   await assert.rejects(off.ask(deps, ctx), (err: unknown) => err instanceof PhotoRefused && err.code === 'UNAVAILABLE')
   assert.equal(await repo.photoCredits(demo.userId), 1)
 })
+
+test('the menu: NOW is SFW anywhere; the hotter kinds need the level, and reach further when given', async () => {
+  const { repo, deps, ctx, demo, images, requests, photos } = await setup('PLUS')
+  // ACQUAINTED, no age declaration: the hotter kinds are refused before anything is spent.
+  await repo.addPhotoCredits(demo.userId, 1)
+  await assert.rejects(photos.ask(deps, ctx, 'ONLY_YOU'), (err: unknown) => err instanceof PhotoRefused && err.code === 'LEVEL')
+  assert.equal(await repo.photoCredits(demo.userId), 1, 'nothing spent')
+  assert.equal(images.prompts.length, 0)
+
+  await repo.updateUser(demo.userId, { ageVerifiedAt: new Date() })
+  await repo.updateRelationship(demo.relationshipId, { stage: 'CLOSE' })
+  const closer = (await repo.getConversationContext(demo.conversationId))!
+  await assert.rejects(photos.ask({ ...deps, channel: 'store' }, closer, 'MORNING'), (err: unknown) => err instanceof PhotoRefused && err.code === 'LEVEL', 'never on the store build')
+  const { moment } = await photos.ask({ ...deps, channel: 'web' }, closer, 'MORNING')
+  assert.equal(moment.title, 'The morning')
+  const sent = images.prompts.at(-1)!.prompt
+  assert.ok(sent.includes('open shirt is allowed'), 'the MATURE reach')
+  assert.ok(sent.includes('fully covered below the waist'), 'and its hard line')
+  assert.ok(requests.at(-1)!.system.includes('the morning after'), 'what she asked for reaches the scene model')
+})
