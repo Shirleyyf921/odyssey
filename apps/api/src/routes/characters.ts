@@ -262,7 +262,11 @@ export async function characterRoutes(
       ),
       counts
     )
-    return { characterId: id, relationship, episodes, community }
+    // The nights he wrote for this caller ("Tonight, you decide"): PRIVATE, hers alone, newest first.
+    const mine = (await repo.listEpisodesByAuthor(req.user.id))
+      .filter((e) => e.characterId === id && e.status === 'PRIVATE' && ratings.includes(e.rating))
+      .map((e) => ({ ...toEpisodeCard(e, relationship, tier, runs, all), private: true }))
+    return { characterId: id, relationship, episodes, community, mine }
   })
 
   /**

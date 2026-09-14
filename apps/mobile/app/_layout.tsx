@@ -23,7 +23,7 @@ function BillingIdentity() {
 }
 
 // The web preview can open the sheet by hand: window.__odyssey.paywall('CAP').
-if (__DEV__ && typeof window !== 'undefined') (window as unknown as { __odyssey?: unknown }).__odyssey = { paywall: (r: 'CAP' | 'CALL' | 'EPISODE' | 'REPLAY' | 'PHOTO' | 'MEMORY' | 'GENERIC') => usePaywall.getState().open(r) }
+if (__DEV__ && typeof window !== 'undefined') (window as unknown as { __odyssey?: unknown }).__odyssey = { paywall: (r: 'CAP' | 'CALL' | 'EPISODE' | 'REPLAY' | 'PHOTO' | 'NIGHT' | 'MEMORY' | 'GENERIC') => usePaywall.getState().open(r) }
 
 export default function RootLayout() {
   return (

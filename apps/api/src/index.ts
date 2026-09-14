@@ -11,6 +11,8 @@ import { serveArt, serveWeb } from './web.js'
 import { PhotoService } from './photos/service.js'
 import { SeedreamProvider } from './photos/provider.js'
 import { photoFileRoutes, photoRoutes } from './routes/photos.js'
+import { NightService } from './nights/service.js'
+import { nightRoutes } from './routes/nights.js'
 import { LogNotifier, ResendNotifier, type ReviewNotifier } from './review/notify.js'
 import { chatWebsocket } from './ws/chat.js'
 import { requireIdentity } from './auth/identity.js'
@@ -143,6 +145,7 @@ await app.register(async (scoped) => {
     grant: env.NODE_ENV !== 'production' ? 'open' : (env.BILLING_GRANT_SECRET ?? null),
   })
 if (env.NODE_ENV === 'production' && env.BILLING_GRANT_SECRET) app.log.warn('BILLING_GRANT_SECRET set: /billing/dev/grant is live in production')
+  await scoped.register(nightRoutes, { nights: new NightService({ repo, gateway, screener, billing, log: app.log }) })
   await scoped.register(photoRoutes, {
     repo,
     photos,

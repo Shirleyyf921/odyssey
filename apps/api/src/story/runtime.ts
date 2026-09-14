@@ -88,7 +88,9 @@ export async function handleStartEpisode(
   }
   // Off the shelf (a draft, or unlisted on reports): nobody new starts it. A run
   // already open plays out on the version it pinned; that is what the pin is for.
-  if (episode.status !== 'LIVE' && open?.episodeId !== episode.id) {
+  // A PRIVATE night is its author's alone (nights/service.ts).
+  const hers = episode.status === 'PRIVATE' && episode.authorId === ctx.user.id
+  if (episode.status !== 'LIVE' && !hers && open?.episodeId !== episode.id) {
     return send({ type: 'error', code: 'INVALID_PAYLOAD', message: 'Unknown episode' })
   }
   const state = availability(episode, ctx.relationship, tier, runs, all)

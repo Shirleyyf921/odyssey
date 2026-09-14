@@ -288,6 +288,8 @@ export interface AppRepository extends ChatRepository {
   listEpisodesByAuthor(userId: string): Promise<EpisodeRecord[]>
   /** A new UGC row in DRAFT, version 1, unlock FREE, with the draft's beats. */
   createEpisode(authorId: string, draft: EpisodeDraft): Promise<EpisodeRecord>
+  /** Nights he wrote for this user since the instant; the Plus allowance counts against it. */
+  countPrivateEpisodesSince(userId: string, since: Date): Promise<number>
   /** Rewrites the fields and beats of an existing row; status and version are untouched. */
   replaceEpisode(id: string, draft: EpisodeDraft): Promise<EpisodeRecord>
   updateEpisode(id: string, patch: EpisodePatch): Promise<EpisodeRecord>

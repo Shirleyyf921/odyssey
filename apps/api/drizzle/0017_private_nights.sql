@@ -1,0 +1,1 @@
+ALTER TYPE "public"."episode_status" ADD VALUE 'PRIVATE';

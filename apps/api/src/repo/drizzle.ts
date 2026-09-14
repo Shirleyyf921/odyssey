@@ -536,6 +536,14 @@ export class DrizzleRepository implements AppRepository {
 
   // ---------------------------------------------------------------- authoring (docs/ugc-pipeline.md)
 
+  async countPrivateEpisodesSince(userId: string, since: Date): Promise<number> {
+    const [row] = await this.db
+      .select({ n: count() })
+      .from(episodes)
+      .where(and(eq(episodes.authorId, userId), eq(episodes.status, 'PRIVATE'), gte(episodes.createdAt, since)))
+    return row?.n ?? 0
+  }
+
   async listEpisodesByAuthor(userId: string): Promise<EpisodeRecord[]> {
     const rows = await this.db.select().from(episodes).where(eq(episodes.authorId, userId)).orderBy(desc(episodes.createdAt))
     if (!rows.length) return []

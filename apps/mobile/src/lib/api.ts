@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import {
+  type AskNightRequest,
+  AskNightResponse,
   AskPhotoResponse,
   type DevPhotoCreditsRequest,
   CHANNEL_HEADER,
@@ -105,6 +107,8 @@ export const api = {
   character: (id: string) => request('GET', `/characters/${id}`, CharacterDetail),
   start: (id: string) => request('POST', `/characters/${id}/start`, StartRelationshipResponse),
   moments: (id: string) => request('GET', `/characters/${id}/moments`, MomentsResponse),
+  /** Tonight, you decide (docs/story-pipeline.md): her line, his night, hers alone. 402/403/422 carry a code. */
+  askNight: (characterId: string, body: AskNightRequest) => request('POST', `/characters/${characterId}/nights`, AskNightResponse, body),
   /** Ask him for a picture (docs/story-pipeline.md). 402 with a code when he may not; the store maps it. */
   askPhoto: (conversationId: string) => request('POST', `/conversations/${conversationId}/photos`, AskPhotoResponse),
   /** Dogfood: pictures onto the balance, the way a purchase will. Same gating as devGrant. */
