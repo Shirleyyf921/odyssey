@@ -42,6 +42,7 @@ export interface AssembledMemory {
 
 interface Log {
   info(obj: Record<string, unknown>, msg: string): void
+  warn(obj: Record<string, unknown>, msg: string): void
   error(obj: Record<string, unknown>, msg: string): void
 }
 
@@ -104,11 +105,27 @@ export class MemoryService {
 
   // ---------------------------------------------------------------- internals
 
+  /**
+   * Long-term memory is a bonus, never a gate: if the embeddings provider is
+   * down (429, timeout, bad response) the turn continues with only the
+   * short-term window and summary.
+   */
   private async retrieve(relationshipId: string, query: string, k: number) {
     if (!this.embeddings) return this.repo.listMemories(relationshipId, k)
-    const [vec] = await this.embeddings.embed([query])
-    if (!vec) return []
-    return this.repo.searchMemories(relationshipId, vec, k)
+    const vec = await this.embedOrWarn([query], { relationshipId, stage: 'retrieve' })
+    if (!vec?.[0]) return []
+    return this.repo.searchMemories(relationshipId, vec[0], k)
+  }
+
+  /** Embeds, or logs a warning and returns null when the provider fails. */
+  private async embedOrWarn(texts: string[], meta: Record<string, unknown>): Promise<number[][] | null> {
+    if (!this.embeddings) return null
+    try {
+      return await this.embeddings.embed(texts)
+    } catch (err) {
+      this.log.warn({ err, provider: this.embeddings.name, ...meta }, 'embedding failed, continuing without it')
+      return null
+    }
   }
 
   private async runAfterTurn(ctx: ConversationContext, userMessage: Message, reply: Message) {
@@ -127,7 +144,9 @@ export class MemoryService {
     const facts = parseFacts(raw)
     if (!facts.length) return
 
-    const vectors = this.embeddings ? await this.embeddings.embed(facts.map((f) => f.fact)) : []
+    // On embedding failure the facts are still stored (without a vector, like the
+    // keyless path) so the summary fold and progression credit still run.
+    const vectors = (await this.embedOrWarn(facts.map((f) => f.fact), { relationshipId: ctx.relationship.id, stage: 'extract' })) ?? []
     await this.repo.insertMemories(
       facts.map((f, i) => ({
         relationshipId: ctx.relationship.id,

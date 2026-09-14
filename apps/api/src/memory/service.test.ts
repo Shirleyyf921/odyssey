@@ -4,10 +4,10 @@ import { LlmGateway } from '../llm/gateway.js'
 import { ScriptedProvider } from '../llm/scripted.js'
 import type { CompletionRequest } from '../llm/types.js'
 import { MemoryRepository } from '../repo/memory.js'
-import { HashEmbeddings } from './embeddings.js'
+import { HashEmbeddings, type EmbeddingProvider } from './embeddings.js'
 import { MemoryService, parseFacts } from './service.js'
 
-const silent = { info() {}, error() {} }
+const silent = { info() {}, warn() {}, error() {} }
 
 /** Answers extraction prompts with facts and summary prompts with a summary. */
 function brain(req: CompletionRequest): string {
@@ -84,4 +84,37 @@ test('parseFacts tolerates prose and drops malformed entries', () => {
     { fact: 'B', confidence: 0.5 },
   ])
   assert.deepEqual(parseFacts('no json here'), [])
+})
+
+/** Stands in for a provider that is overloaded or unreachable. */
+const brokenEmbeddings: EmbeddingProvider = {
+  name: 'broken',
+  dimensions: 128,
+  async embed() {
+    throw new Error('broken embeddings 429: server overload')
+  },
+}
+
+test('a failing embedder degrades retrieval to no memories instead of throwing', async () => {
+  const repo = new MemoryRepository()
+  const demo = await repo.seedDemo()
+  const provider = new ScriptedProvider(brain)
+  const gateway = new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider, STORY: provider })
+  const warnings: string[] = []
+  const log = { info() {}, warn(_obj: unknown, msg: string) { warnings.push(msg) }, error() {} }
+  const memory = new MemoryService(repo, gateway, brokenEmbeddings, log, { shortTermTurns: 4, summaryBatch: 2 })
+  const ctx = (await repo.getConversationContext(demo.conversationId))!
+
+  const a = await turn(repo, demo.conversationId, 'my sister Mia moved to Leeds', 'How is she finding it?')
+  const assembled = await memory.assemble(ctx, 'how is my sister doing in leeds')
+  assert.deepEqual(assembled.memories, [])
+  assert.deepEqual(assembled.history.map((m) => m.content), [a.u.content, a.r.content])
+  assert.equal(warnings.length, 1)
+
+  // Writes take the same path: facts are kept without a vector and the job does not fail.
+  memory.afterTurn(ctx, a.u, a.r)
+  await memory.drain()
+  const stored = await repo.listMemories(ctx.relationship.id, 10)
+  assert.equal(stored.length, 1)
+  assert.equal(warnings.length, 2)
 })
