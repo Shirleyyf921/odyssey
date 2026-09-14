@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import type { ServerEvent, Tier } from '@odyssey/shared'
 import { LlmGateway } from '../llm/gateway.js'
 import { ScriptedProvider } from '../llm/scripted.js'
+import type { CompletionRequest } from '../llm/types.js'
 import { HashEmbeddings } from '../memory/embeddings.js'
 import { MemoryService } from '../memory/service.js'
 import { RelationshipService } from '../relationship/service.js'
@@ -16,7 +17,11 @@ const silent = { info() {}, warn() {}, error() {} }
 async function setup(opts: { crisis?: CrisisDetector; reply?: string; tier?: Tier } = {}) {
   const repo = new MemoryRepository()
   const demo = await repo.seedDemo()
-  const provider = new ScriptedProvider(opts.reply ?? 'Hey, you. Long day?')
+  const requests: CompletionRequest[] = []
+  const provider = new ScriptedProvider((req) => {
+    requests.push(req)
+    return opts.reply ?? 'Hey, you. Long day?'
+  })
   const gateway = new LlmGateway({ EVERYDAY: provider, PIVOTAL: provider, STORY: provider })
   const memory = new MemoryService(repo, gateway, new HashEmbeddings(64), silent)
   const relationship = new RelationshipService(repo, silent)
@@ -33,7 +38,7 @@ async function setup(opts: { crisis?: CrisisDetector; reply?: string; tier?: Tie
   }
   const sent: ServerEvent[] = []
   const send = (e: ServerEvent) => void sent.push(e)
-  return { repo, deps, memory, conversationId: demo.conversationId, sent, send }
+  return { repo, deps, memory, conversationId: demo.conversationId, sent, send, requests, demo }
 }
 
 test('send_message streams start, deltas, end and persists both sides', async () => {
@@ -146,4 +151,28 @@ test("someone else's conversation is refused as UNAUTHORIZED", async () => {
   assert.equal(sent[0]?.type, 'error')
   if (sent[0]?.type !== 'error') return
   assert.equal(sent[0].code, 'UNAUTHORIZED')
+})
+
+test('an everyday turn after a finished story carries last night into the prompt; an open story does not', async () => {
+  const { repo, deps, conversationId, send, requests, demo } = await setup()
+  const [episode] = await repo.listEpisodes(demo.characterId)
+  const b1 = episode!.beats[0]!
+  const chair = b1.options[0]!
+  const end = episode!.beats.find((b) => b.kind === 'END')!
+  const run = await repo.createRun({ relationshipId: demo.relationshipId, episodeId: episode!.id, currentBeatId: b1.id, episodeVersion: 1 })
+  await repo.updateRun(run.id, { currentBeatId: end.id, path: [b1.id, chair.next!, end.id], endedAt: new Date(Date.now() - 3_600_000) })
+
+  await handleClientEvent(deps, { type: 'send_message', conversationId, clientMsgId: randomUUID(), content: 'still up?' }, send)
+  const system = requests.filter((r) => r.system.includes('## The scene')).at(-1)!.system
+  assert.match(system, /## Last night/)
+  assert.match(system, /played "Four minutes" earlier tonight/)
+  assert.match(system, new RegExp(chair.intent.toLowerCase()), 'her choice is in it')
+  assert.match(system, /never a recap/)
+
+  // A second night open again: the story takes the turn and the block is gone.
+  await repo.updateRun(run.id, { currentBeatId: b1.id, path: [b1.id], endedAt: null })
+  requests.length = 0
+  await handleClientEvent(deps, { type: 'send_message', conversationId, clientMsgId: randomUUID(), content: 'hi', choice: 0 }, send)
+  assert.ok(requests.length > 0)
+  assert.ok(requests.every((r) => !r.system.includes('## Last night')))
 })

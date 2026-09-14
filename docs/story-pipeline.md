@@ -185,6 +185,16 @@ Cut list from this change: `relationship_updated` on the client, the Moments cou
 character page, exploration characters as parallel relationships (they become supporting cast
 inside episodes), any plan for realtime video. Runtime TTS stays v2.
 
+## Between stories (2026-09-14)
+
+The nights with no story open are where he is either alive or not. Two things carry a night
+into the next one (`story/lastnight.ts`): the everyday turn and his first message of a new day
+both get **last night**, the story they finished most recently within the week, as its title,
+how many nights ago, the road she took as her own choices, and how it ended from the END
+beat's brief (`renderLastNight`). He refers to it once, in passing, with what it changed; never
+a recap. Nothing is carried while a story is open (the story takes the turn) or after a week.
+The asked-for picture (below) draws on the same memory. Prompt version 0.8.0.
+
 ## Ask him for a picture (2026-09-14)
 
 She asks, on the stage or in the chat; he decides what to send. The server assembles the
