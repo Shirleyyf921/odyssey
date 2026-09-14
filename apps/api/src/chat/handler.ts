@@ -9,6 +9,7 @@ import { pickOffer } from '../moments/offers.js'
 import { toMomentCard } from '@odyssey/shared'
 import { INTERVENTION_BODY, resourcesFor, type CrisisDetector } from '../safety/crisis.js'
 import { buildCompletionRequest } from './prompt.js'
+import { lastNight } from '../story/lastnight.js'
 import { chooseTier } from './tier.js'
 import { activeStory, choicesAfterResume, handleStartEpisode, runStoryTurn } from '../story/runtime.js'
 import { TOUCH_PHRASE } from '../story/touch.js'
@@ -180,9 +181,11 @@ async function handleSendMessage(
     if (reply) memory.afterTurn(ctx, userMessage, reply)
     return
   }
+  // An everyday turn carries the story they finished most recently, so tonight follows last night.
   const request = buildCompletionRequest(ctx, assembled, {
     previousStage: progress.previousStage,
     turnDirective: lastOfDay ? LAST_MESSAGE_DIRECTIVE : null,
+    lastNight: await lastNight(repo, ctx.relationship.id),
   })
   const modelTier = chooseTier(ctx, event.content, {
     stageChanged: progress.previousStage !== null,

@@ -3,6 +3,7 @@ import type { Message } from '@odyssey/shared'
 import type { LlmGateway } from '../llm/gateway.js'
 import type { MemoryService } from '../memory/service.js'
 import type { AppRepository, RelationshipRecord } from '../repo/types.js'
+import { lastNight } from '../story/lastnight.js'
 
 interface Log {
   info(obj: Record<string, unknown>, msg: string): void
@@ -58,6 +59,7 @@ export class ReachOutService {
       retrievedMemories: assembled.memories,
       nightsGone: Math.max(1, nightsBetween(relationship.lastActiveDate!, today)),
       leftOff: episode && beat ? { title: episode.title, beat: beat.position + 1, count: episode.beats.length } : null,
+      lastNight: open ? null : await lastNight(this.repo, relationship.id),
     })
     let text = ''
     try {

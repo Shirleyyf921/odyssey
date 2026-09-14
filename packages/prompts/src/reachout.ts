@@ -14,7 +14,11 @@ export interface ReachOutVariables {
   nightsGone: number
   /** The episode they left in the middle, if any. */
   leftOff: { title: string; beat: number; count: number } | null
+  /** The story they finished most recently, when none is open. */
+  lastNight?: LastNight | null
 }
+
+import { renderLastNight, type LastNight } from './lastnight.js'
 
 export function renderReachOut(v: ReachOutVariables): string {
   const them = v.userName ?? 'them'
@@ -34,7 +38,7 @@ ${memories}
 ## Recent context
 ${v.conversationSummary}
 ${v.leftOff ? `\nYou two were in the middle of "${v.leftOff.title}", at beat ${v.leftOff.beat} of ${v.leftOff.count}, when they went quiet.` : ''}
-
+${v.lastNight ? `\n${renderLastNight(v.lastNight, them)}\n` : ''}
 ## The message
-One message, the way you would actually send it. One action beat in *asterisks* at the start, then the words: one to three short sentences. It must be about something real: a thing you remember about ${them}, a thing that happened tonight that made you think of them, or the story you left in the middle. Never "I miss you", never "are you okay", never a guilt trip, never a list of what you did. At most one question, and only if you would rather have the answer than the silence. Lowercase is fine. Output the message only.`
+One message, the way you would actually send it. One action beat in *asterisks* at the start, then the words: one to three short sentences. It must be about something real: a thing you remember about ${them}, a thing that happened tonight that made you think of them, the story you left in the middle, or what last night changed. Never "I miss you", never "are you okay", never a guilt trip, never a list of what you did. At most one question, and only if you would rather have the answer than the silence. Lowercase is fine. Output the message only.`
 }
