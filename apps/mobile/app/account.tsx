@@ -8,6 +8,7 @@ import { Stack } from 'expo-router'
 import * as AppleAuthentication from 'expo-apple-authentication'
 import type { ProfileMan } from '@odyssey/shared'
 import { api } from '../src/lib/api'
+import { operatorSecret } from '../src/lib/secrets'
 import { appleAvailable, googleConfigured, signInDev, signInWithApple, signOut, useGoogleSignIn } from '../src/lib/auth'
 import { billing } from '../src/lib/billing'
 import { colors, radius, spacing } from '../src/theme'
@@ -53,7 +54,7 @@ export default function AccountScreen() {
   if (profile.error || !profile.data) return <View style={styles.centered}><Text style={styles.error}>{String(profile.error ?? 'Not found')}</Text></View>
   const { user, billing: status, men, creator } = profile.data
   const known = men.filter((m) => m.since)
-  const devTools = __DEV__ || !!process.env.EXPO_PUBLIC_BILLING_GRANT_SECRET
+  const devTools = __DEV__ || !!operatorSecret('grant')
   const primary = men.find((m) => m.character.kind === 'PRIMARY') ?? men[0] ?? null
   const paid = status.tier !== 'FREE'
 

@@ -35,6 +35,7 @@ import {
   type SignInRequest,
 } from '@odyssey/shared'
 import { Platform } from 'react-native'
+import { operatorSecret } from './secrets'
 import { API_URL } from './config'
 import { getDeviceId } from './device'
 import { getSessionToken, setSessionToken } from './session'
@@ -48,9 +49,6 @@ export class ApiError extends Error {
   }
 }
 
-const GRANT_SECRET = process.env.EXPO_PUBLIC_BILLING_GRANT_SECRET
-/** Admits the web build to /review in production. Only a reviewer's build carries it. */
-const REVIEW_SECRET = process.env.EXPO_PUBLIC_REVIEW_SECRET
 /**
  * Which build this is. The native binary is the one that ships to the stores,
  * so it says `store` and never sees MATURE; the web build says `web`. Compiled
@@ -60,13 +58,16 @@ const CHANNEL = Platform.OS === 'web' ? 'web' : 'store'
 
 async function headers(): Promise<Record<string, string>> {
   const [deviceId, token] = await Promise.all([getDeviceId(), getSessionToken()])
+  const grant = operatorSecret('grant')
+  const review = operatorSecret('review')
   return {
     [DEVICE_ID_HEADER]: deviceId,
     [CHANNEL_HEADER]: CHANNEL,
     accept: 'application/json',
     ...(token ? { authorization: `Bearer ${token}` } : {}),
-    ...(GRANT_SECRET ? { [GRANT_SECRET_HEADER]: GRANT_SECRET } : {}),
-    ...(REVIEW_SECRET ? { [REVIEW_SECRET_HEADER]: REVIEW_SECRET } : {}),
+    // Operator secrets ride along only when this browser holds them (src/lib/secrets.ts).
+    ...(grant ? { [GRANT_SECRET_HEADER]: grant } : {}),
+    ...(review ? { [REVIEW_SECRET_HEADER]: review } : {}),
   }
 }
 
@@ -114,7 +115,7 @@ export const api = {
   restore: () => request('POST', '/billing/restore', RestoreResponse),
   signIn: (body: SignInRequest) => request('POST', '/auth/sign-in', SignInResponse, body),
   signOut: () => request('POST', '/auth/sign-out', MeResponse.optional()),
-  /** Dogfood: grant the caller a tier. Needs EXPO_PUBLIC_BILLING_GRANT_SECRET against production. */
+  /** Dogfood: grant the caller a tier. Needs the grant secret in this browser against production. */
   devGrant: (body: DevGrantRequest) => request('POST', '/billing/dev/grant', RestoreResponse, body),
   /** Dogfood: record a SKU purchase without the store. Same gating as devGrant. */
   devPurchase: (body: DevPurchaseRequest) => request('POST', '/billing/dev/purchase', RestoreResponse, body),
@@ -128,7 +129,7 @@ export const api = {
   submitEpisode: (id: string) => request('POST', `/me/episodes/${id}/submit`, SubmitEpisodeResponse),
   skeletons: (characterId: string) => request('GET', `/me/skeletons/${characterId}`, SkeletonsResponse),
   aiDraft: (body: AiDraftRequest) => request('POST', '/me/episodes/ai-draft', AiDraftResponse, body),
-  /** The review queue (docs/ugc-pipeline.md, step 6). Needs EXPO_PUBLIC_REVIEW_SECRET against production. */
+  /** The review queue (docs/ugc-pipeline.md, step 6). Needs the review secret in this browser against production. */
   reviewQueue: () => request('GET', '/review/episodes', ReviewQueueResponse),
   reviewDecide: (id: string, body: ReviewDecisionRequest) => request('POST', `/review/episodes/${id}`, ReviewDecisionResponse, body),
   /** Development builds only; the server refuses it in production. */

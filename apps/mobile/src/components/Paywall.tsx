@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { api } from '../lib/api'
+import { operatorSecret } from '../lib/secrets'
 import { billing } from '../lib/billing'
 import { usePaywall, type PaywallReason } from '../store/paywall'
 import { colors, radius, spacing } from '../theme'
@@ -36,7 +37,7 @@ export function Paywall() {
   const [error, setError] = useState<string | null>(null)
   const me = useQuery({ queryKey: ['me'], queryFn: api.me, enabled: reason !== null })
   const packages = useQuery({ queryKey: ['packages'], queryFn: () => billing.packages(), enabled: reason !== null && billing.available })
-  const demo = !billing.available && !!process.env.EXPO_PUBLIC_BILLING_GRANT_SECRET
+  const demo = !billing.available && !!operatorSecret('grant')
   const monthly = packages.data?.find((p) => p.packageType === 'MONTHLY') ?? packages.data?.[0] ?? null
   const annual = packages.data?.find((p) => p.packageType === 'ANNUAL') ?? null
 
