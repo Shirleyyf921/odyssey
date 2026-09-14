@@ -88,6 +88,12 @@ const Env = z.object({
   RESEND_API_KEY: z.string().min(1).optional(),
   REVIEW_NOTIFY_EMAIL: z.string().email().optional(),
   REVIEW_NOTIFY_FROM: z.string().default('Odyssey review <onboarding@resend.dev>'),
+
+  // Ask him for a picture (docs/story-pipeline.md, 2026-09-14). Needs NOVITA_API_KEY; PHOTO_API_KEY overrides it.
+  PHOTO_URL: z.string().url().default('https://api.novita.ai/v3/seedream-4.0'),
+  PHOTO_API_KEY: z.string().min(1).optional(),
+  /** Pictures a Plus subscriber may ask for per UTC day without spending a credit. */
+  PHOTOS_PER_DAY_PLUS: z.coerce.number().int().min(0).default(1),
 })
 
 export const env = Env.parse(process.env)

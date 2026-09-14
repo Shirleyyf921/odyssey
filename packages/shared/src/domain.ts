@@ -181,6 +181,8 @@ export const MomentUnlockSource = z.enum([
   'GRANT',
   /** The story reached the beat that shows it (docs/story-pipeline.md, "Stage"). */
   'BEAT',
+  /** She asked him for a picture and he took one, for her alone (2026-09-14). */
+  'ASKED',
 ])
 export type MomentUnlockSource = z.infer<typeof MomentUnlockSource>
 
@@ -200,6 +202,8 @@ export const Moment = z.object({
   teaserUrl: z.string().nullable().optional(),
   position: z.number().int().min(0),
   unlock: MomentUnlockRule,
+  /** Null: the catalogue, everyone's. Set: a picture he took for this one user, nobody else's. */
+  ownerUserId: z.string().uuid().nullable().optional(),
 })
 export type Moment = z.infer<typeof Moment>
 
@@ -223,6 +227,8 @@ export const MomentCard = z.object({
   unlockedAt: z.string().datetime().nullable(),
   /** The episode that shows it, when a beat carries it: a locked everyday card says "play this". */
   story: z.string().nullable().default(null),
+  /** He took it for her, on request; the gallery says so instead of an unlock rule. */
+  asked: z.boolean().default(false),
 })
 export type MomentCard = z.infer<typeof MomentCard>
 

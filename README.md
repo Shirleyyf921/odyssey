@@ -115,6 +115,10 @@ domain, else `http://localhost:PORT`; set `PUBLIC_URL` to a LAN address when a p
 same wifi should load the pictures from a local API. `apps/api/art/SOURCES.md` says where
 each file came from.
 
+"Ask him for a picture" needs an image model: `PHOTO_API_KEY` (else `NOVITA_API_KEY`) against
+`PHOTO_URL` (Seedream 4.0 on Novita by default); `PHOTOS_PER_DAY_PLUS` is the Plus allowance.
+Without a key the button is refused with "he cannot send pictures yet".
+
 `RESEND_API_KEY` plus `REVIEW_NOTIFY_EMAIL` turn the "something is waiting"
 log line into a mail.
 

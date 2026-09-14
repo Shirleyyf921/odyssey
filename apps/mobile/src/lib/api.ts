@@ -1,5 +1,7 @@
-import type { z } from 'zod'
+import { z } from 'zod'
 import {
+  AskPhotoResponse,
+  type DevPhotoCreditsRequest,
   CHANNEL_HEADER,
   CharacterDetail,
   CharactersResponse,
@@ -43,7 +45,9 @@ import { getSessionToken, setSessionToken } from './session'
 export class ApiError extends Error {
   constructor(
     readonly status: number,
-    message: string
+    message: string,
+    /** The server's machine-readable reason when it sends one (a 402's NEEDS_PLUS, USED_TODAY). */
+    readonly code: string | null = null
   ) {
     super(message)
   }
@@ -90,7 +94,8 @@ async function request<T extends z.ZodTypeAny>(
       typeof json === 'object' && json && 'error' in json ? String((json as { error: unknown }).error) : res.statusText
     // An expired session must not strand the app: drop it and let the caller retry as guest.
     if (res.status === 401 && (await getSessionToken())) await setSessionToken(null)
-    throw new ApiError(res.status, message)
+    const code = typeof json === 'object' && json && 'code' in json ? String((json as { code: unknown }).code) : null
+    throw new ApiError(res.status, message, code)
   }
   return schema.parse(json)
 }
@@ -100,6 +105,10 @@ export const api = {
   character: (id: string) => request('GET', `/characters/${id}`, CharacterDetail),
   start: (id: string) => request('POST', `/characters/${id}/start`, StartRelationshipResponse),
   moments: (id: string) => request('GET', `/characters/${id}/moments`, MomentsResponse),
+  /** Ask him for a picture (docs/story-pipeline.md). 402 with a code when he may not; the store maps it. */
+  askPhoto: (conversationId: string) => request('POST', `/conversations/${conversationId}/photos`, AskPhotoResponse),
+  /** Dogfood: pictures onto the balance, the way a purchase will. Same gating as devGrant. */
+  devPhotoCredits: (body: DevPhotoCreditsRequest) => request('POST', '/billing/dev/photo-credits', z.object({ remaining: z.number() }), body),
   episodes: (id: string) => request('GET', `/characters/${id}/episodes`, EpisodesResponse),
   tonight: () => request('GET', '/tonight', TonightResponse),
   /** The whole home screen in one call. */

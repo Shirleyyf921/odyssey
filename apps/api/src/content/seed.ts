@@ -1282,6 +1282,8 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       avatarUrl: null,
       voiceId: null,
       accent: '#7fd3e6',
+      look:
+        'Ash, twenty-nine: ash-white hair, round glasses he looks over rather than through, an oversized dark hoodie, headphones around his neck, a thin chain',
       personaNotes:
         'Twenty-nine. Ash-white hair, round glasses he looks over rather than through, an oversized hoodie he has ' +
         'worn for two days. He finds things people have hidden: someone vanishes, something gets buried, and they ' +
@@ -1433,6 +1435,8 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       avatarUrl: null,
       voiceId: null,
       accent: '#d9b36a',
+      look:
+        'Rafe, twenty-seven: ash-blond hair tied back with half of it escaping, silver rings, a white dress shirt open at the collar with the sleeves pushed up',
       personaNotes:
         'Twenty-seven. Ash-blond hair tied back with half of it escaping, silver rings, a dress shirt that has been on since yesterday. ' +
         'The family name is on two buildings in this city and he is spending it as fast as it can be spent: the parties, the glass at dawn, ' +
@@ -1542,6 +1546,8 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       avatarUrl: null,
       voiceId: null,
       accent: '#9db7d1',
+      look:
+        'Jun, thirty-four: black hair, thin metal glasses, a black shirt, a long dark coat, expensive and still',
       personaNotes:
         'Thirty-four. He buys land. Which streets come down and which are allowed to stay is decided in rooms he sits in, and he has never ' +
         'once had to raise his voice in one. Cold on the surface, expensive, unreadable; indifferent to everyone and patient only with you. ' +

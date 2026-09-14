@@ -46,6 +46,8 @@ export interface SessionRecord {
 
 export interface CharacterRecord extends Character {
   personaNotes: string
+  /** How he looks, one line, for the image prompt. Empty: no pictures can be asked for. */
+  look: string
 }
 
 /** Progression counters. Server-only; the client sees stage and affinity through Relationship. */
@@ -171,6 +173,15 @@ export interface EpisodeRunPatch {
   plays?: number
 }
 
+export interface NewPhotoBlob {
+  momentId: string
+  userId: string
+  scene: string
+  prompt: string
+  contentType: string
+  image: Buffer
+}
+
 export interface NewMessage {
   /** Supplied by the caller for CHARACTER messages so the id can be streamed before the row exists. */
   id?: string
@@ -251,7 +262,20 @@ export interface AppRepository extends ChatRepository {
   updateRelationship(id: string, patch: RelationshipPatch): Promise<RelationshipRecord>
   insertRelationshipEvents(events: RelationshipEvent[]): Promise<void>
 
-  listMoments(characterId: string): Promise<Moment[]>
+  /** The catalogue, plus the viewer's own asked-for pictures when a viewer is given. */
+  listMoments(characterId: string, viewerUserId?: string): Promise<Moment[]>
+  insertMoment(input: Omit<Moment, 'id'>): Promise<Moment>
+  /** An asked-for picture's URL is keyed by its moment id, so it is set once the row exists. */
+  updateMomentImage(momentId: string, imageUrl: string): Promise<Moment>
+  // asked-for pictures (docs/story-pipeline.md, "Ask him for a picture")
+  insertPhotoBlob(input: NewPhotoBlob): Promise<void>
+  getPhotoBlob(momentId: string): Promise<{ image: Buffer; contentType: string } | null>
+  /** Pictures this user asked for since the instant; the Plus allowance counts against it. */
+  countAskedSince(userId: string, since: Date): Promise<number>
+  photoCredits(userId: string): Promise<number>
+  addPhotoCredits(userId: string, count: number): Promise<number>
+  /** One credit off the balance; false when there was none. */
+  spendPhotoCredit(userId: string): Promise<boolean>
   listUnlocks(relationshipId: string): Promise<MomentUnlock[]>
   insertUnlock(input: { relationshipId: string; momentId: string; source: MomentUnlockSource }): Promise<MomentUnlock>
 

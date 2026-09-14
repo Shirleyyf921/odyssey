@@ -101,7 +101,7 @@ export async function characterRoutes(
 
     for (const { personaNotes: _notes, ...c } of chars) {
       const relationship = byCharacter.get(c.id) ?? null
-      const [portraits, all, moments] = await Promise.all([repo.listPortraits(c.id), repo.listEpisodes(c.id), repo.listMoments(c.id)])
+      const [portraits, all, moments] = await Promise.all([repo.listPortraits(c.id), repo.listEpisodes(c.id), repo.listMoments(c.id, req.user.id)])
       const runs = relationship ? await repo.listRuns(relationship.id) : []
       const portraitUrl = portraits[0]?.url ?? null
       const visible = all.filter((e) => ratings.includes(e.rating))
@@ -170,7 +170,7 @@ export async function characterRoutes(
     const [portraits, relationship, moments, scenes] = await Promise.all([
       repo.listPortraits(id),
       repo.findRelationship(req.user.id, id),
-      repo.listMoments(id),
+      repo.listMoments(id, req.user.id),
       repo.listScenes(id),
     ])
     const { personaNotes: _notes, ...pub } = character
@@ -295,7 +295,8 @@ export async function characterRoutes(
     const character = await repo.getCharacter(id)
     if (!character) return reply.code(404).send({ error: 'character not found' })
     const [moments, relationship, purchases] = await Promise.all([
-      repo.listMoments(id),
+      // The catalogue and the pictures he took for this user (docs/story-pipeline.md, "Ask him for a picture").
+      repo.listMoments(id, req.user.id),
       repo.findRelationship(req.user.id, id),
       repo.listPurchases(req.user.id),
     ])

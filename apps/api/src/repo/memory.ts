@@ -27,6 +27,7 @@ import type {
   MemoryRecord,
   NewMemory,
   NewMessage,
+  NewPhotoBlob,
   PurchaseRecord,
   RelationshipEvent,
   RelationshipPatch,
@@ -64,6 +65,8 @@ export class MemoryRepository implements AppRepository {
   >()
   private messages = new Map<string, Message[]>()
   private unlocks = new Map<string, MomentUnlock[]>()
+  private photoBlobs = new Map<string, NewPhotoBlob & { createdAt: Date }>()
+  private photoCreditBalance = new Map<string, number>()
   private memories = new Map<string, StoredMemory[]>()
   readonly relationshipEvents: Array<RelationshipEvent & { createdAt: string }> = []
   private identities: IdentityRecord[] = []
@@ -404,8 +407,59 @@ export class MemoryRepository implements AppRepository {
 
   // ---------------------------------------------------------------- moments
 
-  async listMoments(characterId: string) {
-    return [...(this.moments.get(characterId) ?? [])].sort((a, b) => a.position - b.position)
+  async listMoments(characterId: string, viewerUserId?: string) {
+    return [...(this.moments.get(characterId) ?? [])]
+      .filter((m) => !m.ownerUserId || m.ownerUserId === viewerUserId)
+      .sort((a, b) => a.position - b.position)
+  }
+
+  async insertMoment(input: Omit<Moment, 'id'>) {
+    const moment: Moment = { id: randomUUID(), ...input }
+    const list = this.moments.get(input.characterId) ?? []
+    list.push(moment)
+    this.moments.set(input.characterId, list)
+    return { ...moment }
+  }
+
+  async updateMomentImage(momentId: string, imageUrl: string) {
+    for (const list of this.moments.values()) {
+      const m = list.find((x) => x.id === momentId)
+      if (m) {
+        m.imageUrl = imageUrl
+        return { ...m }
+      }
+    }
+    throw new Error(`unknown moment ${momentId}`)
+  }
+
+  async insertPhotoBlob(input: NewPhotoBlob) {
+    this.photoBlobs.set(input.momentId, { ...input, createdAt: new Date() })
+  }
+
+  async getPhotoBlob(momentId: string) {
+    const b = this.photoBlobs.get(momentId)
+    return b ? { image: b.image, contentType: b.contentType } : null
+  }
+
+  async countAskedSince(userId: string, since: Date) {
+    return [...this.photoBlobs.values()].filter((b) => b.userId === userId && b.createdAt >= since).length
+  }
+
+  async photoCredits(userId: string) {
+    return this.photoCreditBalance.get(userId) ?? 0
+  }
+
+  async addPhotoCredits(userId: string, count: number) {
+    const next = (this.photoCreditBalance.get(userId) ?? 0) + count
+    this.photoCreditBalance.set(userId, next)
+    return next
+  }
+
+  async spendPhotoCredit(userId: string) {
+    const have = this.photoCreditBalance.get(userId) ?? 0
+    if (have <= 0) return false
+    this.photoCreditBalance.set(userId, have - 1)
+    return true
   }
 
   async listUnlocks(relationshipId: string) {

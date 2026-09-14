@@ -185,6 +185,30 @@ Cut list from this change: `relationship_updated` on the client, the Moments cou
 character page, exploration characters as parallel relationships (they become supporting cast
 inside episodes), any plan for realtime video. Runtime TTS stays v2.
 
+## Ask him for a picture (2026-09-14)
+
+She asks, on the stage or in the chat; he decides what to send. The server assembles the
+scene: the story model (`STORY` tier) is given his persona, the open beat's brief and the
+episode's rating, the last eight lines and the retrieved few memories, and answers with one
+sentence of scene and his caption (`renderPhotoScenePrompt`). The image model (Seedream 4.0 on
+Novita, `PHOTO_URL`, key `PHOTO_API_KEY` else `NOVITA_API_KEY`) is given the style rules, his
+`look` line from the character row, that scene, the rating's reach, and his hero as the
+reference image (`composePhotoPrompt`; the rules and why in docs/art-prompts.md). The user
+never types a prompt and never sees one.
+
+What comes back is a moment with `ownerUserId` set (hers alone; `listMoments` returns the
+catalogue plus the viewer's own), unlocked with source `ASKED`, its bytes in `photo_blobs`
+served at `/photos/<momentId>.jpg` (unguessable, unauthenticated, an `<img>` carries no
+header), and his caption as a `CHARACTER` message carrying the moment, so the stage and the
+chat show it the way they show every photo. Migration 0016.
+
+Who may: a bought credit first (`photo_credits`; the RevenueCat consumable is not wired, the
+dev route `/billing/dev/photo-credits` stands in), else Plus's `PHOTOS_PER_DAY_PLUS` (one) per
+UTC day, else the paywall with reason `PHOTO`. A failed generation gives the credit back.
+Rating follows the open story, SFW when none is open. Price list: single $1.99, five $6.99
+(ARCHITECTURE.md section 7). Measured on the spike: 25 to 32 seconds a picture; the client
+says "he is taking it" and waits.
+
 ## Open
 
 - Does an episode cost anything beyond the subscription? Proposal: episodes are free, the
