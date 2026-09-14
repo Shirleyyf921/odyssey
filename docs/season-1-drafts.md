@@ -15,7 +15,7 @@ Rafe "The forty-second floor" (5 beats), Jun "Sixty floors of nothing" (7 beats)
 
 ### Part 2 · "Nine days" · PLUS · SFW · 7 beats, no call
 
-**中文梗概**：有人付钱让 Ash 查她。他接了这个活，因为不接就会有别人接。故事开在他第九天没睡、活儿快破的那晚：他把这件事摊在她面前，两条路，她要么坐下跟他一起把这件事做完，要么逼他把活儿停掉。两条路都到同一个地方：活儿破了的那一刻，他第一次让人看见自己做事的样子。结尾给"Come here"那张卡。用到现有卡"When it finally breaks"。
+**中文梗概**：有人出钱请 Ash 去调查她。Ash 接下了这单，因为他不接，对方就会找别人。他查了九天没合眼，答案就要出来了，这天晚上他把这件事原原本本告诉她。她要选：坐到他旁边，跟他一起把这件事查完；还是叫他今晚就停手。两条路最后到同一个地方：答案出来了，对方想要的是一个关于她的谎言，而 Ash 花九天把这个谎言拆穿了。结尾他坐在椅子上说了一句话，承认想让她待在这个房间里，已经不止九天。用现有的两张卡：中途给"When it finally breaks"，结尾给"Come here"。
 
 - **Premise**: Someone paid him to find out about you. He took the job so nobody else would.
 - **Setting**: The flat, past two. Nine days of the same job on the monitors, printouts on the floor in an order only he can read, the mug where she left it. He has not slept properly since the day he took it.
@@ -34,7 +34,7 @@ Rafe "The forty-second floor" (5 beats), Jun "Sixty floors of nothing" (7 beats)
 
 ### Part 3 · "What he does not know" · after part 2 · MATURE · from 3 beats to 6
 
-**中文梗概**：现有的那段 3 拍太短，而且两个选择都汇到同一拍，等于没有分支。改法：前面加一拍"走回家的最后一条街"把热度拉起来；门口那一拍的两个选择各走各的（她把他拉下来 → 楼梯间；她慢慢还他外套 → 台阶上他先动）；然后汇到"After"，再到结尾。现有三拍的文字不动，只是位置后移。结尾给付费卡"Your side"（"我睡了六个小时"），锁着就是锁着的样子，和别人的结局一样。
+**中文梗概**：现在这段只有 3 拍，而且门口那两个选择最后走到同一拍，等于没有分支。改法：前面加一拍，是他送她回家走的最后一条街，先把气氛拉起来；门口那一拍两个选择分开走：她把他拉下来亲，就进了楼道；她慢慢把外套还他，就是他在台阶上先动手。然后两条路汇到原来的"事后"那一拍，再到结尾。原有的三拍文字一个字不改，只是往后挪。结尾给付费卡"Your side"（"我睡了六个小时"），没买就是锁着的样子，和别的结局一样。
 
 - Existing premise, setting, opener stay. **Unlock**: EPISODE (Part 2).
 
@@ -53,7 +53,7 @@ Rafe "The forty-second floor" (5 beats), Jun "Sixty floors of nothing" (7 beats)
 
 ### Part 2 · "A perfectly good afternoon" · PLUS · SFW · 7 beats, ends on a call
 
-**中文梗概**：第一段结尾她要么问他要了一件"小而普通的东西"，要么说什么都不要。第二段是他兑现：白天，他本该去家族董事会，却把她带去一个最普通的地方——他小时候常去、现在谁都不知道的那家旧洗衣店旁边的餐馆。他在白天、清醒、没戴戒指。中途他姐姐打电话催他去开会，分支：她推他去开会，还是留下他。两条路都到"他第一次不表演的白天"。结尾是他从会议室门外打来的电话。需要两张新图：白天的他（"Daylight"），会议室门外（"The door"）。
+**中文梗概**：第一段结尾她要么问他要了一件"小而普通的东西"，要么说什么都不要。这一段他来兑现。大白天，他本该去家里的董事会，却带她去了一家最普通的小餐馆，是他小时候常去的地方，他认识的人没有一个知道。他清醒着，没戴戒指，故意点了一份错的菜逗她。中途他姐姐打电话催他去开会，两点五十了。她要选：让他去开会，还是让他留下。去了，他会中途跑回来只为说一句话；留下，他第一次看着三点钟过去而没有动。结尾是一个小时后他打来的电话，从会议室门外或者她楼下。需要两张新图：白天的他，还有那扇会议室的门。
 
 - **Premise**: The meeting is at three. He is in a diner at half past two, sober, with no rings on, and he has ordered you the wrong thing on purpose.
 - **Setting**: A diner that has not changed since 1994, two streets from a laundrette, in daylight. Formica, a coffee that is only just coffee, a window onto a bus stop. He looks wrong here and is happier than she has ever seen him.
@@ -72,7 +72,7 @@ Rafe "The forty-second floor" (5 beats), Jun "Sixty floors of nothing" (7 beats)
 
 ### Part 3 · "Nothing to offer" · after part 2 · MATURE · 5 beats
 
-**中文梗概**：第一次没有派对的夜晚。四十二楼空着，他没喝酒，什么都不给。他弹了那架九年没人弹的钢琴，一个音。这一段的热度是 MATURE，但先来的是那个音，不是床。分支：她让他弹下去，还是让他停下来看她。需要一张新付费卡"Unbuttoned"（衬衫、戒指放在钢琴上）。
+**中文梗概**：第一次没有派对的夜晚。四十二楼是空的，他把所有人都打发走了，没喝酒，也没有任何东西可以给她。他在那架九年没人碰的钢琴上按了一个音，就一个。她要选：让他把整首弹完，还是让他离开钢琴过来。这一段是 MATURE，但先发生的是那个音，不是床。事后他坐在地上说，他这辈子什么都有，就是从来没被人选过。结尾是早上：她留下了，醒来他在弹整首曲子；她走了，他发来手机录的三十秒，不附一个字。需要一张新付费卡：衬衫解开、戒指放在琴盖上。
 
 - **Premise**: No party tonight. He told them all not to come. It is the first time the flat has been empty with someone in it.
 - **Setting**: The forty-second floor at eleven at night, lights off except the city. No glasses out, no jacket on the couch. The piano lid is up, which it never is.
@@ -93,7 +93,7 @@ Rafe "The forty-second floor" (5 beats), Jun "Sixty floors of nothing" (7 beats)
 
 ### Part 2 · "Whose name is on it" · PLUS · SFW · 7 beats, ends on a call
 
-**中文梗概**：她楼里的邻居说整栋楼被人买了，拆迁停了，没人知道是谁。同一周她被拉去一个饭局，桌上就有第一段那张卡里"在饭桌上打断她的男人"，而 Jun 也在。分支：她当着一桌人问他，还是等到只剩两个人。他不否认也不解释——人设里的规矩不能破。这一段的看点是他在人群里怎么护她：不出声，但那个男人的名字他记得。结尾是他从车里打来的电话。需要两张新图："Across the table"（饭桌对面的他），"The car"。
+**中文梗概**：她楼里的拆迁通知撤了，整栋楼被人买走了，没人知道是谁。这周有个饭局，桌上就有第一段那张卡里提到的、在饭桌上打断她说话的男人，Jun 也在，坐在桌子最远的那头。她要选：当着一桌人问他是不是他买的楼，还是等人走光了再问。不管怎么问，他都不承认也不解释，这是他的规矩。看点是他在人群里怎么护着她：不出声，一句话让那个男人闭嘴，散场时记下那人的名字和租约到期日。结尾是车送她回家，他从后面那辆车打来电话，一句话，是他这辈子最接近说出口的一次。需要两张新图：饭桌尽头的他，还有车后座。
 
 - **Premise**: The demolition notice came down. Nobody on your street knows who bought the block. He is at the same dinner as you on Thursday, and he did not ask to be seated near you.
 - **Setting**: A private dining room above a restaurant that does not have a sign, eleven people at a long table, him at the far end. The man from the last dinner is two seats from you and has already started talking.
@@ -112,7 +112,7 @@ Rafe "The forty-second floor" (5 beats), Jun "Sixty floors of nothing" (7 beats)
 
 ### Part 3 · "Stay" · after part 2 · MATURE · 5 beats
 
-**中文梗概**：他的家，一个看起来没人住的地方。他第一次开口要一样东西："留下"。人设：他从不说他在乎，从不问第二遍，所以这一段他只问一次。分支：她让他先说出来，还是她先动。热度 MATURE。需要一张新付费卡"His shirt"（早上，她穿着他的衬衫，他在门口看）。
+**中文梗概**：他的家，高、暗，厨房从来没开过火，一把椅子，没有照片，看起来根本没人住。他脱了外套站在屋子中间，说了一个字：留下。他从不说他在乎，从不问第二遍，所以这一段他只开这一次口。她要选：让他先把理由说出来，还是自己走过去。这一段是 MATURE。事后他坐在那把椅子上，第一次完整回答她为什么买下那栋楼，三个字，不是她以为的那三个。结尾是早上：她留下了，就是穿着他的衬衫在厨房发现没有咖啡，他站在门口看着，然后去买；她走了，家门口那张拆迁通知不见了，换成他手写的一个字。需要一张新付费卡：早上她穿着他的衬衫。
 
 - **Premise**: He has never asked you for anything. Tonight he asks for one thing, once.
 - **Setting**: His flat, which nobody has been inside: high, dark, a kitchen that has never been cooked in, one chair that has been sat in. No photographs. The city on three sides. It is raining and he has not turned on a light.
