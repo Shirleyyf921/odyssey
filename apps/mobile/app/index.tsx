@@ -4,19 +4,20 @@ import { Link, Stack, router, useFocusEffect } from 'expo-router'
 import { useCallback, type ReactNode } from 'react'
 import { ActivityIndicator, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import type { HomeEpisode, MomentCard, TonightItem } from '@odyssey/shared'
+import type { HomeResponse, MomentCard, TonightItem } from '@odyssey/shared'
 import { Lock } from '../src/components/Lock'
 import { api } from '../src/lib/api'
 import { usePaywall } from '../src/store/paywall'
 import { colors, radius, spacing } from '../src/theme'
 
 /**
- * Home, in direction B (the design canvas, 2026-09-12). Tonight is one
- * full-bleed hero: the primary, his story, one ink pill to open it. The
- * other men are landscape tiles under it; the run to pick up sits above the
- * hero when there is one; every episode across the roster, what readers
- * wrote, and his pictures are rails. No boxes, no global pink: the only colour
- * on the screen is each man's own accent, on his name.
+ * Home, "three doors" (the design canvas, 2026-09-14; chosen over "one
+ * night" and "he wrote to you"). The home answers one question: who do you
+ * have. All three men are on the screen at once, each behind his own door,
+ * tonight's one larger; what is open, what you are in the middle of, and
+ * what Plus would open is said on the door in a word. How to play and what
+ * you have earned live on his page, one tap in. Under the doors, one line
+ * about the pictures; under that, the bar: home, write (web), you.
  */
 export default function Home() {
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['home'], queryFn: api.home })
@@ -35,69 +36,65 @@ export default function Home() {
     )
   }
 
-  const primary = data.tonight.find((i) => i.character.kind === 'PRIMARY') ?? data.tonight[0] ?? null
-  const others = data.tonight.filter((i) => i !== primary)
-  const played = data.episodes.filter((e) => e.status === 'DONE').length
-  const heroHeight = Math.round(Math.min(width * 1.3, 560))
+  const { big, small } = doors(data)
+  const inner = Math.min(width, 520) - spacing.md * 2
+  const gap = 6
+  const bigW = Math.round(inner * 0.56)
+  const doorsH = Math.round(Math.min(width * 1.64, 640))
+  const smallH = Math.round((doorsH - gap) / 2)
+  const barH = 56 + Math.max(insets.bottom, 10)
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-        {/* Tonight: him, full-bleed, and the one story open for him. */}
-        {primary ? <Hero item={primary} height={heroHeight} top={insets.top} full={data.episodes.find((e) => e.id === primary.episode?.id) ?? null} /> : null}
+      <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: insets.top + 20, paddingBottom: barH + spacing.xl }]}>
+        <View style={styles.header}>
+          <Text style={styles.brand}>odyssey</Text>
+          <Text style={styles.kicker}>Tonight</Text>
+        </View>
 
-        {data.resume ? (
-          <Section label="Where you left off">
-            <ResumeRow episode={data.resume} />
-          </Section>
-        ) : null}
-
-        {others.length ? (
-          <Section label="Also here">
-            <View style={styles.tiles}>
-              {others.map((item) => <ManTile key={item.character.id} item={item} />)}
+        {big ? (
+          <View style={[styles.doors, { height: doorsH, gap }]}>
+            <Door item={big} width={bigW} height={doorsH} big />
+            <View style={[styles.column, { gap }]}>
+              {small.map((item) => <Door key={item.character.id} item={item} width={inner - bigW - gap} height={smallH} />)}
             </View>
-          </Section>
+          </View>
         ) : null}
 
-        <Section label="Every night there is" aside={played ? `${played} of ${data.episodes.length} played` : `${data.episodes.length} stories`}>
-          <Rail>
-            {data.episodes.map((e) => <EpisodeTile key={e.id} episode={e} />)}
-          </Rail>
-        </Section>
-
-        {data.community.length ? (
-          <Section label="Written for them">
-            <Rail>
-              {data.community.map((e) => <EpisodeTile key={e.id} episode={e} community />)}
-            </Rail>
-          </Section>
-        ) : null}
-
-        {data.moments.unlocked.length || data.moments.next.length ? (
-          <Section label="His pictures" aside={`${data.moments.unlocked.length} given`}>
-            <Rail>
-              {data.moments.unlocked.map((m) => <MomentThumb key={m.id} card={m} />)}
-              {data.moments.next.map((m) => <MomentThumb key={m.id} card={m} />)}
-            </Rail>
-          </Section>
-        ) : null}
+        <Pictures moments={data.moments} primaryId={big?.character.id ?? null} />
 
         {Platform.OS === 'web' ? (
           <Link href="/write" asChild>
             <Pressable style={styles.writeRow}>
               <View style={styles.grow}>
                 <Text style={styles.writeTitle}>Write one for him</Text>
-                <Text style={styles.muted}>Where it opens, what he wants, what you can do. A day of Plus every time someone finishes it.</Text>
+                <Text style={styles.muted}>A day of Plus every time someone finishes it.</Text>
               </View>
               <Text style={styles.chev}>›</Text>
             </Pressable>
           </Link>
         ) : null}
       </ScrollView>
+      <Bar bottom={Math.max(insets.bottom, 10)} />
     </>
   )
+}
+
+/**
+ * Which door is the big one: the man you are in the middle of a night with,
+ * else the one who wrote to you, else the primary. The other two keep the
+ * roster's order.
+ */
+function doors(data: HomeResponse): { big: TonightItem | null; small: TonightItem[] } {
+  const items = data.tonight
+  const big =
+    items.find((i) => i.episode?.status === 'IN_PROGRESS') ??
+    items.find((i) => i.reachOut) ??
+    items.find((i) => i.character.kind === 'PRIMARY') ??
+    items[0] ??
+    null
+  return { big, small: items.filter((i) => i !== big).slice(0, 2) }
 }
 
 /** Start the relationship if it does not exist yet, then open the stage on an episode. */
@@ -115,15 +112,7 @@ function usePlay(characterId: string, characterName: string) {
   })
 }
 
-function tags(e: HomeEpisode): string {
-  const parts = [`${e.beatCount} beats`]
-  if (e.hasCall) parts.push('he calls')
-  if (e.photoCount) parts.push(`${e.photoCount} ${e.photoCount === 1 ? 'picture' : 'pictures'}`)
-  if (e.rating === 'MATURE') parts.push('18+')
-  return parts.join(' · ')
-}
-
-/** Where the card leads: the paywall for a Plus lock, the chat when he wrote first, the stage when open, else his page. */
+/** Where the door leads: the paywall for a Plus lock, the chat when he wrote first, the stage when open, else his page. */
 function useOpen(item: TonightItem) {
   const { character, episode, reachOut } = item
   const play = usePlay(character.id, character.name)
@@ -140,172 +129,155 @@ function useOpen(item: TonightItem) {
   return { open, playable, pending: play.isPending }
 }
 
-/** His message without the leading action beat, for a card; the chat shows the beat. */
+/** His message without the leading action beat, for a door; the chat shows the beat. */
 function stripBeat(text: string): string {
   return text.replace(/^\*[^*]*\*\s*/, '').trim() || text
 }
 
-function statusLine(item: TonightItem): string {
+/** The one word on the door after his name. */
+function state(item: TonightItem): string {
   const { episode, character } = item
-  if (!episode) return character.relationship ? 'Nothing new tonight. He is still up.' : 'Say hello'
+  if (item.reachOut) return 'he wrote'
+  if (!episode) return character.relationship ? 'he is up' : 'say hello'
   switch (episode.status) {
     case 'IN_PROGRESS':
-      return `Continue · ${episode.currentBeat}/${episode.beatCount}`
+      return `continue · ${episode.currentBeat}/${episode.beatCount}`
     case 'AVAILABLE':
-      return 'Open'
+      return 'open'
     case 'DONE':
-      return 'Again'
+      return 'again'
     case 'LOCKED':
-      return episode.lockReason ?? 'Not yet'
+      return episode.unlock.kind === 'PLUS' ? 'plus' : 'not yet'
   }
 }
 
-/** Tonight: the primary, full-bleed, the story under his name, one ink pill. */
-function Hero({ item, height, top, full }: { item: TonightItem; height: number; top: number; full: HomeEpisode | null }) {
-  const { character, episode, reachOut } = item
+/** The second line on a small door: what he said, or what the night is. */
+function hook(item: TonightItem): string {
+  if (item.reachOut) return stripBeat(item.reachOut.content)
+  if (item.episode) return item.episode.status === 'LOCKED' ? (item.episode.lockReason ?? item.episode.title) : item.episode.title
+  return item.character.tagline
+}
+
+/** One man behind one door: his art full-bleed, his name in his colour, the state in a word. */
+function Door({ item, width, height, big }: { item: TonightItem; width: number; height: number; big?: boolean }) {
+  const { character, episode } = item
   const { open, playable, pending } = useOpen(item)
-  const tagLine = full ? tags(full) : episode ? `${episode.beatCount} beats` : ''
+  const shut = episode?.status === 'LOCKED' && episode.unlock.kind !== 'PLUS'
+  const locked = (episode?.status === 'LOCKED' && episode.unlock.kind === 'PLUS') || (episode?.status === 'DONE' && !!episode.lockReason)
+  const toHim = () => router.push({ pathname: '/character/[id]', params: { id: character.id } })
   return (
-    <View style={[styles.hero, { height }]}>
+    <Pressable style={[styles.door, { width, height }, shut && styles.doorShut]} onPress={big ? toHim : open} disabled={pending}>
       {character.portraitUrl ? <Image source={{ uri: character.portraitUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : <View style={[StyleSheet.absoluteFill, styles.artEmpty]} />}
-      <LinearGradient pointerEvents="none" colors={['rgba(5,5,7,0.5)', 'rgba(5,5,7,0)']} style={[styles.heroTop, { height: top + 90 }]} />
-      <LinearGradient pointerEvents="none" colors={['rgba(5,5,7,0)', 'rgba(5,5,7,0.86)', colors.ground]} locations={[0, 0.62, 1]} style={styles.heroBottom} />
-      <View style={[styles.header, { top: top + 12 }]}>
-        <Text style={styles.brand}>odyssey</Text>
-        <View style={styles.headerLinks}>
-          {Platform.OS === 'web' ? (
-            <Link href="/write" asChild><Pressable hitSlop={8}><Text style={styles.headerLink}>Write</Text></Pressable></Link>
-          ) : null}
-          <Link href="/account" asChild><Pressable hitSlop={8}><Text style={styles.headerLink}>Account</Text></Pressable></Link>
+      <LinearGradient pointerEvents="none" colors={['rgba(5,5,7,0)', 'rgba(5,5,7,0.92)']} locations={[big ? 0.4 : 0.38, 1]} style={StyleSheet.absoluteFill} />
+      <View style={[styles.doorText, big ? styles.doorTextBig : null]}>
+        <View style={styles.nameRow}>
+          <Text style={[big ? styles.kickerBig : styles.kickerSmall, { color: character.accent }]} numberOfLines={1}>
+            {character.name} · {state(item)}
+          </Text>
+          {locked ? <Lock size={11} /> : null}
         </View>
-      </View>
-      <Pressable style={styles.heroText} onPress={open} disabled={pending}>
-        <Text style={[styles.kicker, { color: character.accent }]}>Tonight · {character.name}</Text>
-        {reachOut ? (
+        {big ? (
           <>
-            <Text style={styles.heroTitle}>He wrote while you were gone</Text>
-            <Text style={styles.heroPremise} numberOfLines={3}>{stripBeat(reachOut.content)}</Text>
-            <View style={styles.heroActions}><View style={styles.pill}><Text style={styles.pillText}>Answer him</Text></View></View>
-          </>
-        ) : episode ? (
-          <>
-            <Text style={styles.heroTitle}>{episode.title}</Text>
-            <Text style={styles.heroPremise} numberOfLines={2}>{episode.premise}</Text>
-            <View style={styles.heroActions}>
-              <View style={[styles.pill, !playable && styles.pillShut]}><Text style={[styles.pillText, !playable && styles.pillShutText]}>{statusLine(item)}</Text></View>
-              <Text style={styles.faint}>{tagLine}</Text>
+            <Text style={styles.doorTitle} numberOfLines={2}>{episode?.title ?? (character.relationship ? 'Nothing new tonight' : character.tagline)}</Text>
+            <Text style={styles.doorLine} numberOfLines={2}>{item.reachOut ? stripBeat(item.reachOut.content) : (episode?.premise ?? '')}</Text>
+            <View style={styles.doorActions}>
+              <Pressable style={[styles.pill, pending && styles.disabled]} onPress={open} disabled={pending} hitSlop={6}>
+                <Text style={styles.pillText}>{item.reachOut ? 'Read it' : playable ? (episode?.status === 'IN_PROGRESS' ? 'Continue' : 'Go up') : locked ? 'Plus' : 'His page'}</Text>
+              </Pressable>
+              {episode ? <Text style={styles.faint}>{episode.beatCount} beats</Text> : null}
             </View>
           </>
         ) : (
           <>
-            <Text style={styles.heroTitle}>{character.name}</Text>
-            <Text style={styles.heroPremise} numberOfLines={2}>{character.tagline}</Text>
-            <View style={styles.heroActions}><View style={styles.pill}><Text style={styles.pillText}>{statusLine(item)}</Text></View></View>
+            <Text style={styles.doorSmallTitle} numberOfLines={2}>{hook(item)}</Text>
           </>
         )}
-      </Pressable>
-    </View>
-  )
-}
-
-/** Another man: a landscape tile, his portrait behind, his name in his colour. */
-function ManTile({ item }: { item: TonightItem }) {
-  const { character, episode, reachOut } = item
-  const { open, pending } = useOpen(item)
-  return (
-    <Pressable style={styles.tile} onPress={open} disabled={pending}>
-      {character.portraitUrl ? <Image source={{ uri: character.portraitUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : <View style={[StyleSheet.absoluteFill, styles.artEmpty]} />}
-      <LinearGradient pointerEvents="none" colors={['rgba(5,5,7,0)', 'rgba(5,5,7,0.92)']} locations={[0.3, 1]} style={StyleSheet.absoluteFill} />
-      <View style={styles.tileText}>
-        <Text style={[styles.kickerSmall, { color: character.accent }]}>{character.name}</Text>
-        <Text style={styles.tileTitle} numberOfLines={2}>{reachOut ? 'He wrote while you were gone' : (episode?.title ?? character.tagline)}</Text>
-        <Text style={styles.tileFoot} numberOfLines={1}>{reachOut ? 'Answer him' : episode ? `${statusLine(item)} · ${episode.beatCount} beats${episode.rating === 'MATURE' ? ' · 18+' : ''}` : statusLine(item)}</Text>
       </View>
     </Pressable>
   )
 }
 
-/** The one run in progress: a short row, straight back onto the stage. */
-function ResumeRow({ episode }: { episode: HomeEpisode }) {
-  const play = usePlay(episode.characterId, episode.characterName)
-  const art = episode.coverUrl ?? episode.portraitUrl
+/** One line under the doors about the pictures, and the last one given or the next one to earn. */
+function Pictures({ moments, primaryId }: { moments: HomeResponse['moments']; primaryId: string | null }) {
+  const given = moments.unlocked
+  const next = moments.next[0] ?? null
+  const shown: MomentCard | null = given[given.length - 1] ?? next
+  if (!shown) return null
+  const line =
+    given.length === 0
+      ? next?.story ? `The first one is in "${next.story}".` : 'He has not given you one yet.'
+      : next?.story
+        ? `${given.length} ${given.length === 1 ? 'picture' : 'pictures'} · the next one is in "${next.story}"`
+        : `${given.length} ${given.length === 1 ? 'picture' : 'pictures'}`
+  const locked = shown.status === 'LOCKED'
   return (
-    <Pressable style={styles.resume} onPress={() => play.mutate(episode.id)} disabled={play.isPending}>
-      {art ? <Image source={{ uri: art }} style={styles.resumeArt} resizeMode="cover" /> : <View style={[styles.resumeArt, styles.artEmpty]} />}
+    <Pressable style={styles.pictures} onPress={() => router.push({ pathname: '/moments/[characterId]', params: { characterId: shown.characterId ?? primaryId ?? '' } })}>
       <View style={styles.grow}>
-        <Text style={[styles.kickerSmall, { color: episode.accent }]}>{episode.characterName}</Text>
-        <Text style={styles.resumeTitle} numberOfLines={1}>{episode.title}</Text>
-        <Text style={styles.muted}>Continue · {episode.currentBeat}/{episode.beatCount}</Text>
+        <Text style={styles.label}>Given to you</Text>
+        <Text style={styles.muted} numberOfLines={2}>{line}</Text>
       </View>
-      <Text style={styles.chev}>›</Text>
-    </Pressable>
-  )
-}
-
-/** One episode in a rail: his portrait or the picture the ending gave, the title, what is in it, where you are. */
-function EpisodeTile({ episode, community }: { episode: HomeEpisode; community?: boolean }) {
-  const playable = episode.status === 'AVAILABLE' || episode.status === 'IN_PROGRESS' || (episode.status === 'DONE' && !episode.lockReason)
-  const play = usePlay(episode.characterId, episode.characterName)
-  const open = () => {
-    if (episode.status === 'LOCKED' && episode.unlock.kind === 'PLUS') return usePaywall.getState().open('EPISODE')
-    if (episode.status === 'DONE' && episode.lockReason) return usePaywall.getState().open('REPLAY')
-    if (playable) play.mutate(episode.id)
-    else router.push({ pathname: '/character/[id]', params: { id: episode.characterId } })
-  }
-  const art = episode.coverUrl ?? episode.portraitUrl
-  const foot = episode.status === 'IN_PROGRESS' ? `Continue · ${episode.currentBeat}/${episode.beatCount}` : episode.status === 'DONE' ? 'Again' : episode.status === 'LOCKED' ? (episode.lockReason ?? 'Not yet') : 'Open'
-  return (
-    <Pressable style={[styles.card, !playable && episode.status !== 'DONE' && styles.cardShut]} onPress={open} disabled={play.isPending}>
-      {art ? <Image source={{ uri: art }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : <View style={[StyleSheet.absoluteFill, styles.artEmpty]} />}
-      <LinearGradient pointerEvents="none" colors={['rgba(5,5,7,0)', 'rgba(5,5,7,0.94)']} locations={[0.35, 1]} style={StyleSheet.absoluteFill} />
-      <View style={styles.cardText}>
-        <Text style={[styles.kickerSmall, { color: episode.accent }]} numberOfLines={1}>{community ? `for ${episode.characterName}${episode.authorName ? ` · ${episode.authorName}` : ''}` : episode.characterName}</Text>
-        <Text style={styles.cardTitle} numberOfLines={2}>{episode.title}</Text>
-        <Text style={styles.faint} numberOfLines={1}>{tags(episode)}</Text>
-        <Text style={styles.cardFoot} numberOfLines={1}>{foot}</Text>
-      </View>
-    </Pressable>
-  )
-}
-
-/** A picture he gave, or the next one the story will: a square with a line under it. Locked ones are dim, no glyph. */
-function MomentThumb({ card }: { card: MomentCard }) {
-  const locked = card.status === 'LOCKED'
-  return (
-    <Pressable style={styles.thumbWrap} onPress={() => router.push({ pathname: '/moments/[characterId]', params: { characterId: card.characterId } })}>
       <View style={styles.thumb}>
-        {!locked && card.imageUrl ? (
-          <Image source={{ uri: card.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-        ) : card.teaserUrl ? (
-          <Image source={{ uri: card.teaserUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={16} />
+        {!locked && shown.imageUrl ? (
+          <Image source={{ uri: shown.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        ) : shown.teaserUrl ? (
+          <Image source={{ uri: shown.teaserUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={16} />
         ) : null}
-        {locked ? <View style={styles.thumbLock}><Lock /></View> : null}
+        {locked ? <View style={styles.thumbLock}><Lock size={14} /></View> : null}
       </View>
-      <Text style={styles.thumbTitle} numberOfLines={1}>{card.title}</Text>
-      <Text style={styles.thumbSub} numberOfLines={2}>{locked ? (card.story ? `In "${card.story}"` : '') : (card.caption ?? '')}</Text>
     </Pressable>
   )
 }
 
-/** A lock drawn with two views, so no emoji ever ships. */
-
-function Section({ label, aside, children }: { label: string; aside?: string; children: ReactNode }) {
+/** The bar: home, write on the web, you. Icons drawn with views so no library and no emoji ship. */
+function Bar({ bottom }: { bottom: number }) {
   return (
-    <View style={styles.section}>
-      <View style={styles.sectionHead}>
-        <Text style={styles.label}>{label}</Text>
-        {aside ? <Text style={styles.faint}>{aside}</Text> : null}
+    <View style={[styles.bar, { paddingBottom: bottom }]}>
+      <View style={styles.barItem}>
+        <DoorGlyph active />
+        <Text style={styles.barLabelActive}>Tonight</Text>
       </View>
-      {children}
+      {Platform.OS === 'web' ? (
+        <Link href="/write" asChild>
+          <Pressable style={styles.barItem}>
+            <PenGlyph />
+            <Text style={styles.barLabel}>Write</Text>
+          </Pressable>
+        </Link>
+      ) : null}
+      <Link href="/account" asChild>
+        <Pressable style={styles.barItem}>
+          <YouGlyph />
+          <Text style={styles.barLabel}>You</Text>
+        </Pressable>
+      </Link>
     </View>
   )
 }
 
-function Rail({ children }: { children: ReactNode }) {
+function DoorGlyph({ active }: { active?: boolean }) {
+  const c = active ? colors.ink : colors.faint
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail} style={styles.railWrap}>
-      {children}
-    </ScrollView>
+    <View style={[styles.glyphDoor, { borderColor: c }]}>
+      <View style={[styles.glyphKnob, { backgroundColor: c }]} />
+    </View>
+  )
+}
+
+function PenGlyph() {
+  return (
+    <View style={styles.glyphBox}>
+      <View style={[styles.glyphPen, { backgroundColor: colors.faint }]} />
+      <View style={[styles.glyphPenTip, { borderTopColor: colors.faint }]} />
+    </View>
+  )
+}
+
+function YouGlyph() {
+  return (
+    <View style={styles.glyphBox}>
+      <View style={[styles.glyphHead, { borderColor: colors.faint }]} />
+      <View style={[styles.glyphShoulders, { borderColor: colors.faint }]} />
+    </View>
   )
 }
 
@@ -316,53 +288,47 @@ function Centered({ children }: { children: ReactNode }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.ground },
   artEmpty: { backgroundColor: '#0f0e12' },
-  content: { paddingBottom: spacing.xxl, gap: spacing.xl },
-  hero: { width: '100%', backgroundColor: colors.ground, justifyContent: 'flex-end' },
-  heroTop: { position: 'absolute', top: 0, left: 0, right: 0 },
-  heroBottom: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '62%' },
-  header: { position: 'absolute', left: spacing.xl, right: spacing.xl, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  content: { paddingHorizontal: spacing.md, gap: spacing.lg, maxWidth: 520, width: '100%', alignSelf: 'center' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingHorizontal: spacing.md },
   brand: { color: colors.ink, fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
-  headerLinks: { flexDirection: 'row', gap: 16 },
-  headerLink: { color: colors.muted, fontSize: 13 },
-  heroText: { paddingHorizontal: spacing.xl, paddingBottom: spacing.sm, gap: 6 },
-  kicker: { fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' },
-  kickerSmall: { fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' },
-  heroTitle: { color: colors.ink, fontSize: 30, fontWeight: '800', letterSpacing: -0.6, lineHeight: 34 },
-  heroPremise: { color: colors.muted, fontSize: 14, lineHeight: 20 },
-  heroActions: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
-  pill: { paddingVertical: 12, paddingHorizontal: 22, borderRadius: radius.pill, backgroundColor: colors.ink },
-  pillText: { color: '#0b0a0c', fontSize: 14, fontWeight: '700' },
-  pillShut: { backgroundColor: colors.glass },
-  pillShutText: { color: colors.muted, fontWeight: '600' },
-  section: { gap: spacing.md, paddingHorizontal: spacing.xl },
-  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  label: { color: colors.faint, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' },
-  tiles: { flexDirection: 'row', gap: 10 },
-  tile: { flex: 1, height: 120, borderRadius: 12, overflow: 'hidden', backgroundColor: '#0f0e12', justifyContent: 'flex-end' },
-  tileText: { padding: 12, gap: 1 },
-  tileTitle: { color: colors.ink, fontSize: 14, fontWeight: '700', lineHeight: 17 },
-  tileFoot: { color: colors.muted, fontSize: 11 },
-  resume: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.hairline },
-  resumeArt: { width: 52, height: 64, borderRadius: 8 },
-  resumeTitle: { color: colors.ink, fontSize: 16, fontWeight: '700' },
-  railWrap: { marginHorizontal: -spacing.xl },
-  rail: { gap: 10, paddingHorizontal: spacing.xl },
-  card: { width: 150, height: 210, borderRadius: 12, overflow: 'hidden', backgroundColor: '#0f0e12', justifyContent: 'flex-end' },
-  cardShut: { opacity: 0.72 },
-  cardText: { padding: 10, gap: 2 },
-  cardTitle: { color: colors.ink, fontSize: 14, fontWeight: '700', lineHeight: 17 },
-  cardFoot: { color: colors.ink, fontSize: 12, fontWeight: '600', marginTop: 2 },
-  thumbWrap: { width: 96, gap: 5 },
-  thumb: { width: 96, height: 88, borderRadius: 10, overflow: 'hidden', backgroundColor: 'rgba(244,241,236,0.06)' },
+  kicker: { color: colors.faint, fontSize: 11, letterSpacing: 2.5, textTransform: 'uppercase' },
+  doors: { flexDirection: 'row' },
+  column: { flex: 1, flexDirection: 'column' },
+  door: { borderRadius: 16, overflow: 'hidden', backgroundColor: '#0f0e12', justifyContent: 'flex-end' },
+  doorShut: { opacity: 0.7 },
+  doorText: { padding: 14, gap: 3 },
+  doorTextBig: { padding: 16, gap: 6 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  kickerBig: { fontSize: 11, letterSpacing: 2.5, textTransform: 'uppercase', flexShrink: 1 },
+  kickerSmall: { fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', flexShrink: 1 },
+  doorTitle: { color: colors.ink, fontSize: 26, fontWeight: '800', letterSpacing: -0.7, lineHeight: 28 },
+  doorLine: { color: 'rgba(244,241,236,0.68)', fontSize: 13, lineHeight: 18 },
+  doorActions: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
+  doorSmallTitle: { color: colors.ink, fontSize: 15, fontWeight: '700', lineHeight: 18 },
+  pill: { paddingVertical: 11, paddingHorizontal: 20, borderRadius: radius.pill, backgroundColor: colors.ink, alignSelf: 'flex-start' },
+  pillText: { color: '#0b0a0c', fontSize: 13, fontWeight: '700' },
+  disabled: { opacity: 0.6 },
+  pictures: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: spacing.md, paddingVertical: 6 },
+  label: { color: colors.faint, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 2 },
+  thumb: { width: 56, height: 56, borderRadius: 10, overflow: 'hidden', backgroundColor: 'rgba(244,241,236,0.06)' },
   thumbLock: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-  thumbTitle: { color: colors.ink, fontSize: 12, fontWeight: '600' },
-  thumbSub: { color: colors.faint, fontSize: 10, lineHeight: 13 },
-  writeRow: { marginHorizontal: spacing.xl, paddingVertical: 14, borderTopWidth: 1, borderTopColor: colors.hairline, borderBottomWidth: 1, borderBottomColor: colors.hairline, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  writeRow: { marginHorizontal: spacing.md, paddingVertical: 14, borderTopWidth: 1, borderTopColor: colors.hairline, flexDirection: 'row', alignItems: 'center', gap: 12 },
   writeTitle: { color: colors.ink, fontSize: 16, fontWeight: '700', marginBottom: 2 },
   muted: { color: colors.muted, fontSize: 13, lineHeight: 18 },
   faint: { color: colors.faint, fontSize: 11 },
   grow: { flex: 1 },
   chev: { color: colors.faint, fontSize: 22 },
+  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-start', paddingTop: 10, backgroundColor: colors.ground, borderTopWidth: 1, borderTopColor: colors.hairline },
+  barItem: { alignItems: 'center', gap: 4, minWidth: 72, paddingVertical: 2 },
+  barLabel: { color: colors.faint, fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase' },
+  barLabelActive: { color: colors.ink, fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase' },
+  glyphBox: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
+  glyphDoor: { width: 14, height: 20, borderWidth: 1.6, borderTopLeftRadius: 6, borderTopRightRadius: 6, borderRadius: 2, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 3 },
+  glyphKnob: { width: 2.5, height: 2.5, borderRadius: 2 },
+  glyphPen: { width: 3, height: 14, borderRadius: 1.5, transform: [{ rotate: '40deg' }, { translateY: -1 }] },
+  glyphPenTip: { position: 'absolute', bottom: 2, left: 4, width: 0, height: 0, borderLeftWidth: 3, borderRightWidth: 3, borderTopWidth: 5, borderLeftColor: 'transparent', borderRightColor: 'transparent', transform: [{ rotate: '40deg' }] },
+  glyphHead: { width: 9, height: 9, borderRadius: 5, borderWidth: 1.6, marginBottom: 1 },
+  glyphShoulders: { width: 18, height: 8, borderWidth: 1.6, borderBottomWidth: 0, borderTopLeftRadius: 9, borderTopRightRadius: 9 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl, backgroundColor: colors.ground },
   error: { color: colors.ink, fontSize: 16 },
   hint: { color: colors.faint, fontSize: 12, textAlign: 'center' },
