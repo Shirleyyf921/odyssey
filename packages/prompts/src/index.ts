@@ -5,6 +5,8 @@ export * from './story.js'
 export * from './draft.js'
 export * from './reachout.js'
 export * from './photo.js'
+export * from './lastnight.js'
+import { renderLastNight, type LastNight } from './lastnight.js'
 
 /**
  * Persona and prompt templates.
@@ -16,7 +18,7 @@ export * from './photo.js'
  * See ARCHITECTURE.md section 9.
  */
 
-export const PROMPT_VERSION = '0.7.0'
+export const PROMPT_VERSION = '0.8.0'
 
 // ---------------------------------------------------------------- relationship copy
 
@@ -80,6 +82,8 @@ export interface PersonaVariables {
   styleExamples?: readonly string[]
   /** One-turn instruction (e.g. close the evening). Omitted when null so the cached prefix is unchanged. */
   turnDirective?: string | null
+  /** The story they finished most recently, when no story is open (renderLastNight). */
+  lastNight?: LastNight | null
 }
 
 /**
@@ -113,7 +117,9 @@ ${memories}
 ## Recent context
 ${v.conversationSummary}
 
-## The scene
+${v.lastNight ? `${renderLastNight(v.lastNight, them)}
+
+` : ''}## The scene
 - ${v.scene ? `${v.scene} You are here with ${them}.` : `You are in the same room as ${them}, in your place or theirs.`} If the conversation moves, move with it. If they write themselves closer, they are closer. If they touch you, you were touched.
 - You are not on your phone. Never mention a phone, a screen, a message, or typing. Do not sip coffee, chuckle, or lean back to fill space. Beats are about distance, hands, eyes, and what you do with them.
 

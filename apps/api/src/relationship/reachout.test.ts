@@ -68,3 +68,24 @@ test('an empty reply sends nothing and leaves the day open', async () => {
   assert.equal(await service.maybeReachOut(rel), null)
   assert.equal((await repo.listRelationships(demo.userId))[0]!.reachedOutOn, null)
 })
+
+test('after a finished story, he writes with what last night changed, not where they left off', async () => {
+  const { repo, demo, requests, service, rel } = await setup()
+  await repo.updateRelationship(demo.relationshipId, { lastActiveDate: daysAgo(1), activeDays: 3 })
+  const [episode] = await repo.listEpisodes(demo.characterId)
+  // The road: first beat, the "stay by the door" option, then through to the ending where she let it ring.
+  const b1 = episode!.beats[0]!
+  const door = b1.options[1]!
+  const run = await repo.createRun({ relationshipId: demo.relationshipId, episodeId: episode!.id, currentBeatId: b1.id, episodeVersion: 1 })
+  const ring = episode!.beats.find((b) => b.kind === 'END' && b.brief.includes('let it ring'))!
+  await repo.updateRun(run.id, { currentBeatId: ring.id, path: [b1.id, door.next!, ring.id], endedAt: new Date(Date.now() - 20 * 3_600_000) })
+
+  const message = await service.maybeReachOut(await rel())
+  assert.ok(message)
+  const system = requests.at(-1)!.system
+  assert.match(system, /## Last night/)
+  assert.match(system, /played "Four minutes" last night/)
+  assert.match(system, new RegExp(door.intent.toLowerCase()), 'her choice, as written')
+  assert.match(system, /let it ring/, 'how it ended, from the END brief')
+  assert.doesNotMatch(system, /You two were in the middle of/, 'nothing is left open')
+})
