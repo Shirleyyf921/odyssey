@@ -337,7 +337,11 @@ as Jun, the car one with heavier brows; Rafe's lift and rain ones are a broader,
 than the hero, the couch one hides the face. Two things drifted: four of ten came back pure
 monochrome, no warm skin and no accent, because the prompt still said "mostly monochrome grey
 wash" and the model took it literally; and the smile: the model reaches for a grin the
-hero never wears. Both are prompt fixes, not model limits.
+hero never wears. A third, from Shirley's read (she found all ten recognisable): the roof scene came back
+as a full-length figure small in the frame, because the scene said "standing, wind, holding
+his coat open"; every other one is chest- or waist-up. The framing has to be pinned in the
+prompt ("chest-up or waist-up, the face in the upper half of the frame") and the beat's
+action confined to that frame. All three are prompt fixes, not model limits.
 
 Verdict: feasible as "ask him for a picture" on a beat, prompt assembled server-side from the
 beat, the persona, the style block and his hero; the user never types the prompt. Rating
