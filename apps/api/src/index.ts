@@ -7,7 +7,7 @@ import { characterRoutes } from './routes/characters.js'
 import { authorRoutes } from './routes/episodes.js'
 import { reviewRoutes } from './routes/review.js'
 import { ReachOutService } from './relationship/reachout.js'
-import { serveWeb } from './web.js'
+import { serveArt, serveWeb } from './web.js'
 import { LogNotifier, ResendNotifier, type ReviewNotifier } from './review/notify.js'
 import { chatWebsocket } from './ws/chat.js'
 import { requireIdentity } from './auth/identity.js'
@@ -144,6 +144,7 @@ if (env.NODE_ENV === 'production' && env.BILLING_GRANT_SECRET) app.log.warn('BIL
 })
 
 // The web build, when it has been exported, on this same origin. Last, so no API route is shadowed.
+await serveArt(app, env.ART_DIR)
 if (await serveWeb(app, env.WEB_DIST)) app.log.info({ dir: env.WEB_DIST }, 'serving the web build')
 else app.log.info({ dir: env.WEB_DIST }, 'no web build to serve')
 

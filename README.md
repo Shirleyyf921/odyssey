@@ -109,6 +109,12 @@ puts them in their own browser once (`localStorage.setItem('odyssey.grantSecret'
 `odyssey.reviewSecret`; see `apps/mobile/src/lib/secrets.ts`), and a store build cannot carry
 one. Both are open in development without a secret.
 
+The art is in the repo, `apps/api/art`, served at `/art/<file>` with a year of caching
+(`ART_DIR`). The seed writes absolute URLs into it from `PUBLIC_URL`, else Railway's public
+domain, else `http://localhost:PORT`; set `PUBLIC_URL` to a LAN address when a phone on the
+same wifi should load the pictures from a local API. `apps/api/art/SOURCES.md` says where
+each file came from.
+
 `RESEND_API_KEY` plus `REVIEW_NOTIFY_EMAIL` turn the "something is waiting"
 log line into a mail.
 

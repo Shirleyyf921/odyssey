@@ -1,11 +1,12 @@
 import type { HotspotRect, Moment, Portrait, Scene } from '@odyssey/shared'
 import type { CharacterRecord, EpisodeRecord } from '../repo/types.js'
+import { art } from '../public-url.js'
 
 /**
  * Launch roster. Fixed ids so the in-memory store, the Postgres seed, and any
- * client fixture agree. Hero portraits point at the Lovart CDN renders chosen on
- * 2026-09-04 (see docs/art-prompts.md); paid moments carry their art plus a
- * 24×32 teaser (see docs/art-prompts.md); the rest are placeholders; nothing here is final copy.
+ * client fixture agree. Art is served by this API from apps/api/art (since
+ * 2026-09-14; apps/api/art/SOURCES.md says where each file came from); paid
+ * moments carry a 24×32 teaser (see docs/art-prompts.md); nothing here is final copy.
  */
 
 export interface SeedCharacter {
@@ -214,8 +215,8 @@ const JUN_HOTSPOTS: HotspotRect[] = [
   { hotspot: 'shoulder', x: 0.08, y: 0.62, w: 0.36, h: 0.22 },
 ]
 
-const placeholder = (label: string) =>
-  `https://placehold.co/900x1200/1a1a24/8a8a98.png?text=${encodeURIComponent(label)}`
+/** A dark 3:4 frame for a card whose art is not made yet; the tile carries the title. */
+const placeholder = (_label: string) => art('placeholder.png')
 
 /**
  * Ash, episode 2. MATURE, so it exists only on the web build and only for
@@ -592,7 +593,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       {
         id: 'd1000000-0000-4000-8000-000000000001',
         characterId: 'a1000000-0000-4000-8000-000000000001',
-        url: 'https://a.lovart.ai/artifacts/agent/cvmf6SbrPSG406w8.png',
+        url: art('ash-hero.jpg'),
         position: 0,
         label: 'hero',
         hotspots: ASH_HOTSPOTS,
@@ -607,7 +608,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
           'A one-room flat above a shut noodle place, three in the morning. Three monitors, a keyboard, a cold mug, a couch that has been slept on more than the bed. Rain on the window and the city going on without either of you.',
         opener:
           "*turns from the monitors, one arm still hooked over the back of the chair, and looks at you over the top of his glasses* you took the stairs. *a beat* you always take the stairs.",
-        backdropUrl: 'https://a.lovart.ai/artifacts/agent/78K32eU1y3LZaLZy.png',
+        backdropUrl: art('ash-room.jpg'),
         position: 0,
       },
       {
@@ -628,7 +629,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         characterId: 'a1000000-0000-4000-8000-000000000001',
         title: 'The mug',
         caption: "You left it here in March. I have not moved it.",
-        imageUrl: 'https://a.lovart.ai/artifacts/agent/s2TA7z21NaKkGqRd.png',
+        imageUrl: art('ash-mug.jpg'),
         position: 0,
         unlock: { kind: 'FREE' },
       },
@@ -637,7 +638,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         characterId: 'a1000000-0000-4000-8000-000000000001',
         title: 'Four in the morning',
         caption: 'The city is mine at this hour. I keep thinking you would like it.',
-        imageUrl: 'https://a.lovart.ai/artifacts/agent/CgCfWrM4o2nipNY8.png',
+        imageUrl: art('ash-four-am.jpg'),
         position: 1,
         unlock: { kind: 'STAGE', stage: 'ACQUAINTED' },
       },
@@ -646,7 +647,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         characterId: 'a1000000-0000-4000-8000-000000000001',
         title: 'When it finally breaks',
         caption: 'Nine days on this one. This is the face of it giving in.',
-        imageUrl: 'https://a.lovart.ai/artifacts/agent/eaIRzRBll6EYmVhD.png',
+        imageUrl: art('ash-breaks.jpg'),
         position: 2,
         unlock: { kind: 'AFFINITY', min: 40 },
       },
@@ -655,7 +656,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         characterId: 'a1000000-0000-4000-8000-000000000001',
         title: 'The roof',
         caption: 'I come up here when I cannot come down. You would have liked the light.',
-        imageUrl: 'https://a.lovart.ai/artifacts/agent/7o9jK5ezbPIY7xXl.png',
+        imageUrl: art('ash-roof.jpg'),
         position: 3,
         unlock: { kind: 'STAGE', stage: 'CLOSE' },
       },
@@ -675,7 +676,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         characterId: 'a1000000-0000-4000-8000-000000000001',
         title: 'Steam',
         caption: "Glasses off. You are the only one who gets to see the difference.",
-        imageUrl: 'https://a.lovart.ai/artifacts/agent/zXBDeVGcqUA7Nvxb.png',
+        imageUrl: art('ash-steam.jpg'),
         teaserUrl:
           'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAIAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAIAAYAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMABAQEBAQEBgQEBgkGBgYJDAkJCQkMDwwMDAwMDxIPDw8PDw8SEhISEhISEhUVFRUVFRkZGRkZHBwcHBwcHBwcHP/bAEMBBAUFBwcHDAcHDB0UEBQdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHf/dAAQAAv/aAAwDAQACEQMRAD8A+YX8K38c8cdyPIErAbpDtHJxnml8T+GrXTLu6tbf/l2YoHLZLbepIzXf/FBrLxL8QLU6bp8iWyeXE4BJikwckg9sjg/Sucu3muWZpYwpbAYgAdOO30rOnVk4xk1udFSjFSlFdDyR4Q7bQRn6037Ga7jVoIzCkpQF1YjPTA/CsD5PX9a9KCjNXPOqc0XY/9D5p07xRqN9OWvJmKWsDdTwMcA/rVrTlE+hSanISZbq5byh2EaDGfqTn8q89bW52t2ge1ihWVQrlMqzDOclm3H9e1aNr4otobGDT9jqkAI9c7jk9PrTUdNi+bXcu+IpzaWtuA25nBauO/tOb2rV1rVoL4xNaHAQY+br09Kw/tE/9+tIOyInqz//2Q==',
         position: 5,
@@ -686,7 +687,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         characterId: 'a1000000-0000-4000-8000-000000000001',
         title: 'After the run',
         caption: "Four in the morning and I still could not sit still. Your fault.",
-        imageUrl: 'https://a.lovart.ai/artifacts/agent/qgi8MpzqIr6DCuYC.png',
+        imageUrl: art('ash-after-run.jpg'),
         teaserUrl:
           'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAIAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAIAAYAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMABAQEBAQEBgQEBgkGBgYJDAkJCQkMDwwMDAwMDxIPDw8PDw8SEhISEhISEhUVFRUVFRkZGRkZHBwcHBwcHBwcHP/bAEMBBAUFBwcHDAcHDB0UEBQdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHf/dAAQAAv/aAAwDAQACEQMRAD8A+fde0bRovH6x6mymz+0Kjb+FOYdyBvYvgH2rhvEmkx29t53lbZN4BOAvXtiukJhk+1ape/vEtViKbj1lIIXr1wAT+Vc9qt6b3RUlcbWkYYGc55POfeumq/fdjOmvc1OIRY8HccEduaX5PQ1ranaW8AhliGNww2OmR3rK3RVCfYGrM//Q+Om1G4ubCPTl5G85I5yXP6dufQVteJtLhspFs7UiWK1ZcspyOFG78M5rjbjVI2ZfstultGFCkLlmYgYLFj6+gwKpG+uGypmfY3BGT0rWS10FF6WZr6hI1xp0EjDaWZmx7c1gbB71bvbnzX2wn91GoRB04Hf8aoZb0/WmiXuf/9k=',
         position: 6,
@@ -697,7 +698,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         characterId: 'a1000000-0000-4000-8000-000000000001',
         title: 'Your side',
         caption: "I slept. Six hours. You will want to write that down.",
-        imageUrl: 'https://a.lovart.ai/artifacts/agent/FgUYH7au8u2KPLTn.png',
+        imageUrl: art('ash-your-side.jpg'),
         teaserUrl:
           'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAIAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAIAAYAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMABAQEBAQEBgQEBgkGBgYJDAkJCQkMDwwMDAwMDxIPDw8PDw8SEhISEhISEhUVFRUVFRkZGRkZHBwcHBwcHBwcHP/bAEMBBAUFBwcHDAcHDB0UEBQdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHf/dAAQAAv/aAAwDAQACEQMRAD8At63oNl4t8PeDNE+1u2n3F0y54DmJRKeM8hiowM9zXzX4o0mzm1C4t7e1jtIYWMcKJkkAcA7iSzH3JrNsNa8TGGC4tIbmKWFg8UuxsqwOdyk8Y966ez1EeI9Zu7eK3QT4Zg2cBigy52nhScE8cVhZ09b6HRG09Dwa4wu+JsZBOTVHanrXuGn6R4Rv9Yi8Oa6F09r1maK7CFirkfKrfMFKMePUHvg8d1/wpHwf/wBDJB/36X/4/WjqxW5mqUuh/9Dw3/hLP9PeSy82ygJRUBlafHlkFTKJARJzyRgD0A6V534ge70bxHfXMUoMMsm9ZoFKxuJPmOwEAAdRjt0pomckBQTgkkCtO81lz4em0bUod9o8qzxuR80cgBHynsGHBHTpTcUti7tnEa1fz314JJuGVVHXOM8/1rLzN/e/U1ZlM9/NJcgD5ecD0HYVHif/AJ5H8jVozZ//2Q==',
         position: 7,
@@ -709,7 +710,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         characterId: ASH,
         title: 'Come here',
         caption: "Stop standing in the doorway. I already know you are going to.",
-        imageUrl: 'https://a.lovart.ai/artifacts/agent/9ZBMKpRuES3F0P3K.png',
+        imageUrl: art('ash-come-here.jpg'),
         teaserUrl:
           'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAIAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAIAAYAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMABAQEBAQEBgQEBgkGBgYJDAkJCQkMDwwMDAwMDxIPDw8PDw8SEhISEhISEhUVFRUVFRkZGRkZHBwcHBwcHBwcHP/bAEMBBAUFBwcHDAcHDB0UEBQdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHf/dAAQAAv/aAAwDAQACEQMRAD8A+d9Htn1O9WyLkIwLv64X/wDXXd/8IjaS2bKxEMm1mVgT/CM/Nk9D0rlNO8ReHbLXLODQbQyR/blXzH5d4GAQoR05PJx9K6nXNd0zSpda06/hminjjf7MX+YGKcYRozwMfMBz0PrzWVeLjLli7l4efPDmkrep5RcaXcXLGYoyxgKQSDhuCCB+HNU/7Kh9D+R/wrT0DV9Oe1XSdYMgiceWHXHy9w3OOhrf/srwb/0E7n/vqP8AxrXnto0Q6blqmf/Q+WdDjhuPFdhCFEaNJGCAOhHzcfiOtfQHxU8C6hqnhmLVNMcTHSxmSNcmRkkAEiDGc7HUHb7kjmvDvB93aWPimz1G8dYo7cMWZunTjOfxr1DQPHtlq2jTw3N46XdqtwxX7jyKWLh427Oo6Z9cHjry1VLmUo9DqpcvK4y6nh/iDSDoE8NhLLvufJSSdAMeU787CcnJUdTxzXP+aPWtzXrvRbi+Nxp8l06SjdI1yVMhcnk5XAIPXpWHvsPV/wAq647anLK19D//2Q==',
         position: 8,
@@ -741,7 +742,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       {
         id: 'd1000000-0000-4000-8000-000000000002',
         characterId: 'a1000000-0000-4000-8000-000000000002',
-        url: 'https://a.lovart.ai/artifacts/agent/NWzeW1axpBGMKi6R.png',
+        url: art('rafe-hero.jpg'),
         position: 0,
         label: 'hero',
         hotspots: RAFE_HOTSPOTS,
@@ -756,7 +757,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
           'The forty-second floor at five in the morning. Marble, a grand piano nobody plays, a city going pale through glass that runs floor to ceiling. A jacket on the couch, a glass on the floor beside it.',
         opener:
           "*does not get up, tips his head back to look at you upside down, and smiles like this is the best thing that has happened all week* you came all the way up here. *quieter* nobody comes all the way up here.",
-        backdropUrl: 'https://a.lovart.ai/artifacts/agent/FYT4QCZ78PHsECmc.png',
+        backdropUrl: art('rafe-apartment.jpg'),
         position: 0,
       },
     ],
@@ -766,7 +767,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         characterId: 'a1000000-0000-4000-8000-000000000002',
         title: 'The piano',
         caption: 'Tuned every year for eleven years. Nobody has played it in nine.',
-        imageUrl: 'https://a.lovart.ai/artifacts/agent/ccY6vitNpLECiaVF.png',
+        imageUrl: art('rafe-piano.jpg'),
         position: 0,
         unlock: { kind: 'STAGE', stage: 'ACQUAINTED' },
       },
@@ -775,7 +776,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         characterId: 'a1000000-0000-4000-8000-000000000002',
         title: 'Sober',
         caption: 'You worked it out before anyone else did. I have not decided how I feel about that.',
-        imageUrl: 'https://a.lovart.ai/artifacts/agent/TGbw6RCXr7FstPQi.png',
+        imageUrl: art('rafe-sober.jpg'),
         teaserUrl:
           'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAIAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAIAAYAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMABAQEBAQEBgQEBgkGBgYJDAkJCQkMDwwMDAwMDxIPDw8PDw8SEhISEhISEhUVFRUVFRkZGRkZHBwcHBwcHBwcHP/bAEMBBAUFBwcHDAcHDB0UEBQdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHf/dAAQAAv/aAAwDAQACEQMRAD8A9W8PfFjw9pOl+FYvLdI0tZkx3IUqMKe/TJrzPx18R9aXwrp+kaYRBpskG5wyKxlYSlxk9QAQPu/ia474feHNHWHTPFl9e3IGmqxlgbEwLybtqRKMBeBli3t1rmfE18dVgSKCMQpA0gjQHO1WbOOeuK8d3UrJnqpJq7R47rN7Jd3XkiMkoxbgcHPP9azdtx/z7mup1TS715hJZMZGkbHk5GCTz8vT8qz/AOxPE3/QOk/L/wCvXdC1tDikmnqf/9C5dQXlh4acNcxX7pdqsK2zB0OV+6NoGGz0GK8U1Q3EepTWyKDIOSFIIBI5yRxx3964OHxbcafaPaiZZ1ch9gDBA4BUMeVOQCcc/WqUXjKZMLdQLtbq6ZB+uOf51wQoNaM75109jsYmTTpo5r3MrCUO2M9M9Frpf+Es0H/n3m/Nv8a8obU5pJJ4WJkGSUyew+vrVP7TP/zyH510+zj1Of2kuh//2Q==',
         position: 1,
@@ -787,7 +788,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         characterId: RAFE,
         title: 'Sit',
         caption: "There is a whole couch. I am asking for the part next to me.",
-        imageUrl: 'https://a.lovart.ai/artifacts/agent/RqiYiaiRkRJMTp5g.png',
+        imageUrl: art('rafe-sit.jpg'),
         teaserUrl:
           'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAIAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAIAAYAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMABAQEBAQEBgQEBgkGBgYJDAkJCQkMDwwMDAwMDxIPDw8PDw8SEhISEhISEhUVFRUVFRkZGRkZHBwcHBwcHBwcHP/bAEMBBAUFBwcHDAcHDB0UEBQdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHf/dAAQAAv/aAAwDAQACEQMRAD8ALvxtYz/GzR/EkybYzpQinXH8RWQNtHoG6Vx3xBtNO1zUNR1W3LwxzXMs0RKnAMoVSOOCBsGfrSWOqeGbS806wn0+DzZLdTISGLJMy+YVMjEvt2k4O4jgg1e1qWO8SGwiBgN4zQW68sD1cAN1CYB57V5trNNHobpo+bLaGQS4lTYwdhk98Kw4zWh5J9K2/FGgX3h+eE3ar5bFgrxvu+YdQ2QMcdK5j7UfX9RXemnqcTVtD//Q+afDyarrusWwtpN8NrjeXIBEWNpA7nI4r2M3E0/jeyRtpTSbEzHPA3yvtHA+mK+XVuJ7Z1uIGaORCGV1PzAive/BfipLgtfTXUH9oSQobqVImXbFGckSMx2kgdAgHzHJ4Fc1WLSujopyWzNX4k3+lrDC+saY0pkfdGFmaNskHkjOCMe1eQf2j4a/6A0v/gS1dB4/1yDXrLTLsP5jtLdSKe6xGTCA++BXmuU9f0qqUPd1JqS97Q//2Q==',
         position: 2,
@@ -820,7 +821,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
       {
         id: 'd1000000-0000-4000-8000-000000000003',
         characterId: 'a1000000-0000-4000-8000-000000000003',
-        url: 'https://a.lovart.ai/artifacts/agent/vwYDX02l0I21JKud.png',
+        url: art('jun-hero.jpg'),
         position: 0,
         label: 'hero',
         hotspots: JUN_HOTSPOTS,
@@ -845,7 +846,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         characterId: 'a1000000-0000-4000-8000-000000000003',
         title: 'Noted',
         caption: 'The man who talked over you at dinner. His lease is up in March.',
-        imageUrl: 'https://a.lovart.ai/artifacts/agent/34FM8RhMNG2gM6BR.png',
+        imageUrl: art('jun-noted.jpg'),
         position: 0,
         unlock: { kind: 'AFFINITY', min: 30 },
       },
@@ -854,7 +855,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         characterId: 'a1000000-0000-4000-8000-000000000003',
         title: 'Glasses off',
         caption: 'You wanted to see me without them. Look, then.',
-        imageUrl: 'https://a.lovart.ai/artifacts/agent/qpIM8XPKyQJLVLEO.png',
+        imageUrl: art('jun-glasses-off.jpg'),
         teaserUrl:
           'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAIAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAIAAYAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMABAQEBAQEBgQEBgkGBgYJDAkJCQkMDwwMDAwMDxIPDw8PDw8SEhISEhISEhUVFRUVFRkZGRkZHBwcHBwcHBwcHP/bAEMBBAUFBwcHDAcHDB0UEBQdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHf/dAAQAAv/aAAwDAQACEQMRAD8A+I4VYupjXHHTrmtKxfVlCXCqNkjbcHHHrx14rKd5LPdGhw24DI9MZrvtAvTcaRbmL93fWsrL5wx8yHkZGPvDJGe4xRUqOFmgpUlO6Zyl7HcgtJNjH0rM/D9K7bxVqEUkkMQjjSRwS7IACxB6kDAHI7CuU81fetozUldHPKLi+Vn/0Ph6RZLqRpolZkGNzY6ZwOamttSfTZ5ktyShztx2NbFtDatavb292iNKyljJlRgZ4zz3qvJ4WveZIri2lDH+GVe9N2ejErxd0YW+a5lWV8szEjJ5q39nm/umtddPvLbSXgmIUxymQYOQQBzgjisfzm/vGi/QHG+p/9k=',
         position: 1,
@@ -866,7 +867,7 @@ export const SEED_CHARACTERS: SeedCharacter[] = [
         characterId: JUN,
         title: 'Closer',
         caption: "Sixty floors up. You are standing too near the edge, and it is not the drop I mean.",
-        imageUrl: 'https://a.lovart.ai/artifacts/agent/giVvn31cg5DlwRPf.png',
+        imageUrl: art('jun-closer.jpg'),
         teaserUrl:
           'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAIAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAIAAYAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMABAQEBAQEBgQEBgkGBgYJDAkJCQkMDwwMDAwMDxIPDw8PDw8SEhISEhISEhUVFRUVFRkZGRkZHBwcHBwcHBwcHP/bAEMBBAUFBwcHDAcHDB0UEBQdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHf/dAAQAAv/aAAwDAQACEQMRAD8A+H1h2oXPRRk1DELy4Ja3jaQKNzBFLBR74rp7eW0lQxyuGLL0VenOMNxxxzXZaVpmn6FrNxoSXkjRXSxvkYXcpzxkcjBBB56GplKxcY3PMHtmcxFFOZVyBjPJxUv9k6h/z7t/3ya9JisdCPibU21J7iNbOItarbhS3mFAYyd38Kv9/qcfjVj7cP8An9u/++F/+JrnniHF25WdEaF1e5//0PmTwP4ahuLaTWNQGYoiViQgHewHX3x296o+Ir62h8R2lzCrD7OqCUNxuDEtn8jWzo/ijR9N0jQbCSYM5mdrkD/lnncBuz7sPwo8Xadp0E093PcQ/bHtsQpKSFZOfnXggtjIAzjNc93z6nTZcuhxl3fSyavf31mww83DHnIGRn8ad/a+pf34/wDvgVzsc+yFkXq5/QCmbj6t+ZrflMeY/9k=',
         position: 2,
