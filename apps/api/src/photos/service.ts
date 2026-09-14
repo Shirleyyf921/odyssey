@@ -1,7 +1,8 @@
 import { composePhotoPrompt, parsePhotoScene, renderPhotoScenePrompt } from '@odyssey/prompts'
-import { toMomentCard, type ContentRating, type Message, type MomentCard } from '@odyssey/shared'
+import { toMomentCard, type ContentRating, type Message, type MomentCard, type PhotoKind } from '@odyssey/shared'
 import type { ChatDeps } from '../chat/handler.js'
 import { utcDayStart } from '../billing/rules.js'
+import { levelFor } from '../levels.js'
 import { publicUrl } from '../public-url.js'
 import type { AppRepository, ConversationContext } from '../repo/types.js'
 import { activeStory } from '../story/runtime.js'
@@ -19,7 +20,7 @@ import type { ImageProvider } from './provider.js'
  */
 export class PhotoRefused extends Error {
   constructor(
-    readonly code: 'NEEDS_PLUS' | 'USED_TODAY' | 'UNAVAILABLE',
+    readonly code: 'NEEDS_PLUS' | 'USED_TODAY' | 'LEVEL' | 'UNAVAILABLE',
     message: string
   ) {
     super(message)
@@ -29,6 +30,13 @@ export class PhotoRefused extends Error {
 export interface PhotoServiceOptions {
   perDayPlus: number
   timeoutMs?: number
+}
+
+/** The three kinds on the menu: what she asked for, in words the scene model acts on, and how far it may reach. */
+export const PHOTO_KINDS: Record<PhotoKind, { ask: string; rating: ContentRating; title: string }> = {
+  NOW: { ask: 'a picture of you right now, where you are, doing what you are doing', rating: 'SFW', title: 'For you' },
+  MORNING: { ask: 'a picture of you the morning after, just up, shirt open, before you have put yourself together', rating: 'MATURE', title: 'The morning' },
+  ONLY_YOU: { ask: 'the picture you would not send anyone else: private, close, taken for her alone', rating: 'MATURE', title: 'Only you' },
 }
 
 /** The private card's position: after the catalogue, in the order asked. */
@@ -49,11 +57,18 @@ export class PhotoService {
     return `${publicUrl()}/photos/${momentId}.jpg`
   }
 
-  async ask(deps: ChatDeps, ctx: ConversationContext, now = new Date()): Promise<{ moment: MomentCard; message: Message }> {
+  async ask(deps: ChatDeps, ctx: ConversationContext, kind: PhotoKind = 'NOW', now = new Date()): Promise<{ moment: MomentCard; message: Message }> {
     const { repo, log } = deps
     if (!this.provider) throw new PhotoRefused('UNAVAILABLE', 'He cannot send pictures yet.')
     const character = await repo.getCharacter(ctx.character.id)
     if (!character || !character.look) throw new PhotoRefused('UNAVAILABLE', 'He cannot send pictures yet.')
+    // The hotter kinds only at the MATURE level: the build, her age, her plan, and how close he is.
+    const wanted = PHOTO_KINDS[kind]
+    if (wanted.rating === 'MATURE') {
+      const tier = await deps.billing.tierOf(ctx.user.id)
+      const level = levelFor({ channel: deps.channel, ageVerified: ctx.user.ageVerifiedAt !== null, tier, stage: ctx.relationship.stage })
+      if (level !== 'MATURE') throw new PhotoRefused('LEVEL', 'Not that one yet. He will, when you are closer.')
+    }
 
     // Who may. The credit is spent before the picture exists; a failed generation gives it back.
     const paidWithCredit = await repo.spendPhotoCredit(ctx.user.id)
@@ -66,7 +81,7 @@ export class PhotoService {
 
     try {
       const story = await activeStory(deps, ctx)
-      const rating: ContentRating = story?.episode.rating ?? 'SFW'
+      const rating: ContentRating = wanted.rating
       const recent = (await repo.listRecentMessages(ctx.conversation.id, 8))
         .filter((m) => m.role !== 'SYSTEM')
         .map((m) => `${m.role === 'USER' ? 'you' : 'him'}: ${m.content.slice(0, 200)}`)
@@ -80,6 +95,7 @@ export class PhotoService {
         episodeTitle: story?.episode.title ?? null,
         recent,
         memories,
+        ask: wanted.ask,
       })
       const [hero] = await repo.listPortraits(ctx.character.id)
       const prompt = composePhotoPrompt({ look: character.look, scene: written.scene, rating })
@@ -88,7 +104,7 @@ export class PhotoService {
       const asked = await repo.countAskedSince(ctx.user.id, new Date(0))
       const moment = await repo.insertMoment({
         characterId: ctx.character.id,
-        title: 'For you',
+        title: wanted.title,
         caption: written.caption,
         imageUrl: 'https://placeholder.invalid/pending',
         teaserUrl: null,
@@ -109,7 +125,7 @@ export class PhotoService {
         inReplyTo: null,
         momentId: moment.id,
       })
-      log.info({ conversationId: ctx.conversation.id, momentId: moment.id, rating, credit: paidWithCredit, provider: this.provider.name, bytes: image.length }, 'picture asked for')
+      log.info({ conversationId: ctx.conversation.id, momentId: moment.id, kind, rating, credit: paidWithCredit, provider: this.provider.name, bytes: image.length }, 'picture asked for')
       return { moment: toMomentCard(stored, unlock), message }
     } catch (err) {
       if (paidWithCredit) await repo.addPhotoCredits(ctx.user.id, 1)

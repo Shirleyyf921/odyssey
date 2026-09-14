@@ -39,6 +39,15 @@ export const StartRelationshipResponse = z.object({
 })
 export type StartRelationshipResponse = z.infer<typeof StartRelationshipResponse>
 
+/**
+ * What kind of picture (2026-09-14, the menu): NOW is where he is, anywhere;
+ * MORNING and ONLY_YOU are the hotter kinds, given only at the MATURE level.
+ */
+export const PhotoKind = z.enum(['NOW', 'MORNING', 'ONLY_YOU'])
+export type PhotoKind = z.infer<typeof PhotoKind>
+export const AskPhotoRequest = z.object({ kind: PhotoKind.default('NOW') })
+export type AskPhotoRequest = z.infer<typeof AskPhotoRequest>
+
 /** Ask him for a picture (docs/story-pipeline.md, "Ask him for a picture"). */
 export const AskPhotoResponse = z.object({
   moment: MomentCard,
@@ -47,7 +56,7 @@ export const AskPhotoResponse = z.object({
 export type AskPhotoResponse = z.infer<typeof AskPhotoResponse>
 
 /** Why a picture was refused; the client maps these to the paywall or to a line. */
-export const AskPhotoRefusal = z.enum(['NEEDS_PLUS', 'USED_TODAY', 'UNAVAILABLE'])
+export const AskPhotoRefusal = z.enum(['NEEDS_PLUS', 'USED_TODAY', 'LEVEL', 'UNAVAILABLE'])
 export type AskPhotoRefusal = z.infer<typeof AskPhotoRefusal>
 
 /** Development only: pictures to add to the caller's balance. */

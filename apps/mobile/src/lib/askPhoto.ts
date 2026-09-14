@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import type { PhotoKind } from '@odyssey/shared'
 import { api, ApiError } from './api'
 import { useChatStore } from '../store/chat'
 import { usePaywall } from '../store/paywall'
@@ -14,7 +15,7 @@ export function useAskPhoto(conversationId: string, characterId: string | undefi
   const qc = useQueryClient()
   const [line, setLine] = useState<string | null>(null)
   const ask = useMutation({
-    mutationFn: () => api.askPhoto(conversationId),
+    mutationFn: (kind: PhotoKind) => api.askPhoto(conversationId, { kind }),
     onMutate: () => setLine(null),
     onSuccess: ({ moment, message }) => {
       // The card must be in the moments cache before the message that carries it renders.
@@ -30,5 +31,5 @@ export function useAskPhoto(conversationId: string, characterId: string | undefi
       setLine(err instanceof Error ? err.message : String(err))
     },
   })
-  return { ask: () => ask.mutate(), taking: ask.isPending, line }
+  return { ask: (kind: PhotoKind) => ask.mutate(kind), taking: ask.isPending, line }
 }

@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useCallback, useState } from 'react'
-import { ActivityIndicator, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native'
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { STAGE_LINE, STAGE_ORDER, type EpisodeCard, type ReportReason } from '@odyssey/shared'
+import { STAGE_LINE, type EpisodeCard, type ReportReason } from '@odyssey/shared'
 import { ApiError } from '../../src/lib/api'
+import { canMature } from '../../src/lib/levels'
 import { Lock } from '../../src/components/Lock'
 import { api } from '../../src/lib/api'
 import { usePaywall } from '../../src/store/paywall'
@@ -225,12 +226,6 @@ const PRESETS: Array<{ label: string; text: string; heat: 'SFW' | 'MATURE' }> = 
   { label: 'You, off duty', text: 'Let me see you when you are not working.', heat: 'SFW' },
   { label: "Don't ask tonight", text: "Don't ask me anything tonight. Just do it.", heat: 'MATURE' },
 ]
-
-/** The client's copy of the level rule (nights/service.ts): web, age, plan, and CLOSE or past. The server decides. */
-function canMature(me: { user: { ageVerified: boolean }; billing: { tier: string } } | undefined, stage: string | null): boolean {
-  if (Platform.OS !== 'web' || !me || !me.user.ageVerified || me.billing.tier === 'FREE' || !stage) return false
-  return STAGE_ORDER.indexOf(stage as (typeof STAGE_ORDER)[number]) >= STAGE_ORDER.indexOf('CLOSE')
-}
 
 const REPORT_REASONS: Array<{ reason: ReportReason; label: string }> = [
   { reason: 'BROKEN', label: 'Does not play' },

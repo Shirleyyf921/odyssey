@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { DevPhotoCreditsRequest, GRANT_SECRET_HEADER, type AskPhotoResponse } from '@odyssey/shared'
+import { AskPhotoRequest, DevPhotoCreditsRequest, GRANT_SECRET_HEADER, type AskPhotoResponse } from '@odyssey/shared'
 import { secretMatches } from '../auth/secret.js'
 import type { ChatDeps } from '../chat/handler.js'
 import { PhotoRefused, type PhotoService } from '../photos/service.js'
@@ -24,10 +24,12 @@ export async function photoRoutes(
     const { conversationId } = Params.parse(req.params)
     const ctx = await repo.getConversationContext(conversationId)
     if (!ctx || ctx.user.id !== req.user.id) return reply.code(404).send({ error: 'conversation not found' })
+    const body = AskPhotoRequest.safeParse(req.body ?? {})
+    if (!body.success) return reply.code(400).send({ error: 'kind must be NOW, MORNING or ONLY_YOU' })
     try {
-      return await photos.ask({ ...opts.deps, user: req.user, channel: req.channel }, ctx)
+      return await photos.ask({ ...opts.deps, user: req.user, channel: req.channel }, ctx, body.data.kind)
     } catch (err) {
-      if (err instanceof PhotoRefused) return reply.code(err.code === 'UNAVAILABLE' ? 503 : 402).send({ error: err.message, code: err.code })
+      if (err instanceof PhotoRefused) return reply.code(err.code === 'UNAVAILABLE' ? 503 : err.code === 'LEVEL' ? 403 : 402).send({ error: err.message, code: err.code })
       throw err
     }
   })

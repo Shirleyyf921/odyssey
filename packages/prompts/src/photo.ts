@@ -36,6 +36,8 @@ export interface PhotoSceneVariables {
   recent: string[]
   /** What he remembers about her, the retrieved few. */
   memories: string[]
+  /** What kind she asked for, in words the model can act on. */
+  ask: string
 }
 
 /**
@@ -46,7 +48,7 @@ export function renderPhotoScenePrompt(v: PhotoSceneVariables): string {
   const them = v.userName ?? 'her'
   return `You are ${v.characterName}. ${v.personaNotes}
 
-${them} has just asked you for a picture of yourself, right now, where you are. Decide what you would send.
+${them} has just asked you for a picture of yourself. What she asked for: ${v.ask}. Decide what you would send.
 
 Answer with JSON only, two keys:
 - "scene": one sentence, third person, describing the picture: where you are, what you are doing, what you are wearing, where you are looking, your expression. Present tense. Concrete. No more than 45 words. It must fit a chest-up portrait. If one of the things you remember about ${them} can be in the picture without forcing it (an object, a place, a habit), put it in.

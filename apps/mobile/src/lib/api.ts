@@ -2,6 +2,7 @@ import { z } from 'zod'
 import {
   type AskNightRequest,
   AskNightResponse,
+  type AskPhotoRequest,
   AskPhotoResponse,
   type DevPhotoCreditsRequest,
   CHANNEL_HEADER,
@@ -110,7 +111,7 @@ export const api = {
   /** Tonight, you decide (docs/story-pipeline.md): her line, his night, hers alone. 402/403/422 carry a code. */
   askNight: (characterId: string, body: AskNightRequest) => request('POST', `/characters/${characterId}/nights`, AskNightResponse, body),
   /** Ask him for a picture (docs/story-pipeline.md). 402 with a code when he may not; the store maps it. */
-  askPhoto: (conversationId: string) => request('POST', `/conversations/${conversationId}/photos`, AskPhotoResponse),
+  askPhoto: (conversationId: string, body: AskPhotoRequest) => request('POST', `/conversations/${conversationId}/photos`, AskPhotoResponse, body),
   /** Dogfood: pictures onto the balance, the way a purchase will. Same gating as devGrant. */
   devPhotoCredits: (body: DevPhotoCreditsRequest) => request('POST', '/billing/dev/photo-credits', z.object({ remaining: z.number() }), body),
   episodes: (id: string) => request('GET', `/characters/${id}/episodes`, EpisodesResponse),
