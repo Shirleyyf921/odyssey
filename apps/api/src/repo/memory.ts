@@ -204,8 +204,15 @@ export class MemoryRepository implements AppRepository {
   async listEpisodesByAuthor(userId: string) {
     return [...this.episodes.values()].flat().filter((e) => e.authorId === userId)
   }
+  private episodeCreatedAt = new Map<string, Date>()
+
+  async countPrivateEpisodesSince(userId: string, since: Date) {
+    return [...this.episodes.values()].flat().filter((e) => e.authorId === userId && e.status === 'PRIVATE' && (this.episodeCreatedAt.get(e.id) ?? new Date(0)) >= since).length
+  }
+
   async createEpisode(authorId: string, draft: EpisodeDraft) {
     const id = randomUUID()
+    this.episodeCreatedAt.set(id, new Date())
     const episode = this.fromDraft({ id, authorId, origin: 'UGC', status: 'DRAFT', version: 1, position: 0, unlock: { kind: 'FREE' }, reviewNote: null, dryRun: null }, draft)
     this.episodes.set(draft.characterId, [...(this.episodes.get(draft.characterId) ?? []), episode])
     return episode

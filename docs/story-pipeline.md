@@ -195,6 +195,24 @@ beat's brief (`renderLastNight`). He refers to it once, in passing, with what it
 a recap. Nothing is carried while a story is open (the story takes the turn) or after a week.
 The asked-for picture (below) draws on the same memory. Prompt version 0.8.0.
 
+## Tonight, you decide (2026-09-14)
+
+The reader's creation, made light: not the editor (that stays, for the few who want to publish),
+but one of his three lines or one of her own, and he writes the night. The story model fills a
+five-beat linear skeleton from her line as the premise (`draftEpisode`); her line and what he
+wrote are screened like anything a reader submits; the result is an episode with status
+`PRIVATE`: `origin UGC`, `authorId` her, never on any shelf, never in the review queue,
+startable by her alone (`start_episode` admits a PRIVATE night to its author), listed on his
+page as `mine`. It plays on the stage like any night and ends on his line; no branches, an
+extra, never the season, which is written by hand. `nights/service.ts`, `POST
+/characters/:id/nights`. Migration 0017 adds the status.
+
+Who may: Plus, one a night (`NIGHTS_PER_DAY_PLUS`), else the paywall with reason `NIGHT`. How
+far: SFW anywhere; the MATURE kind only on the web build, past the age gate, on Plus, and once
+he is CLOSE to her (`NightService.levelFor`): the build, the age, the plan and the relationship
+are the four levels. A night he wrote that reads MATURE when she may not have one is refused
+rather than softened.
+
 ## Ask him for a picture (2026-09-14)
 
 She asks, on the stage or in the chat; he decides what to send. The server assembles the

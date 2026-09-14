@@ -55,7 +55,7 @@ export const billingEnvironment = pgEnum('billing_environment', ['SANDBOX', 'PRO
 export const contentRating = pgEnum('content_rating', ['SFW', 'MATURE'])
 export const beatKind = pgEnum('beat_kind', ['STORY', 'CALL', 'END'])
 export const episodeOrigin = pgEnum('episode_origin', ['OFFICIAL', 'UGC'])
-export const episodeStatus = pgEnum('episode_status', ['DRAFT', 'SUBMITTED', 'LIVE', 'REJECTED', 'UNLISTED', 'REMOVED'])
+export const episodeStatus = pgEnum('episode_status', ['DRAFT', 'SUBMITTED', 'LIVE', 'REJECTED', 'UNLISTED', 'REMOVED', 'PRIVATE'])
 
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' })
 

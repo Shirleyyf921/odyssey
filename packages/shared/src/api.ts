@@ -125,7 +125,18 @@ export const EpisodesResponse = z.object({
   relationship: RelationshipSummary.nullable(),
   episodes: z.array(EpisodeCard),
   community: z.array(EpisodeCard),
+  /** The nights he wrote for this caller ("Tonight, you decide"), newest first. */
+  mine: z.array(EpisodeCard).default([]),
 })
+
+/** Tonight, you decide (docs/story-pipeline.md, 2026-09-14): her line, and how far it may go. */
+export const AskNightRequest = z.object({
+  wish: z.string().trim().min(3).max(140),
+  heat: ContentRating.default('SFW'),
+})
+export type AskNightRequest = z.infer<typeof AskNightRequest>
+export const AskNightResponse = z.object({ episode: EpisodeCard })
+export type AskNightResponse = z.infer<typeof AskNightResponse>
 export type EpisodesResponse = z.infer<typeof EpisodesResponse>
 
 /** A player flags a user-made episode. One per player per episode; a second one is answered, not counted. */

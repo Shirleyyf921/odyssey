@@ -96,5 +96,6 @@ export function toEpisodeCard(
     origin: episode.origin,
     authorName: credit.authorName ?? null,
     completions: credit.completions ?? 0,
+    private: episode.status === 'PRIVATE',
   }
 }

@@ -314,7 +314,8 @@ export type EpisodeOrigin = z.infer<typeof EpisodeOrigin>
  * Official episodes are born LIVE. Not to be confused with `EpisodeStatus`,
  * which is one player's progress through it (docs/ugc-pipeline.md, section 1).
  */
-export const EpisodeLifecycle = z.enum(['DRAFT', 'SUBMITTED', 'LIVE', 'REJECTED', 'UNLISTED', 'REMOVED'])
+/** PRIVATE (2026-09-14): a night he wrote for one user; never on a shelf, startable by its author only. */
+export const EpisodeLifecycle = z.enum(['DRAFT', 'SUBMITTED', 'LIVE', 'REJECTED', 'UNLISTED', 'REMOVED', 'PRIVATE'])
 export type EpisodeLifecycle = z.infer<typeof EpisodeLifecycle>
 
 export const BeatKind = z.enum([
@@ -553,6 +554,8 @@ export const EpisodeCard = Episode.pick({
   authorName: z.string().nullable(),
   /** Times someone reached an END. Ranks user-made episodes and, later, pays the creator in Plus days. */
   completions: z.number().int().min(0),
+  /** A night he wrote for this user alone ("Tonight, you decide"). */
+  private: z.boolean().default(false),
 })
 export type EpisodeCard = z.infer<typeof EpisodeCard>
 

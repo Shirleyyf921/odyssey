@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useCallback, useState } from 'react'
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
+import { ActivityIndicator, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { STAGE_LINE, type EpisodeCard, type ReportReason } from '@odyssey/shared'
+import { STAGE_LINE, STAGE_ORDER, type EpisodeCard, type ReportReason } from '@odyssey/shared'
+import { ApiError } from '../../src/lib/api'
 import { Lock } from '../../src/components/Lock'
 import { api } from '../../src/lib/api'
 import { usePaywall } from '../../src/store/paywall'
@@ -23,6 +24,9 @@ export default function CharacterScreen() {
   const { width } = useWindowDimensions()
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['character', id], queryFn: () => api.character(id), enabled: !!id })
   const episodes = useQuery({ queryKey: ['episodes', id], queryFn: () => api.episodes(id), enabled: !!id })
+  const me = useQuery({ queryKey: ['me'], queryFn: api.me })
+  const [wish, setWish] = useState('')
+  const [nightLine, setNightLine] = useState<string | null>(null)
   // Stage and moments move while chatting; pick that up when the user comes back.
   useFocusEffect(
     useCallback(() => {
@@ -49,6 +53,20 @@ export default function CharacterScreen() {
         pathname: '/chat/[conversationId]',
         params: { conversationId: relationship.conversationId, name: data?.name ?? '', characterId: id },
       })
+    },
+  })
+  /** Tonight, you decide: her line to him, his night back, played at once. */
+  const night = useMutation({
+    mutationFn: (body: { wish: string; heat: 'SFW' | 'MATURE' }) => api.askNight(id, body),
+    onMutate: () => setNightLine(null),
+    onSuccess: ({ episode }) => {
+      setWish('')
+      qc.invalidateQueries({ queryKey: ['episodes', id] })
+      play.mutate(episode.id)
+    },
+    onError: (err) => {
+      if (err instanceof ApiError && err.code === 'NEEDS_PLUS') return usePaywall.getState().open('NIGHT')
+      setNightLine(err instanceof Error ? err.message : String(err))
     },
   })
   const report = useMutation({
@@ -124,6 +142,44 @@ export default function CharacterScreen() {
         </ScrollView>
       )}
 
+      {/* Tonight, you decide: one of his lines, or hers, and he writes the night. */}
+      <View style={styles.section}>
+        <Text style={styles.label}>Tonight, you decide</Text>
+        <View style={styles.wishRow}>
+          {PRESETS.filter((p) => p.heat === 'SFW' || canMature(me.data, rel?.stage ?? null)).map((p) => (
+            <Pressable key={p.text} style={[styles.chip, wish === p.text && styles.chipActive]} onPress={() => setWish(wish === p.text ? '' : p.text)} disabled={night.isPending}>
+              <Text style={[styles.chipText, wish === p.text && styles.chipTextActive]}>{p.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <View style={styles.wishCompose}>
+          <TextInput
+            style={[styles.wishInput, styles.grow]}
+            value={wish}
+            onChangeText={setWish}
+            placeholder="Or say it in one line"
+            placeholderTextColor={colors.faint}
+            maxLength={140}
+            editable={!night.isPending}
+          />
+          <Pressable
+            style={[styles.wishGo, (night.isPending || wish.trim().length < 3) && styles.disabled]}
+            disabled={night.isPending || wish.trim().length < 3}
+            onPress={() => night.mutate({ wish: wish.trim(), heat: PRESETS.find((p) => p.text === wish)?.heat ?? 'SFW' })}
+          >
+            <Text style={styles.wishGoText}>{night.isPending ? 'He is writing…' : 'Tonight'}</Text>
+          </Pressable>
+        </View>
+        {nightLine ? <Text style={styles.faint}>{nightLine}</Text> : <Text style={styles.faint}>He writes it in a minute. It is yours alone.</Text>}
+        {episodes.data?.mine.length ? (
+          <View style={styles.mine}>
+            {episodes.data.mine.map((e) => (
+              <EpisodeRow key={e.id} episode={e} busy={play.isPending} onPlay={() => openEpisode(e)} />
+            ))}
+          </View>
+        ) : null}
+      </View>
+
       {episodes.data?.episodes.length ? (
         <View style={styles.section}>
           <Text style={styles.label}>His stories</Text>
@@ -163,6 +219,19 @@ export default function CharacterScreen() {
   )
 }
 
+/** His three lines; the reader can also write her own. The MATURE one shows only when she may have it. */
+const PRESETS: Array<{ label: string; text: string; heat: 'SFW' | 'MATURE' }> = [
+  { label: 'Somewhere nobody knows', text: 'Take me somewhere nobody knows about.', heat: 'SFW' },
+  { label: 'You, off duty', text: 'Let me see you when you are not working.', heat: 'SFW' },
+  { label: "Don't ask tonight", text: "Don't ask me anything tonight. Just do it.", heat: 'MATURE' },
+]
+
+/** The client's copy of the level rule (nights/service.ts): web, age, plan, and CLOSE or past. The server decides. */
+function canMature(me: { user: { ageVerified: boolean }; billing: { tier: string } } | undefined, stage: string | null): boolean {
+  if (Platform.OS !== 'web' || !me || !me.user.ageVerified || me.billing.tier === 'FREE' || !stage) return false
+  return STAGE_ORDER.indexOf(stage as (typeof STAGE_ORDER)[number]) >= STAGE_ORDER.indexOf('CLOSE')
+}
+
 const REPORT_REASONS: Array<{ reason: ReportReason; label: string }> = [
   { reason: 'BROKEN', label: 'Does not play' },
   { reason: 'MINOR', label: 'Minors' },
@@ -196,7 +265,7 @@ function EpisodeRow({
   const plusLocked = (e.status === 'LOCKED' && e.unlock.kind === 'PLUS') || (e.status === 'DONE' && !!e.lockReason)
   const shut = !playable && !plusLocked
   const meta =
-    e.status === 'IN_PROGRESS' ? `Continue · ${e.currentBeat}/${e.beatCount}` : e.status === 'DONE' ? 'Again' : e.status === 'LOCKED' ? e.lockReason : 'Play'
+    e.status === 'IN_PROGRESS' ? `Continue · ${e.currentBeat}/${e.beatCount}` : e.status === 'DONE' ? 'Again' : e.status === 'LOCKED' ? e.lockReason : e.private ? 'Yours · play' : 'Play'
   const send = async (reason: ReportReason) => {
     if (!onReport) return
     try {
@@ -288,6 +357,12 @@ const styles = StyleSheet.create({
   reportRow: { flexDirection: 'row', justifyContent: 'flex-end' },
   reportLink: { color: colors.faint, fontSize: 12, textDecorationLine: 'underline' },
   faint: { color: colors.faint, fontSize: 12, lineHeight: 16 },
+  wishRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  wishCompose: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', marginTop: 4 },
+  wishInput: { color: colors.ink, fontSize: 15, backgroundColor: 'rgba(244,241,236,0.06)', borderRadius: radius.pill, paddingHorizontal: 16, paddingVertical: 11 },
+  wishGo: { backgroundColor: colors.ink, paddingVertical: 11, paddingHorizontal: 18, borderRadius: radius.pill },
+  wishGoText: { color: '#0b0a0c', fontSize: 14, fontWeight: '700' },
+  mine: { marginTop: spacing.sm },
   devBox: { marginHorizontal: spacing.xl, borderTopWidth: 1, borderTopColor: colors.hairline, paddingTop: spacing.lg, gap: spacing.sm },
   devRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { borderWidth: 1, borderColor: 'rgba(244,241,236,0.18)', borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 6 },

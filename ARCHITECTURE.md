@@ -229,6 +229,7 @@ engaged user can spend lives in moments.
 | Proactive messages (§8) | ❌ | ✅ | ✅ |
 | Replaying a story (2026-09-14) | ❌ once each | ✅ again, any door | ✅ |
 | Asking him for a picture (2026-09-14) | ❌ bought only | ✅ one a day, plus bought | ✅ one a day, plus bought |
+| A night you choose (2026-09-14) | ❌ | ✅ one a night | ✅ one a night |
 | Voice (v2) | ❌ | ❌ | ✅ |
 | Moments | FREE tier only | FREE + STAGE + AFFINITY | Same, plus one monthly moment included |
 
